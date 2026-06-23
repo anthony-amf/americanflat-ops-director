@@ -1,0 +1,70 @@
+# Credentials & secrets
+*.key
+*.json
+*-key.json
+.env
+.env.local
+.env.*.local
+credentials/
+
+# BigQuery service account
+gcloud-key.json
+service-account-key.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Invoice data (keep samples, exclude actual invoice PDFs and data)
+*.pdf
+!samples/*.pdf
+!samples/*.xlsx
+
+# BigQuery temp files
+*.tmp
+*.temp
+
+# Test outputs
+test_output/
+.pytest_cache/
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
