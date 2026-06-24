@@ -85,19 +85,20 @@ Success Rate:  99.3%
 python3 validate-stedi-production.py 752319 --json-file 752319_orders.json --output 752319_validation.json
 ```
 
-## Multi-Carrier Support
+## Yusen Format Support
 
-The parser auto-detects format:
+The parser auto-detects Yusen invoice formats (Taylored Services is the legacy name):
 
-| Carrier | Detection | Status |
-|---------|-----------|--------|
-| Yusen | Sheet names: "Small Parcel", "LTL" | ✅ |
-| Taylored Services | TSI PO# header in A1 | ✅ |
-| Others | Add to `detect_format()` | 🔄 |
+| Format | Detection | Example | Status |
+|--------|-----------|---------|--------|
+| **Modern Yusen** | Sheet names: "Small Parcel", "LTL" | 751996 | ✅ |
+| **Legacy Yusen** (Taylored) | TSI PO# header, Sheet1/Sheet2 | 752319 | ✅ |
 
-**To add new carrier:**
+Both formats are from the same vendor (Yusen). The parser auto-detects and handles both.
+
+**To add new vendors:**
 1. Update `detect_format()` in `scripts/parse_invoice_excel.py`
-2. Create `parse_<carrier>_excel()` function
+2. Create `parse_<vendor>_excel()` function
 3. Test with sample file
 
 ## Batch Processing

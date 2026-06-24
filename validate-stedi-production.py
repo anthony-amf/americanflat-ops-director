@@ -3,12 +3,11 @@
 Production Stedi Validator for Americanflat Invoices
 
 Validates invoices against Stedi 945 EDI documents.
-Supports: Yusen, Taylored Services, and other carriers.
+Supports: Yusen (modern and legacy/Taylored formats)
 
 Usage:
     python validate-stedi-production.py 751996 --json-file orders.json
     python validate-stedi-production.py 752319 --json-file orders.json --output results.json
-    python validate-stedi-production.py 751996 --bigquery  # Query from BQ directly
 """
 
 import json
