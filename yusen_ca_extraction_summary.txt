@@ -1,0 +1,123 @@
+YUSEN INVOICE EXTRACTION SUMMARY
+================================
+
+File: NL20_CA26200110.pdf
+Extraction Output: yusen_ca_extraction.json
+Date: 2026-06-24
+
+INVOICE DETAILS
+---------------
+Invoice Number:       CA26200110
+Invoice Date:         2026-05-29
+Due Date:             2026-06-28
+Payment Terms:        30 Days invoice date
+Carrier:              Yusen Logistics (Benelux) B.V.
+Warehouse Location:   Moerdijk, Netherlands
+Issued By:            Piotr Bialkowski
+
+FINANCIAL SUMMARY
+-----------------
+Currency:             EUR
+Subtotal (EUR):       2,777.60
+VAT (21%):            583.30
+Total (EUR):          3,360.90
+Payment Reference:    CA26200110
+
+SHIPMENT DETAILS
+----------------
+Total Orders:         5
+Shipment Type:        EU Deliveries (Amazon)
+Transaction Type:     EU Shipment
+Delivery Locations:   France (5 destinations)
+
+LINE ITEMS BREAKDOWN
+--------------------
+
+Order 1: 10191776 (AMERICANFLAT164800)
+  - Destination: F-80470 Saint Sauveur
+  - Weight: 307.0 kg | Volume: 2.57 m³
+  - Charges:
+    * Transport Outbound: 342.54 EUR
+    * Fuel Surcharge: 145.34 EUR
+    * Amazon Delivery: 100.00 EUR
+  - Subtotal: 587.88 EUR
+
+Order 2: 10191777 (AMERICANFLAT164797)
+  - Destination: F-38290 Satolas et Bonce
+  - Weight: 296.0 kg | Volume: 2.44 m³
+  - Charges:
+    * Transport Outbound: 443.10 EUR
+    * Fuel Surcharge: 188.01 EUR
+    * Amazon Delivery: 100.00 EUR
+  - Subtotal: 731.11 EUR
+
+Order 3: 10191779 (AMERICANFLAT164798)
+  - Destination: F-62117 Brebières
+  - Weight: 262.0 kg | Volume: 1.62 m³
+  - Charges:
+    * Transport Outbound: 254.55 EUR
+    * Fuel Surcharge: 108.01 EUR
+    * Amazon Delivery: 100.00 EUR
+  - Subtotal: 462.56 EUR
+
+Order 4: 10229820 (AMERICANFLAT165267)
+  - Destination: F-77550 Réau
+  - Weight: 584.0 kg | Volume: 2.02 m³
+  - Charges:
+    * Transport Outbound: 337.82 EUR
+    * Fuel Surcharge: 136.11 EUR
+    * Amazon Delivery: 100.00 EUR
+  - Subtotal: 573.93 EUR
+
+Order 5: 10296240 (AMERICANFLAT166193)
+  - Destination: F-60300 Senlis
+  - Weight: 282.0 kg | Volume: 1.30 m³
+  - Charges:
+    * Transport Outbound: 230.98 EUR
+    * Fuel Surcharge: 91.14 EUR
+    * Amazon Delivery: 100.00 EUR
+  - Subtotal: 422.12 EUR
+
+CHARGE CODE MAPPING
+-------------------
+All charges mapped to canonical codes:
+- SMALL_PARCEL_TRANSPORT_OUTBOUND
+- SMALL_PARCEL_FUEL_SURCHARGE
+- SMALL_PARCEL_AMAZON_DELIVERY
+
+Extraction Confidence: 98%
+
+IMPORTANT NOTES
+---------------
+This invoice is issued by Yusen Logistics Benelux B.V. (Netherlands), NOT from a Canada warehouse.
+Key observations:
+- Issued from: Reykjavikweg 1, 1118LK Schiphol, Netherlands
+- All shipments deliver to France (not Canada)
+- Currency in EUR (not CAD)
+- Invoice is for Amazon EU deliveries, not North American shipments
+- The "CA" prefix in invoice number refers to the invoice series, not warehouse location
+
+If a true Yusen Canada (Brampton, Ontario) invoice is required, please verify the correct PDF file.
+
+CUSTOMER INFORMATION
+--------------------
+Bill To:              Americanflat Corporation
+Address:              Nassau Street 82, US10038 New York
+Customer ID:          342936
+Order Number:         10191776-10296240
+Client VAT Number:    NL827836533B01
+
+VAT COMPLIANCE
+--------------
+VAT Rate Applied:     21% (EU standard rate)
+VAT Amount:           583.30 EUR
+VAT Registration:     NL 007133388B01
+BTW/VAT Reg Nr:       NL 007133388B01
+
+EXTRACTION METHODOLOGY
+----------------------
+- Invoice type identified as: SMALL_PARCEL_LTL
+- 5 individual shipments consolidated into single invoice
+- All charge descriptions extracted and mapped to canonical codes
+- VAT and payment terms captured
+- Line items include: weight, volume, transport costs, fuel surcharge, delivery fees
