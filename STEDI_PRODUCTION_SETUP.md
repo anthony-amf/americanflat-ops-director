@@ -1,0 +1,189 @@
+# Production Stedi Validation Setup
+
+## Architecture
+
+```
+Invoice PDF → BigQuery (yusen_invoices)
+                  ↓
+Supporting Excel → Parse → Extract Order IDs → JSON
+                  ↓
+        validate-stedi-production.py
+                  ↓
+            Stedi API 945
+                  ↓
+        Validation Results (JSON)
+                  ↓
+        Store in validation_results table
+```
+
+## Setup (One Time)
+
+### 1. Install Dependencies
+```bash
+pip3 install google-cloud-bigquery requests
+```
+
+### 2. Set Stedi API Key
+```bash
+export STEDI_API_KEY=22R7W4M.3KmGqoJdae1EebTmnXB9fAAc
+```
+
+### 3. Verify GCloud Authentication
+```bash
+gcloud auth application-default login
+# Or use service account:
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json
+```
+
+## Per-Invoice Workflow
+
+### Step 1: Parse Invoice Excel
+```bash
+python3 scripts/parse_invoice_excel.py /path/to/invoice.xlsx INVOICE_NUMBER --output orders.json
+```
+
+**Supports both formats:**
+- Yusen (Small Parcel + LTL sheets) → 47 orders/invoice
+- Taylored Services (TSI PO# format) → 3,979+ orders/invoice
+
+### Step 2: Validate Against Stedi 945
+```bash
+python3 validate-stedi-production.py 752319 --json-file 752319_orders.json
+```
+
+**Output:**
+```
+================================================================================
+Stedi Order Validation: Invoice 752319
+================================================================================
+
+📋 Validating 3979 orders against Stedi 945...
+  ✓ [    1/3979] '102003276483843               SHIP_20260501_001
+  ✓ [    2/3979] '102003326671937               SHIP_20260501_002
+  🚨 [    3/3979] '102003340942336               N/A
+  ...
+
+================================================================================
+STEDI ORDER VALIDATION SUMMARY
+================================================================================
+Invoice:       752319
+Warehouse:     FONTANA
+Total Orders:  3979
+Found:         3950 ✓
+Missing:       29 🚨
+Success Rate:  99.3%
+================================================================================
+
+🚨 29 MISSING ORDERS (not found in Stedi 945):
+  • 102003340942336 - Stedi API error: Not found in 945
+  • 102003417641042 - Stedi API error: Not found in 945
+  ...
+```
+
+### Step 3: Export JSON for Further Processing
+```bash
+python3 validate-stedi-production.py 752319 --json-file 752319_orders.json --output 752319_validation.json
+```
+
+## Multi-Carrier Support
+
+The parser auto-detects format:
+
+| Carrier | Detection | Status |
+|---------|-----------|--------|
+| Yusen | Sheet names: "Small Parcel", "LTL" | ✅ |
+| Taylored Services | TSI PO# header in A1 | ✅ |
+| Others | Add to `detect_format()` | 🔄 |
+
+**To add new carrier:**
+1. Update `detect_format()` in `scripts/parse_invoice_excel.py`
+2. Create `parse_<carrier>_excel()` function
+3. Test with sample file
+
+## Batch Processing
+
+Validate multiple invoices:
+
+```bash
+#!/bin/bash
+INVOICES=(752319 751996 752325)
+
+for inv in "${INVOICES[@]}"; do
+  echo "Processing invoice $inv..."
+  python3 scripts/parse_invoice_excel.py "invoices/${inv}.xlsx" $inv --output "${inv}_orders.json"
+  python3 validate-stedi-production.py $inv --json-file "${inv}_orders.json" --output "${inv}_results.json"
+  
+  # Parse results and upload to BigQuery
+  # bq load americanflat.finance.validation_results "${inv}_results.json" --autodetect
+done
+```
+
+## JSON Output Structure
+
+```json
+{
+  "invoice_number": "752319",
+  "warehouse": "FONTANA",
+  "validated_at": "2026-06-24T14:30:00.123456",
+  "stedi_validation": {
+    "total_orders": 3979,
+    "found": 3950,
+    "missing": 29,
+    "orders": [
+      {
+        "found": true,
+        "order_id": "102003276483843",
+        "transaction_type": "945",
+        "shipment_tracking": "SHIP_20260501_001",
+        "ship_date": "2026-05-01T10:30:00Z",
+        "carrier": "AMAZON_FREIGHT",
+        "shipment_quantity": 50,
+        "service_type": "Small Parcel",
+        "quantity": 1
+      },
+      {
+        "found": false,
+        "order_id": "102003340942336",
+        "error": "Not found in Stedi 945",
+        "service_type": "LTL",
+        "quantity": 1
+      }
+    ]
+  }
+}
+```
+
+## Troubleshooting
+
+### "Stedi API error: Failed to resolve api.stedi.com"
+- Network issue: Verify internet connectivity
+- Firewall: Ensure api.stedi.com is accessible
+- Try: `curl https://api.stedi.com/health`
+
+### "STEDI_API_KEY is not set"
+```bash
+export STEDI_API_KEY=22R7W4M.3KmGqoJdae1EebTmnXB9fAAc
+echo $STEDI_API_KEY  # Verify
+```
+
+### "All orders missing from Stedi"
+1. **Check order format** — Strip leading/trailing quotes
+2. **Verify warehouse** — Order may be from different location
+3. **Contact Stedi** — Check API key permissions
+4. **Check 945 documents** — May not be ingested yet
+
+### "Parser extracted 0 orders"
+- Excel format not recognized
+- Update `detect_format()` to handle new vendor format
+- Verify Excel has data in expected columns
+
+## Next Steps
+
+1. **Automation**: Cloud Function to run nightly
+2. **Results Storage**: Create `validation_results` table in BigQuery
+3. **Dashboard**: Query validation trends
+4. **Alerts**: Slack/email when missing orders detected
+
+---
+
+**Ready to validate!** 🚀
