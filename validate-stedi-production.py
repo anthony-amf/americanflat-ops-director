@@ -23,63 +23,66 @@ from typing import Any, Optional
 from google.cloud import bigquery
 
 STEDI_API_KEY = os.getenv("STEDI_API_KEY", "22R7W4M.3KmGqoJdae1EebTmnXB9fAAc")
-STEDI_EXECUTIONS_URL = "https://core.us.stedi.com/2023-04-20/executions"
+STEDI_BASE_URL = "https://core.us.stedi.com"
+STEDI_API_VERSION = "2023-08-01"
 PROJECT = "americanflat"
 DATASET = "finance"
 
 
 def query_stedi_for_order(order_id: str) -> dict:
-    """Query Stedi via stedi-po-lookup workflow for 945 EDI documents."""
+    """Query Stedi transactions API for 945 EDI documents matching order ID."""
     if not order_id:
         return {"found": False, "order_id": order_id, "error": "Empty order ID"}
 
     try:
         clean_id = str(order_id).strip("'").strip()
         headers = {
-            "Authorization": f"Key {STEDI_API_KEY}",
+            "Authorization": STEDI_API_KEY,
             "Content-Type": "application/json"
         }
 
-        # Execute stedi-po-lookup workflow to find 945 EDI documents
-        payload = {
-            "workflowName": "stedi-po-lookup",
-            "input": {
-                "businessIdentifier": clean_id
-            }
+        # Query transactions API for 945 documents
+        # Filter by transaction_type=945 (Warehouse Shipping Advice)
+        # and search for matching order ID in the document
+        url = f"{STEDI_BASE_URL}/{STEDI_API_VERSION}/transactions"
+        params = {
+            "transaction_type": "945",
+            "businessIdentifier": clean_id
         }
 
-        response = requests.post(
-            f"{STEDI_EXECUTIONS_URL}/execute",
-            json=payload,
+        response = requests.get(
+            url,
+            params=params,
             headers=headers,
             timeout=30
         )
         response.raise_for_status()
 
         result = response.json()
+        items = result.get("items", [])
 
-        if result.get("status") == "SUCCEEDED":
-            output = result.get("output", {})
-            if output:
-                return {
-                    "found": True,
-                    "order_id": order_id,
-                    "transaction_type": output.get("transactionType", "945"),
-                    "shipment_tracking": output.get("shipmentId") or output.get("shipmentTrackingNumber"),
-                    "ship_date": output.get("shipDate"),
-                    "carrier": output.get("carrier"),
-                    "shipment_quantity": output.get("quantity"),
-                }
-            else:
-                return {"found": False, "order_id": order_id}
-        else:
+        if items:
+            # Found matching 945 document(s)
+            doc = items[0]  # Use first match
             return {
-                "found": False,
+                "found": True,
                 "order_id": order_id,
-                "stedi_status": result.get("status"),
-                "error": result.get("error")
+                "transaction_type": "945",
+                "shipment_tracking": doc.get("shipmentId") or doc.get("shipmentTrackingNumber") or doc.get("shipment_id"),
+                "ship_date": doc.get("shipDate") or doc.get("ship_date"),
+                "carrier": doc.get("carrier"),
+                "shipment_quantity": doc.get("quantity"),
+                "stedi_document_id": doc.get("id"),
             }
+        else:
+            return {"found": False, "order_id": order_id}
 
+    except requests.exceptions.HTTPError as e:
+        return {
+            "found": False,
+            "order_id": order_id,
+            "error": f"Stedi API error: {e.response.status_code} {e.response.text[:100]}"
+        }
     except requests.exceptions.RequestException as e:
         return {
             "found": False,
