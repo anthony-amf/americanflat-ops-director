@@ -23,46 +23,61 @@ from typing import Any, Optional
 from google.cloud import bigquery
 
 STEDI_API_KEY = os.getenv("STEDI_API_KEY", "22R7W4M.3KmGqoJdae1EebTmnXB9fAAc")
-STEDI_URL = "https://api.stedi.com/executions/execute"
+STEDI_EXECUTIONS_URL = "https://core.us.stedi.com/2023-04-20/executions"
 PROJECT = "americanflat"
 DATASET = "finance"
 
 
 def query_stedi_for_order(order_id: str) -> dict:
-    """Query Stedi API for order via stedi-po-lookup workflow."""
+    """Query Stedi via stedi-po-lookup workflow for 945 EDI documents."""
     if not order_id:
         return {"found": False, "order_id": order_id, "error": "Empty order ID"}
 
     try:
-        headers = {"Authorization": f"Key {STEDI_API_KEY}"}
+        clean_id = str(order_id).strip("'").strip()
+        headers = {
+            "Authorization": f"Key {STEDI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        # Execute stedi-po-lookup workflow to find 945 EDI documents
         payload = {
             "workflowName": "stedi-po-lookup",
             "input": {
-                "businessIdentifier": str(order_id).strip("'").strip()
+                "businessIdentifier": clean_id
             }
         }
 
-        response = requests.post(STEDI_URL, json=payload, headers=headers, timeout=15)
+        response = requests.post(
+            f"{STEDI_EXECUTIONS_URL}/execute",
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
         response.raise_for_status()
 
         result = response.json()
 
         if result.get("status") == "SUCCEEDED":
             output = result.get("output", {})
-            return {
-                "found": True,
-                "order_id": order_id,
-                "transaction_type": output.get("transactionType", "945"),
-                "shipment_tracking": output.get("shipmentId") or output.get("shipmentTrackingNumber"),
-                "ship_date": output.get("shipDate"),
-                "carrier": output.get("carrier"),
-                "shipment_quantity": output.get("shipmentQuantity"),
-            }
+            if output:
+                return {
+                    "found": True,
+                    "order_id": order_id,
+                    "transaction_type": output.get("transactionType", "945"),
+                    "shipment_tracking": output.get("shipmentId") or output.get("shipmentTrackingNumber"),
+                    "ship_date": output.get("shipDate"),
+                    "carrier": output.get("carrier"),
+                    "shipment_quantity": output.get("quantity"),
+                }
+            else:
+                return {"found": False, "order_id": order_id}
         else:
             return {
                 "found": False,
                 "order_id": order_id,
-                "stedi_status": result.get("status")
+                "stedi_status": result.get("status"),
+                "error": result.get("error")
             }
 
     except requests.exceptions.RequestException as e:
