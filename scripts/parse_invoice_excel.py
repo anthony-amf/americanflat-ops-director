@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Parse Yusen invoice supporting Excel files (modern and legacy/Taylored formats).
+Parse freight invoice supporting Excel files (Yusen old format and Taylored Services new format).
 
 Extracts order numbers, quantities, and service types from the Excel files
-that accompany Small Parcel/LTL invoices. Auto-detects Yusen format variants.
+that accompany Small Parcel/LTL invoices. Auto-detects format variants.
 
 Usage:
-    python scripts/parse_invoice_excel.py path/to/invoice.xlsx 751996
-    python scripts/parse_invoice_excel.py path/to/invoice.xlsx 751996 --output orders.json
-    python scripts/parse_invoice_excel.py path/to/invoice.xlsx 752319 --warehouse FONTANA
+    python scripts/parse_invoice_excel.py path/to/invoice.xlsx 751996              # Yusen (old)
+    python scripts/parse_invoice_excel.py path/to/invoice.xlsx 752319 --warehouse FONTANA  # Taylored (new)
+    python scripts/parse_invoice_excel.py path/to/invoice.xlsx INVOICE_NUMBER --output orders.json
 """
 
 import sys
@@ -21,26 +21,26 @@ import openpyxl
 
 
 def detect_format(wb) -> str:
-    """Detect Yusen Excel format: 'yusen_modern' or 'yusen_legacy' (Taylored)."""
+    """Detect invoice format: 'yusen' (old) or 'taylored' (new company name)."""
     sheetnames = wb.sheetnames
 
-    # Modern Yusen format: has "Small Parcel" or "SML PRCL" sheet
+    # Yusen format (old company name): has "Small Parcel" or "SML PRCL" sheet
     if any(s in sheetnames for s in ["Small Parcel", "SML PRCL", "LTL"]):
-        return "yusen_modern"
+        return "yusen"
 
-    # Legacy Yusen format (Taylored name): has "Sheet1", "Sheet2" with TSI PO# header
+    # Taylored Services format (new company name): has "Sheet1", "Sheet2" with TSI PO# header
     if "Sheet1" in sheetnames:
         ws = wb["Sheet1"]
         first_cell = ws["A1"].value
         if first_cell and "TSI" in str(first_cell).upper():
-            return "yusen_legacy"
+            return "taylored"
 
-    return "yusen_modern"  # Default
+    return "yusen"  # Default
 
 
-def parse_yusen_legacy_excel(file_path: str, invoice_number: str, warehouse: str = "FONTANA") -> dict[str, Any]:
+def parse_taylored_excel(file_path: str, invoice_number: str, warehouse: str = "FONTANA") -> dict[str, Any]:
     """
-    Parse Yusen legacy (Taylored Services) supporting Excel file.
+    Parse Taylored Services (new company name) supporting Excel file.
 
     Expected structure:
     - Sheet1: E-commerce/small parcel orders starting at row 14, order in column A
@@ -167,12 +167,12 @@ def parse_yusen_excel(file_path: str, invoice_number: str, warehouse: str = "NEW
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Parse Yusen invoice supporting Excel files (modern or legacy format)",
+        description="Parse freight invoice supporting Excel files (Yusen or Taylored Services)",
         epilog="""
 Examples:
-  python scripts/parse_invoice_excel.py samples/751996.xlsx 751996
-  python scripts/parse_invoice_excel.py samples/752319.xlsx 752319 --warehouse "FONTANA"
-  python scripts/parse_invoice_excel.py samples/751542.xlsx 751542 --output orders.json
+  python scripts/parse_invoice_excel.py samples/751996.xlsx 751996                    # Yusen (old)
+  python scripts/parse_invoice_excel.py samples/752319.xlsx 752319 --warehouse FONTANA  # Taylored (new)
+  python scripts/parse_invoice_excel.py samples/invoice.xlsx INVOICE_NUMBER --output orders.json
         """
     )
     parser.add_argument("excel_file", help="Path to Excel file")
@@ -189,16 +189,16 @@ Examples:
         sys.exit(1)
 
     try:
-        # Detect Yusen format
+        # Detect format
         wb = openpyxl.load_workbook(str(excel_path), data_only=True)
         fmt = detect_format(wb)
 
         # Set warehouse default based on format
-        warehouse = args.warehouse or ("FONTANA" if fmt == "yusen_legacy" else "NEW JERSEY")
+        warehouse = args.warehouse or ("FONTANA" if fmt == "taylored" else "NEW JERSEY")
 
         # Parse with appropriate parser
-        if fmt == "yusen_legacy":
-            result = parse_yusen_legacy_excel(str(excel_path), args.invoice_number, warehouse)
+        if fmt == "taylored":
+            result = parse_taylored_excel(str(excel_path), args.invoice_number, warehouse)
         else:
             result = parse_yusen_excel(str(excel_path), args.invoice_number, warehouse)
 
