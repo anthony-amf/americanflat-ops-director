@@ -188,3 +188,38 @@ echo $STEDI_API_KEY  # Verify
 ---
 
 **Ready to validate!** 🚀
+
+## Understanding EDI Transaction Types (945 vs 940)
+
+The validator checks two Stedi EDI document types:
+
+### **945 - Warehouse Shipping Advice** ✓ Shipped
+- Order has been picked, packed, and shipped from warehouse
+- Contains shipment tracking information
+- Indicates successful fulfillment
+
+### **940 - Warehouse Order** (Fallback) ⏳ In Warehouse  
+- Order has been received by warehouse but not yet shipped
+- Checked if 945 not found
+- Indicates order is in system but still being processed
+
+**Validation Flow:**
+1. Search for 945 documents (shipped orders)
+2. If not found, search for 940 documents (in warehouse)
+3. If neither found, mark as missing
+
+**Example Summary:**
+```
+✓ Found: 3,921 (98.5%)
+  ├─ 945 (Shipped):      3,890
+  └─ 940 (In Warehouse):    31
+🚨 Missing: 58
+```
+
+**Missing Orders Investigation:**
+If orders show as missing, check:
+1. Order ID matches exactly (case-sensitive, no extra spaces)
+2. Order has been submitted to warehouse
+3. Order isn't in a different transaction type
+4. Check for typos in Excel invoice file
+
