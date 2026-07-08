@@ -30,6 +30,13 @@ CSS_BLOCK = """  .vchip { display:inline-block; padding:2px 8px; border-radius:9
   .v-error { background:#eef0f3; color:#6b7280; }
 """
 
+PAIDCHIP_FN = """function paidChip(r) {
+  if (!r.paid_at) return '<span class="dash">—</span>';
+  return '<span class="vchip v-valid" title="marked paid ' + esc(r.paid_at) + '">$ paid ' + esc(r.paid_at) + '</span>';
+}
+
+"""
+
 VALCHIP_FN = """function valChip(r) {
   const s = r.validation_status;
   if (!s) return '<span class="dash">—</span>';
@@ -56,7 +63,8 @@ def fetch_rows(client: bigquery.Client) -> list:
       FORMAT_TIMESTAMP('%Y-%m-%d %H:%M', ingested_at) AS ingested_at,
       validation_status,
       ROUND(validation_variance, 2) AS validation_variance,
-      FORMAT_TIMESTAMP('%Y-%m-%d %H:%M', validated_at) AS validated_at
+      FORMAT_TIMESTAMP('%Y-%m-%d %H:%M', validated_at) AS validated_at,
+      FORMAT_TIMESTAMP('%Y-%m-%d', paid_at) AS paid_at
     FROM `{TABLE}`
     ORDER BY date DESC, ingested_at DESC
     """
@@ -66,7 +74,7 @@ def fetch_rows(client: bigquery.Client) -> list:
         for k, v in list(d.items()):
             if isinstance(v, Decimal):
                 d[k] = float(v)
-            elif v is None and k not in ("validation_status", "validation_variance", "validated_at"):
+            elif v is None and k not in ("validation_status", "validation_variance", "validated_at", "paid_at"):
                 d[k] = ""
         rows.append(d)
     return rows
@@ -80,25 +88,38 @@ def patch_html(html: str, rows: list) -> tuple[str, list]:
         html = html.replace("</style>", CSS_BLOCK + "</style>", 1)
         changes.append("added chip CSS")
 
-    # 2. Header column after Amount (once)
+    # 2. Header columns after Amount (once each)
     if 'data-k="validation_status"' not in html:
         anchor = '        <th data-k="notes">Notes<span class="arrow">▼</span></th>'
         new = ('        <th data-k="validation_status">Validated<span class="arrow">▼</span></th>\n'
                + anchor)
         html = html.replace(anchor, new, 1)
         changes.append("added Validated header")
+    if 'data-k="paid_at"' not in html:
+        anchor = '        <th data-k="notes">Notes<span class="arrow">▼</span></th>'
+        new = ('        <th data-k="paid_at">Paid<span class="arrow">▼</span></th>\n' + anchor)
+        html = html.replace(anchor, new, 1)
+        changes.append("added Paid header")
 
-    # 3. Row cell after Amount (once)
-    if "valChip(r)" not in html.split("function valChip")[-1][:5] and "${valChip(r)}" not in html:
+    # 3. Row cells after Amount (once each)
+    if "${valChip(r)}" not in html:
         anchor = '      <td class="notes" title="${esc(r.notes)}">${esc(r.notes)}</td>'
         new = '      <td>${valChip(r)}</td>\n' + anchor
         html = html.replace(anchor, new, 1)
         changes.append("added Validated cell")
+    if "${paidChip(r)}" not in html:
+        anchor = '      <td class="notes" title="${esc(r.notes)}">${esc(r.notes)}</td>'
+        new = '      <td>${paidChip(r)}</td>\n' + anchor
+        html = html.replace(anchor, new, 1)
+        changes.append("added Paid cell")
 
-    # 4. valChip() helper (once)
+    # 4. chip helpers (once)
     if "function valChip" not in html:
         html = html.replace("function render() {", VALCHIP_FN + "function render() {", 1)
         changes.append("added valChip() helper")
+    if "function paidChip" not in html:
+        html = html.replace("function render() {", PAIDCHIP_FN + "function render() {", 1)
+        changes.append("added paidChip() helper")
 
     # 5. Refresh DATA array (always)
     data_json = json.dumps(rows, ensure_ascii=False, separators=(", ", ": "))
