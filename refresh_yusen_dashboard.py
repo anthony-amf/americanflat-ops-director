@@ -40,10 +40,11 @@ PAIDCHIP_FN = """function paidChip(r) {
 VALCHIP_FN = """function valChip(r) {
   const s = r.validation_status;
   if (!s) return '<span class="dash">—</span>';
-  const tip = r.validated_at
-    ? ' title="validated ' + esc(r.validated_at)
-      + (r.validation_variance != null ? ' · variance $' + r.validation_variance : '') + '"'
-    : '';
+  const tipText = r.validation_report
+    ? r.validation_report
+    : (r.validated_at ? 'validated ' + r.validated_at
+        + (r.validation_variance != null ? ' \\u00b7 variance $' + r.validation_variance : '') : '');
+  const tip = tipText ? ' title="' + esc(tipText) + '"' : '';
   let label = s;
   if (s === 'valid') label = '\\u2713 valid';
   else if (s === 'discrepancy') label = '\\uD83D\\uDEA8 ' + (r.validation_variance != null ? '$' + Number(r.validation_variance).toFixed(2) : 'discrepancy');
@@ -64,7 +65,8 @@ def fetch_rows(client: bigquery.Client) -> list:
       validation_status,
       ROUND(validation_variance, 2) AS validation_variance,
       FORMAT_TIMESTAMP('%Y-%m-%d %H:%M', validated_at) AS validated_at,
-      FORMAT_TIMESTAMP('%Y-%m-%d', paid_at) AS paid_at
+      FORMAT_TIMESTAMP('%Y-%m-%d', paid_at) AS paid_at,
+      validation_report
     FROM `{TABLE}`
     ORDER BY date DESC, ingested_at DESC
     """
@@ -74,7 +76,7 @@ def fetch_rows(client: bigquery.Client) -> list:
         for k, v in list(d.items()):
             if isinstance(v, Decimal):
                 d[k] = float(v)
-            elif v is None and k not in ("validation_status", "validation_variance", "validated_at", "paid_at"):
+            elif v is None and k not in ("validation_status", "validation_variance", "validated_at", "paid_at", "validation_report"):
                 d[k] = ""
         rows.append(d)
     return rows
@@ -113,10 +115,13 @@ def patch_html(html: str, rows: list) -> tuple[str, list]:
         html = html.replace(anchor, new, 1)
         changes.append("added Paid cell")
 
-    # 4. chip helpers (once)
+    # 4. chip helpers (once) — and upgrade an older valChip lacking report tooltips
     if "function valChip" not in html:
         html = html.replace("function render() {", VALCHIP_FN + "function render() {", 1)
         changes.append("added valChip() helper")
+    elif "r.validation_report" not in html:
+        html = re.sub(r"function valChip\(r\) \{.*?\n\}\n\n", VALCHIP_FN, html, count=1, flags=re.S)
+        changes.append("upgraded valChip() for report tooltips")
     if "function paidChip" not in html:
         html = html.replace("function render() {", PAIDCHIP_FN + "function render() {", 1)
         changes.append("added paidChip() helper")
