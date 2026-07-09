@@ -120,7 +120,7 @@ def patch_html(html: str, rows: list) -> tuple[str, list]:
         html = html.replace("function render() {", VALCHIP_FN + "function render() {", 1)
         changes.append("added valChip() helper")
     elif "r.validation_report" not in html:
-        html = re.sub(r"function valChip\(r\) \{.*?\n\}\n\n", VALCHIP_FN, html, count=1, flags=re.S)
+        html = re.sub(r"function valChip\(r\) \{.*?\n\}\n\n", lambda _: VALCHIP_FN, html, count=1, flags=re.S)
         changes.append("upgraded valChip() for report tooltips")
     if "function paidChip" not in html:
         html = html.replace("function render() {", PAIDCHIP_FN + "function render() {", 1)
