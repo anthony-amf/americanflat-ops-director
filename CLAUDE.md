@@ -112,6 +112,22 @@ upgrade-if-stale pattern; a plain string replace will double-insert.
 - Committed `*.skill` files are packaged artifacts of other personal skills;
   treat them as binaries.
 
+## Cloud sessions (no access to this Mac)
+
+- **Skill scripts:** the canonical source dir (`~/.claude/skills/...`) is
+  machine-local. In a cloud session, unzip the committed package instead:
+  `unzip -o yusen-invoice-validator.skill -d /tmp/skill && cd /tmp/skill/yusen-invoice-validator`
+  — it contains SKILL.md, scripts/, and references/ at the committed version.
+- **Decision queue:** local memory doesn't sync — read `OPEN-ITEMS.md` (kept as
+  a mirror; update it when decisions land).
+- **Credentials:** `STEDI_API_KEY` must be provided as an environment secret.
+  BigQuery needs non-interactive auth (service-account credentials) — the local
+  gcloud ADC does not travel. Notion/Drive/Gmail/Slack connectors are
+  account-level and work in cloud; Chrome automation (used for Gmail
+  attachment → Drive hops) does not.
+- **Dashboard:** `~/yusen_invoices_dashboard.html` and `refresh_yusen_dashboard.py`
+  are local-to-the-Mac; skip dashboard refreshes in cloud sessions.
+
 ## Conventions
 
 - Commits go directly to `main`; messages are imperative summaries with a body
