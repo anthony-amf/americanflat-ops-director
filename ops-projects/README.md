@@ -44,10 +44,17 @@ proxy injects credentials. To run them outside that environment, add an
 
 ## Weekly meeting flow
 
-1. Open the dashboard (regenerate first so it's current).
-2. Start with **Blocked**, then walk **In Progress** stale-first — the red-edged
-   cards (>21 days since last discussed) are the ones slipping.
-3. Triage **Needs Review** — claim or close.
-4. Celebrate **Recent Wins**; log the meeting in the `Meeting Log` table.
-5. Any edits (status changes, new projects, updates) happen in Airtable during
-   the meeting.
+1. Open the dashboard (regenerate first so it's current) and hit
+   **Start meeting**.
+2. Meeting mode shows one project at a time — Blocked first, then In Progress
+   stale-first, then Needs Review, then Not Started. Filters applied before
+   starting (owner / category / search) scope the deck.
+3. For each card: discuss, optionally tap a new status and type an update,
+   then **Discussed — next** (Space/→) sends it to the back of the deck;
+   **Skip** (S) cycles it without marking it discussed. Cards marked
+   Completed drop out of the deck.
+4. When every card has been discussed (or you hit **Recap**), copy the recap
+   and paste it to Claude — Claude applies the status changes and update notes
+   to Airtable and logs the meeting in the `Meeting Log` table.
+5. The board view behind meeting mode still has KPIs, stale flags, and
+   Recent Wins for the walk-in summary.

@@ -79,7 +79,31 @@ details.done summary { cursor: pointer; font-size: 1rem; color: var(--muted); ma
 footer { margin-top: 80px; text-align: center; color: var(--muted); font-size: 0.75rem;
   border-top: 1px solid var(--border); padding-top: 24px; }
 footer a { color: var(--link); }
-@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } .meet-bar b { transition: none; } }
+
+/* ---- Meeting mode ---- */
+.meet { position: fixed; inset: 0; background: var(--bg); z-index: 50; display: none; flex-direction: column; }
+.meet.on { display: flex; }
+.meet-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 24px; }
+.meet-prog { color: var(--muted); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.meet-bar { height: 3px; background: var(--border); }
+.meet-bar b { display: block; height: 100%; width: 0; background: var(--text); transition: width 200ms cubic-bezier(0.2,0.8,0.2,1); }
+.meet-main { flex: 1; overflow-y: auto; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.meet-card { max-width: 720px; width: 100%; border: 1px solid var(--border); border-radius: 16px;
+  background: var(--surface); padding: 36px 40px; display: flex; flex-direction: column; gap: 14px; }
+.meet-card h3 { margin: 0; font-size: 1.8rem; font-weight: 700; line-height: 1.2; text-wrap: balance; }
+.meet-card .prev-notes { white-space: pre-wrap; color: var(--muted); font-size: 0.95rem; margin: 0; max-height: 200px; overflow-y: auto; }
+.meet-note-in { width: 100%; min-height: 68px; font-family: var(--font); font-size: 0.95rem; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); resize: vertical; }
+.meet-status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.schip { padding: 7px 15px; border-radius: 9999px; border: 1px solid var(--border); background: transparent;
+  color: var(--text); font-family: var(--font); font-size: 0.88rem; cursor: pointer; }
+.schip.sel { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 700; }
+.meet-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 16px 24px 26px; border-top: 1px solid var(--border); }
+.meet-hint { width: 100%; text-align: center; color: var(--muted); font-size: 0.75rem; }
+.recap-box { width: 100%; min-height: 260px; font-family: ui-monospace, monospace; font-size: 0.82rem;
+  padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.donebadge { color: var(--muted); font-size: 0.8rem; }
 </style>
 <div class="wrap">
 <header>
@@ -87,7 +111,8 @@ footer a { color: var(--link); }
   <h1 class="title">Ops Projects</h1>
   <p class="sub">Weekly meeting board · data as of July 21, 2026</p>
   <div class="actions">
-    <a class="btn" href="https://airtable.com/appaFuK87Xk9Nn5vR" target="_blank" rel="noopener">Edit in Airtable</a>
+    <button class="btn" id="meetBtn">Start meeting ▸</button>
+    <a class="btn ghost" href="https://airtable.com/appaFuK87Xk9Nn5vR" target="_blank" rel="noopener">Edit in Airtable</a>
   </div>
 </header>
 
@@ -106,6 +131,19 @@ footer a { color: var(--link); }
   <a href="https://airtable.com/appaFuK87Xk9Nn5vR" target="_blank" rel="noopener">Airtable</a> ·
   Ask Claude to “refresh the ops projects dashboard” to update this page.
 </footer>
+</div>
+
+<div class="meet" id="meet" role="dialog" aria-modal="true" aria-label="Meeting mode">
+  <div class="meet-top">
+    <span class="meet-prog" id="meetProg"></span>
+    <div style="display:flex;gap:10px">
+      <button class="btn ghost" id="meetRecapBtn">Recap</button>
+      <button class="btn ghost" id="meetExit">Exit</button>
+    </div>
+  </div>
+  <div class="meet-bar"><b id="meetBarFill"></b></div>
+  <div class="meet-main" id="meetMain"></div>
+  <div class="meet-actions" id="meetActs"></div>
 </div>
 
 <script>
@@ -205,4 +243,150 @@ function filters() {
 }
 
 kpis(); filters(); render();
+
+// ---- Meeting mode ----
+// One card at a time; "next" sends the card to the back of the deck.
+// Status changes and notes are captured client-side; the recap can be
+// pasted back to Claude to apply everything to Airtable.
+const STATUSES = ["Not Started", "In Progress", "Blocked", "Completed"];
+const changes = {};            // id -> {status, note}
+const discussedIds = new Set();
+let deck = [], deckTotal = 0, inRecap = false;
+
+const $ = id => document.getElementById(id);
+
+function curStatus(p) { return (changes[p.id] && changes[p.id].status) || p.status; }
+
+function startMeeting() {
+  const rank = s => s === "Blocked" ? 0 : s === "In Progress" ? 1 : s === "Needs Review" ? 2 : 3;
+  deck = DATA.filter(match).filter(p => curStatus(p) !== "Completed")
+    .sort((a, b) => rank(a.status) - rank(b.status) || (b.days ?? -1) - (a.days ?? -1));
+  deckTotal = Math.max(deckTotal, deck.length + [...discussedIds].filter(id => !deck.some(p => p.id === id)).length);
+  if (!deck.length) { alert("No active projects match the current filters."); return; }
+  $("meet").classList.add("on");
+  document.body.style.overflow = "hidden";
+  inRecap = false;
+  showCard();
+}
+
+function progress() {
+  const done = [...discussedIds].length;
+  $("meetProg").textContent = done + " of " + deckTotal + " discussed";
+  $("meetBarFill").style.width = (deckTotal ? Math.min(100, done / deckTotal * 100) : 0) + "%";
+}
+
+function showCard() {
+  inRecap = false;
+  if (!deck.length) { showRecap(true); return; }
+  const p = deck[0];
+  progress();
+  const note = [p.update, p.notes].filter(Boolean).join("\n");
+  const hot = (p.days ?? null) !== null && p.days > STALE_DAYS;
+  const pending = changes[p.id] || {};
+  $("meetMain").innerHTML = `<div class="meet-card">
+    <div class="meta">
+      ${p.priority ? `<span class="pill${p.priority === "Top" ? " top" : ""}">${p.priority}</span>` : ""}
+      <span class="pill cat">${esc(p.category)}</span>
+      ${p.last ? `<span class="age${hot ? " hot" : ""}">last discussed ${fmt(p.last)}${p.days != null ? ` · ${p.days}d ago` : ""}</span>` : `<span class="age">never discussed</span>`}
+      ${discussedIds.has(p.id) ? `<span class="donebadge">✓ discussed this meeting</span>` : ""}
+    </div>
+    <h3>${esc(p.name)}</h3>
+    ${p.owners.length ? `<div class="owners">${p.owners.map(o => `<span class="owner">${esc(o)}</span>`).join("")}</div>` : ""}
+    ${note ? `<p class="prev-notes">${esc(note)}</p>` : ""}
+    <div class="meet-status">
+      ${STATUSES.map(s => `<button class="schip${curStatus(p) === s ? " sel" : ""}" data-s="${s}">${s}</button>`).join("")}
+    </div>
+    <textarea class="meet-note-in" id="meetNote" placeholder="Add an update from this discussion…">${esc(pending.note || "")}</textarea>
+    ${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">Slack thread ↗</a>` : ""}
+  </div>`;
+  document.querySelectorAll(".meet-status .schip").forEach(b => b.addEventListener("click", () => {
+    (changes[p.id] = changes[p.id] || {}).status = b.dataset.s;
+    document.querySelectorAll(".meet-status .schip").forEach(x => x.classList.toggle("sel", x.dataset.s === b.dataset.s));
+  }));
+  $("meetActs").innerHTML = `
+    <button class="btn ghost" id="skipBtn">Skip ▸</button>
+    <button class="btn" id="nextBtn">Discussed — next ▸</button>
+    <span class="meet-hint">Space / → = discussed · S = skip · discussed cards fall to the back of the deck</span>`;
+  $("skipBtn").addEventListener("click", () => nextCard(false));
+  $("nextBtn").addEventListener("click", () => nextCard(true));
+}
+
+function saveNote() {
+  const el = $("meetNote");
+  if (!el || !deck.length) return;
+  const v = el.value.trim();
+  if (v) (changes[deck[0].id] = changes[deck[0].id] || {}).note = v;
+  else if (changes[deck[0].id]) delete changes[deck[0].id].note;
+}
+
+function nextCard(markDiscussed) {
+  if (!deck.length) return;
+  saveNote();
+  const p = deck.shift();
+  if (markDiscussed) discussedIds.add(p.id);
+  if (curStatus(p) !== "Completed") deck.push(p);     // completed cards drop out of the deck
+  const allSeen = deck.length && deck.every(x => discussedIds.has(x.id));
+  if (!deck.length || (markDiscussed && allSeen)) { showRecap(true); return; }
+  showCard();
+}
+
+function recapText() {
+  const lines = ["# Ops Projects meeting recap — " + new Date().toLocaleDateString("en-US", {month: "long", day: "numeric", year: "numeric"}),
+    "", "Discussed " + discussedIds.size + " of " + deckTotal + " active projects.", ""];
+  const changed = DATA.filter(p => changes[p.id] && (changes[p.id].status || changes[p.id].note));
+  if (changed.length) {
+    lines.push("## Updates to apply in Airtable");
+    for (const p of changed) {
+      const c = changes[p.id], bits = [];
+      if (c.status && c.status !== p.status) bits.push("status: " + p.status + " → " + c.status);
+      if (c.note) bits.push('update: "' + c.note + '"');
+      if (bits.length) lines.push("- **" + p.name + "** — " + bits.join("; "));
+    }
+    lines.push("");
+  }
+  const noChange = DATA.filter(p => discussedIds.has(p.id) && !changed.includes(p));
+  if (noChange.length) lines.push("## Discussed, no changes", ...noChange.map(p => "- " + p.name), "");
+  lines.push("_Paste this recap to Claude to apply the changes to Airtable and log the meeting._");
+  return lines.join("\n");
+}
+
+function showRecap(complete) {
+  saveNote();
+  inRecap = true;
+  progress();
+  const txt = recapText();
+  $("meetMain").innerHTML = `<div class="meet-card">
+    <h3>${complete && !deck.length ? "Deck complete 🎉" : complete ? "Every card discussed 🎉" : "Meeting recap"}</h3>
+    <p class="prev-notes">Copy this recap and paste it to Claude — it will apply the status changes and updates to Airtable and log the meeting.</p>
+    <textarea class="recap-box" id="recapBox">${esc(txt)}</textarea>
+  </div>`;
+  $("meetActs").innerHTML = `
+    <button class="btn" id="copyRecap">Copy recap</button>
+    ${deck.length ? `<button class="btn ghost" id="backToCards">Back to cards ▸</button>` : ""}
+    <button class="btn ghost" id="endMeet">End meeting</button>`;
+  $("copyRecap").addEventListener("click", () => {
+    const box = $("recapBox"); box.select();
+    (navigator.clipboard ? navigator.clipboard.writeText(box.value) : Promise.reject())
+      .then(() => { $("copyRecap").textContent = "Copied ✓"; })
+      .catch(() => { document.execCommand && document.execCommand("copy"); $("copyRecap").textContent = "Copied ✓"; });
+  });
+  if (deck.length) $("backToCards").addEventListener("click", showCard);
+  $("endMeet").addEventListener("click", exitMeeting);
+}
+
+function exitMeeting() {
+  saveNote();
+  $("meet").classList.remove("on");
+  document.body.style.overflow = "";
+}
+
+$("meetBtn").addEventListener("click", startMeeting);
+$("meetExit").addEventListener("click", exitMeeting);
+$("meetRecapBtn").addEventListener("click", () => showRecap(false));
+document.addEventListener("keydown", e => {
+  if (!$("meet").classList.contains("on") || inRecap) return;
+  if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+  if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); nextCard(true); }
+  if (e.key === "s" || e.key === "S") { e.preventDefault(); nextCard(false); }
+});
 </script>
