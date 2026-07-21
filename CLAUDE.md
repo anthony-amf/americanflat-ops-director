@@ -31,8 +31,9 @@ This repo carries:
 3. Copy the produced `.skill` to `~/Downloads/` and this repo, then commit
 
 The skill is also published org-wide as `americanflat/skill-yusen-invoice-validator`
-(v1.0.0, promoted 2026-06-30 — several commits behind local). Updates go through
-the `skill-fixer` skill → `americanflat/skill-candidates` branch → Publisher
+(v1.0.0, promoted 2026-06-30). Local source is at **v1.1.0** with a complete
+changelog — submission-ready but not yet published. Updates go through the
+`skill-fixer` skill → `americanflat/skill-candidates` branch → Publisher
 review; never push directly to the published repo.
 
 ## Common commands
@@ -91,14 +92,27 @@ instead of the sequential script.
   `YUSEN-INVOICE-VALIDATOR.md` before flagging discrepancies. Below-card
   billing is a stale-card flag, not a dispute.
 
-## Dashboard
+## Dashboards
 
-`~/yusen_invoices_dashboard.html` (outside the repo) is a static snapshot with
-an embedded `const DATA = [...]` array. Other processes re-export it from a base
-template, wiping the Validated/Paid columns — `refresh_yusen_dashboard.py` is
-idempotent and re-applies its columns/chip helpers plus fresh data every run.
-When adding dashboard features, extend the patcher's add-if-missing /
-upgrade-if-stale pattern; a plain string replace will double-insert.
+**The Claude Artifact is the user-facing invoice search UI** (stable URL
+`https://claude.ai/code/artifact/23dd148b-1fb0-4219-80e1-53ca8d9d3d97`) — people
+search invoices there, not in raw BigQuery. Built by `~/build_artifact_dashboard.py`
+(imports `~/generate_yusen_dashboard.py`; both live in `~`, outside this repo),
+auto-refreshed weekdays ~7:09 AM ET by the `refresh-yusen-dashboard-artifact`
+scheduled task; ingestion itself runs daily 3 PM MT via launchd. Two traps:
+republishing MUST pass `url:` with the stable artifact URL or a duplicate
+artifact gets minted; and pre-2026-07-13 rows hold legacy `docs.google.com`
+supporting-doc links in BigQuery — deliberately not backfilled, the generators
+rewrite them to `drive.google.com/file/d/<id>/view` at render time (any
+non-dashboard consumer of `supporting_doc_url` needs the same rewrite).
+
+`~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
+embedded `const DATA = [...]` array, refreshed by this repo's
+`refresh_yusen_dashboard.py`. Other processes re-export it from a base template,
+wiping the Validated/Paid columns — the refresher is idempotent and re-applies
+its columns/chip helpers plus fresh data every run. When adding dashboard
+features, extend the patcher's add-if-missing / upgrade-if-stale pattern; a
+plain string replace will double-insert.
 
 ## Other directories
 
