@@ -15,7 +15,9 @@ filter, or spot stale work.
     `Days Since Discussed`.
   - `Meeting Log` — one row per weekly meeting: Date, Wins, Decisions, Notes.
 - **Meeting dashboard: `dashboard.html`** — a self-contained AF-branded page
-  generated from the Airtable data. Blocked / In Progress (stale-first) /
+  generated from the Airtable data, published at
+  https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
+  (republishing the same file path keeps this URL stable across refreshes). Blocked / In Progress (stale-first) /
   Up Next / Needs Review / Recent Wins sections, KPI tiles, owner + category +
   text filters. Light and dark theme.
 
