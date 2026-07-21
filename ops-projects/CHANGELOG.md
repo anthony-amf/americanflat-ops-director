@@ -1,0 +1,44 @@
+# Changelog — Ops Projects tool
+
+All notable changes to the Ops Projects tracker (Airtable base + dashboard).
+Dashboard URL: https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
+
+## v3 — 2026-07-21 · Filters, sorting, and edit mode
+
+- Status filter (In Progress / Blocked / Not Started / Needs Review / Completed)
+  and priority filter (Top / Mid / Low / Ad Hoc) in the filter bar.
+- Sort selector: stalest first (default), priority, recently discussed, A–Z.
+- Every card gained a ✎ edit button: change status, priority, owners,
+  category, name, target date, or attach an update note.
+- **+ New project** button creates projects from the page.
+- Pending-changes tray (bottom-right), persisted in the browser via
+  localStorage; "Copy for Claude" exports the change list, Claude applies it
+  to Airtable, and the queue auto-clears after the next data refresh.
+- Meeting mode gained priority chips and now feeds the same change queue.
+
+## v2 — 2026-07-21 · Meeting mode
+
+- One-card-at-a-time deck for the weekly meeting: Blocked first, then
+  In Progress stale-first, then Needs Review, then Not Started.
+- "Discussed — next" (Space/→) sends a card to the back of the deck;
+  "Skip" (S) cycles it without marking; Completed cards drop out.
+- Per-card status chips and update notes, exported as a meeting recap for
+  Claude to apply to Airtable and log in the Meeting Log table.
+- Progress bar and discussed counter; filters set before starting scope
+  the deck.
+
+## v1 — 2026-07-21 · Initial release
+
+- Created the **Ops Projects** Airtable base (`appaFuK87Xk9Nn5vR`):
+  `Projects` table (Status, Priority, Owners, Category, Notes, Latest Update,
+  Last Discussed, Target Date, Slack Link, computed Days Since Discussed)
+  and `Meeting Log` table.
+- Migrated all 340 rows from the Slack "Ops Projects" list (`F08BA9R8E8L`)
+  → 331 clean projects: blanks dropped, duplicates merged, statuses and
+  priorities normalized, owner emails mapped to names, keyword
+  auto-categorization; blank statuses flagged **Needs Review** for triage.
+- AF-branded dashboard: KPI tiles, Blocked / In Progress (stale-first,
+  red edge >21 days) / Up Next / Needs Review / Recent Wins sections,
+  owner + category + text filters, light and dark themes.
+- Scripts: `migrate_slack_to_airtable.py` (one-time migration),
+  `build_dashboard.py` (regenerates the dashboard from live Airtable data).
