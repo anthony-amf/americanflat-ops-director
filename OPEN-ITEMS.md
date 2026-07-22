@@ -9,7 +9,6 @@ this file is the human decision queue. Update or prune as decisions land.*
 
 | Invoice | What | Amount | Evidence |
 |---|---|---|---|
-| 754704 | NJ SP/LTL | $25,629.27 | Stedi 5,512/5,512 (100%) — report: `validation-reports/754704.md` |
 | 754807 | Fontana SP/LTL | $57,858.38 | Stedi 8,965/8,966; **open judgment:** pallet $10.00+$4.317 (+63%) and ecom picks +11% vs old card need confirming against the signed 2026-04-06 rate sheet (Kent Nunez) |
 | 754513 | SC SP/LTL | $11,988.58 | Stedi 795/800 (99.4%; residual = one non-EDI ecom channel) |
 | 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317 (= new $10+$4.317 structure) |
