@@ -3,6 +3,13 @@
 All notable changes to the Ops Projects tracker (Airtable base + dashboard).
 Dashboard URL: https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
 
+## v7 — 2026-07-23 · Rank the 90 Day Focus
+
+- ▲▼ controls on starred cards reorder the 90 Day Focus section; the order
+  persists in a new "Focus Rank" number field in Airtable and syncs through
+  the Changes tray. Starred cards keep full editing (click to quick-edit,
+  ✎ for the full editor) like any other card.
+
 ## v6 — 2026-07-23 · Category assignment in quick edit
 
 - The click-to-edit card (and meeting mode) gained a **Category** chip row,

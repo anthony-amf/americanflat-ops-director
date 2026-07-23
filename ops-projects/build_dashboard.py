@@ -71,6 +71,7 @@ def slim(records):
             "days": f.get("Days Since Discussed"),
             "link": f.get("Slack Link"),
             "focus": bool(f.get("90 Day Focus")),
+            "rank": f.get("Focus Rank"),
         })
     return out
 
@@ -146,6 +147,10 @@ p.section-note { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
   color: var(--muted); font-size: 1.15rem; padding: 4px; line-height: 1; }
 .starbtn:hover { color: #D4A017; }
 .starbtn.on { color: #D4A017; }
+.rankbtns { display: inline-flex; gap: 4px; }
+.rankbtns button { border: 1px solid var(--border); background: transparent; color: var(--muted);
+  border-radius: 4px; cursor: pointer; font-size: 0.8rem; line-height: 1; padding: 3px 8px; font-family: var(--font); }
+.rankbtns button:hover { color: var(--text); border-color: var(--muted); }
 .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pill { padding: 2px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.05em; background: var(--chip); color: var(--text); }
@@ -362,7 +367,7 @@ function sorter() {
   return (a, b) => (b.days ?? -1) - (a.days ?? -1);
 }
 
-function card(p) {
+function card(p, focusCtl) {
   const hot = p.status !== "Completed" && (p.days ?? null) !== null && p.days > STALE_DAYS;
   const age = p.id.startsWith("new-")
     ? `<span class="age">added this session</span>`
@@ -374,6 +379,7 @@ function card(p) {
     <button class="editbtn" data-edit="${p.id}" title="Full editor (rename, owners, delete)" aria-label="Edit ${esc(p.name)}">✎</button>
     <h3>${esc(p.name)}</h3>
     <div class="meta">
+      ${focusCtl ? `<span class="rankbtns"><button data-rank="${p.id}" data-dir="-1" title="Move up" aria-label="Move ${esc(p.name)} up">▲</button><button data-rank="${p.id}" data-dir="1" title="Move down" aria-label="Move ${esc(p.name)} down">▼</button></span>` : ""}
       ${p.id.startsWith("new-") ? `<span class="pill new">New</span>` : ""}
       ${edited ? `<span class="pill pend">pending edit</span>` : ""}
       ${p.priority ? `<span class="pill${p.priority === "Top" ? " top" : ""}">${p.priority}</span>` : ""}
@@ -388,11 +394,11 @@ function card(p) {
   </div>`;
 }
 
-function section(title, note, items, emptyMsg) {
+function section(title, note, items, emptyMsg, focusCtl) {
   if (!items.length) return emptyMsg ? `<h2 class="section">${title} <span class="count">0</span></h2><p class="empty">${emptyMsg}</p>` : "";
   return `<h2 class="section">${title} <span class="count">${items.length}</span></h2>` +
     (note ? `<p class="section-note">${note}</p>` : "") +
-    `<div class="grid">${items.map(card).join("")}</div>`;
+    `<div class="grid">${items.map(p => card(p, focusCtl)).join("")}</div>`;
 }
 
 function render() {
@@ -400,8 +406,8 @@ function render() {
   const srt = sorter();
   const pick = s => f.filter(p => p.status === s).sort(srt);
   let html = "";
-  const starred = f.filter(p => p.focus && p.status !== "Completed").sort(srt);
-  if (starred.length) html += section("★ 90 Day Focus", "Starred projects in the current 90 day focus.", starred, "");
+  const starred = focusOrdered().filter(match);
+  if (starred.length) html += section("★ 90 Day Focus", "Starred projects in the current 90 day focus — use ▲▼ to rank them.", starred, "", true);
   const blocked = pick("Blocked");
   if (blocked.length) html += section("Blocked", "Needs a decision or an unblock — start the meeting here.", blocked, "");
   if (!state.status || state.status === "In Progress")
@@ -420,6 +426,7 @@ function render() {
   $("sections").innerHTML = html || `<p class="empty">Nothing matches the current filters.</p>`;
   document.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openEditor(b.dataset.edit); }));
   document.querySelectorAll("[data-star]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); toggleFocus(b.dataset.star); }));
+  document.querySelectorAll("[data-rank]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); moveFocus(b.dataset.rank, parseInt(b.dataset.dir, 10)); }));
   document.querySelectorAll("[data-open]").forEach(c => {
     c.addEventListener("click", e => { if (e.target.closest("a,button")) return; openFocus(c.dataset.open); });
     c.addEventListener("keydown", e => { if (e.key === "Enter" && e.target === c) openFocus(c.dataset.open); });
@@ -440,6 +447,30 @@ function filters() {
   $("statusF").addEventListener("change", e => { state.status = e.target.value; render(); });
   $("priF").addEventListener("change", e => { state.priority = e.target.value; render(); });
   $("sortF").addEventListener("change", e => { state.sort = e.target.value; render(); });
+}
+
+function focusOrdered() {
+  return allProjects().filter(p => p.focus && p.status !== "Completed")
+    .sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999) || (b.days ?? -1) - (a.days ?? -1));
+}
+function moveFocus(id, dir) {
+  const order = focusOrdered().map(p => p.id);
+  const i = order.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  order.forEach((pid, idx) => {
+    const rank = idx + 1;
+    const base = DATA.find(x => x.id === pid);
+    if (base) {
+      const e = pending.edits[pid] = pending.edits[pid] || {};
+      if (base.rank === rank) delete e.rank; else e.rank = rank;
+      if (!Object.keys(e).length) delete pending.edits[pid];
+    } else {
+      const a = pending.adds.find(x => x.id === pid);
+      if (a) a.rank = rank;
+    }
+  });
+  savePending(); refresh();
 }
 
 function toggleFocus(id) {
@@ -549,6 +580,7 @@ function changesText() {
       if (e.category && e.category !== p.category) bits.push("category: " + e.category);
       if ("target" in e && e.target !== p.target) bits.push("target: " + (e.target || "none"));
       if ("focus" in e && e.focus !== p.focus) bits.push(e.focus ? "add to 90 Day Focus ★" : "remove from 90 Day Focus");
+      if ("rank" in e && e.rank !== p.rank) bits.push("focus rank: " + e.rank);
       if (e.note) bits.push('update: "' + e.note + '"');
       if (bits.length) lines.push("- **" + p.name + "** [" + id + "] — " + bits.join("; "));
     }
