@@ -3,6 +3,11 @@
 All notable changes to the Ops Projects tracker (Airtable base + dashboard).
 Dashboard URL: https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
 
+## v6 — 2026-07-23 · Category assignment in quick edit
+
+- The click-to-edit card (and meeting mode) gained a **Category** chip row,
+  so projects can be recategorized inline alongside status and priority.
+
 ## v5 — 2026-07-23 · Click-to-edit cards and 90 Day Focus stars
 
 - Click any card to open it full-screen in the meeting-style quick editor —

@@ -665,12 +665,13 @@ function showCard() {
     ${note ? `<p class="prev-notes">${esc(note)}</p>` : ""}
     <div class="chiprow"><span class="lbl">Status</span>${chiprowHTML("mStatus", STATUSES.filter(s => s !== "Needs Review"), p.status, false)}</div>
     <div class="chiprow"><span class="lbl">Priority</span>${chiprowHTML("mPri", PRIORITIES, p.priority, false)}</div>
+    <div class="chiprow"><span class="lbl">Category</span>${chiprowHTML("mCat", CATS, p.category, false)}</div>
     <textarea class="meet-note-in" id="meetNote" placeholder="Add an update from this discussion…">${esc((pending.edits[p.id] || {}).note || "")}</textarea>
     ${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">Slack thread ↗</a>` : ""}
   </div>`;
   document.querySelectorAll('#meetMain .schip').forEach(b => b.addEventListener("click", () => {
     const g = b.dataset.grp, v = b.dataset.v, base = DATA.find(x => x.id === p.id);
-    const key = g === "mStatus" ? "status" : "priority";
+    const key = g === "mStatus" ? "status" : g === "mCat" ? "category" : "priority";
     const e = pending.edits[p.id] = pending.edits[p.id] || {};
     const cur = document.querySelector(`#meetMain .schip[data-grp="${g}"].sel`);
     const newVal = (cur && cur.dataset.v === v) ? (key === "priority" ? null : base ? base[key] : v) : v;
