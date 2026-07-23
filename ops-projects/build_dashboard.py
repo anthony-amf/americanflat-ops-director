@@ -70,6 +70,7 @@ def slim(records):
             "target": f.get("Target Date"),
             "days": f.get("Days Since Discussed"),
             "link": f.get("Slack Link"),
+            "focus": bool(f.get("90 Day Focus")),
         })
     return out
 
@@ -134,12 +135,17 @@ p.section-note { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .card { position: relative; border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
-  padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; }
+  padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; }
+.card:hover { border-color: var(--muted); }
 .card.stale { border-left: 3px solid var(--alert); }
 .card h3 { margin: 0 26px 0 0; font-size: 1.08rem; font-weight: 700; line-height: 1.3; }
 .editbtn { position: absolute; top: 12px; right: 12px; background: none; border: none; cursor: pointer;
   color: var(--muted); font-size: 1rem; padding: 4px; line-height: 1; font-family: var(--font); }
 .editbtn:hover { color: var(--text); }
+.starbtn { position: absolute; top: 10px; right: 38px; background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 1.15rem; padding: 4px; line-height: 1; }
+.starbtn:hover { color: #D4A017; }
+.starbtn.on { color: #D4A017; }
 .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .pill { padding: 2px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.05em; background: var(--chip); color: var(--text); }
@@ -278,7 +284,7 @@ const LS_KEY = "opsProjectsPending.v1";
 const state = { q: "", cat: "", owner: "", status: "", priority: "", sort: "stale" };
 let pending = { edits: {}, adds: [], deletes: [] };
 const discussedIds = new Set();
-let deck = [], deckTotal = 0, inRecap = false;
+let deck = [], deckTotal = 0, inRecap = false, focusMode = false;
 
 const $ = id => document.getElementById(id);
 const fmt = d => d ? new Date(d + "T00:00:00").toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"}) : "";
@@ -363,8 +369,9 @@ function card(p) {
     : p.last ? `<span class="age${hot ? " hot" : ""}">${p.status === "Completed" ? "closed" : "last discussed"} ${fmt(p.last)}${p.status !== "Completed" && p.days != null ? ` · ${p.days}d ago` : ""}</span>` : "";
   const note = [p.update, p.notes].filter(Boolean).join("\\n");
   const edited = pending.edits[p.id];
-  return `<div class="card${hot ? " stale" : ""}">
-    <button class="editbtn" data-edit="${p.id}" title="Edit project" aria-label="Edit ${esc(p.name)}">✎</button>
+  return `<div class="card${hot ? " stale" : ""}" data-open="${p.id}" role="button" tabindex="0" aria-label="Open ${esc(p.name)}">
+    <button class="starbtn${p.focus ? " on" : ""}" data-star="${p.id}" title="${p.focus ? "Remove from" : "Add to"} 90 Day Focus" aria-label="${p.focus ? "Remove from" : "Add to"} 90 Day Focus: ${esc(p.name)}" aria-pressed="${p.focus ? "true" : "false"}">${p.focus ? "★" : "☆"}</button>
+    <button class="editbtn" data-edit="${p.id}" title="Full editor (rename, owners, delete)" aria-label="Edit ${esc(p.name)}">✎</button>
     <h3>${esc(p.name)}</h3>
     <div class="meta">
       ${p.id.startsWith("new-") ? `<span class="pill new">New</span>` : ""}
@@ -375,7 +382,7 @@ function card(p) {
     </div>
     ${(p.owners || []).length ? `<div class="owners">${p.owners.map(o => `<span class="owner">${esc(o)}</span>`).join("")}</div>` : ""}
     ${edited && edited.note ? `<p class="body-note open">📝 ${esc(edited.note)}</p>` : ""}
-    ${note ? `<p class="body-note" onclick="this.classList.toggle('open')">${esc(note)}</p>` : ""}
+    ${note ? `<p class="body-note">${esc(note)}</p>` : ""}
     ${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener">Slack thread ↗</a>` : ""}
     ${p.target ? `<span class="age">target: ${fmt(p.target)}</span>` : ""}
   </div>`;
@@ -393,6 +400,8 @@ function render() {
   const srt = sorter();
   const pick = s => f.filter(p => p.status === s).sort(srt);
   let html = "";
+  const starred = f.filter(p => p.focus && p.status !== "Completed").sort(srt);
+  if (starred.length) html += section("★ 90 Day Focus", "Starred projects in the current 90 day focus.", starred, "");
   const blocked = pick("Blocked");
   if (blocked.length) html += section("Blocked", "Needs a decision or an unblock — start the meeting here.", blocked, "");
   if (!state.status || state.status === "In Progress")
@@ -409,7 +418,12 @@ function render() {
     html += section("Recent Wins", "Completed in the last 45 days. Filter status to “Completed” to see all " + doneAll.length + ".", recent, "");
   }
   $("sections").innerHTML = html || `<p class="empty">Nothing matches the current filters.</p>`;
-  document.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => openEditor(b.dataset.edit)));
+  document.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); openEditor(b.dataset.edit); }));
+  document.querySelectorAll("[data-star]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); toggleFocus(b.dataset.star); }));
+  document.querySelectorAll("[data-open]").forEach(c => {
+    c.addEventListener("click", e => { if (e.target.closest("a,button")) return; openFocus(c.dataset.open); });
+    c.addEventListener("keydown", e => { if (e.key === "Enter" && e.target === c) openFocus(c.dataset.open); });
+  });
 }
 
 function filters() {
@@ -426,6 +440,22 @@ function filters() {
   $("statusF").addEventListener("change", e => { state.status = e.target.value; render(); });
   $("priF").addEventListener("change", e => { state.priority = e.target.value; render(); });
   $("sortF").addEventListener("change", e => { state.sort = e.target.value; render(); });
+}
+
+function toggleFocus(id) {
+  const base = DATA.find(x => x.id === id);
+  const cur = byId(id);
+  if (!cur) return;
+  const newVal = !cur.focus;
+  if (base) {
+    const e = pending.edits[id] = pending.edits[id] || {};
+    if (base.focus === newVal) delete e.focus; else e.focus = newVal;
+    if (!Object.keys(e).length) delete pending.edits[id];
+  } else {
+    const a = pending.adds.find(x => x.id === id);
+    if (a) a.focus = newVal;
+  }
+  savePending(); refresh();
 }
 
 // ---- editor ----
@@ -518,6 +548,7 @@ function changesText() {
       if (e.owners && JSON.stringify(e.owners) !== JSON.stringify(p.owners)) bits.push("owners: " + (e.owners.join(", ") || "none"));
       if (e.category && e.category !== p.category) bits.push("category: " + e.category);
       if ("target" in e && e.target !== p.target) bits.push("target: " + (e.target || "none"));
+      if ("focus" in e && e.focus !== p.focus) bits.push(e.focus ? "add to 90 Day Focus ★" : "remove from 90 Day Focus");
       if (e.note) bits.push('update: "' + e.note + '"');
       if (bits.length) lines.push("- **" + p.name + "** [" + id + "] — " + bits.join("; "));
     }
@@ -531,6 +562,7 @@ function changesText() {
       if ((a.owners || []).length) bits.push("owners: " + a.owners.join(", "));
       bits.push("category: " + a.category);
       if (a.target) bits.push("target: " + a.target);
+      if (a.focus) bits.push("90 Day Focus: ★ yes");
       if (a.notes) bits.push('notes: "' + a.notes + '"');
       lines.push("- **" + a.name + "** — " + bits.join("; "));
     }
@@ -581,7 +613,18 @@ function openTray() {
 }
 
 // ---- meeting mode ----
+function openFocus(id) {
+  if (!byId(id)) return;
+  focusMode = true;
+  deck = [id]; deckTotal = 1;
+  $("meet").classList.add("on");
+  document.body.style.overflow = "hidden";
+  inRecap = false;
+  showCard();
+}
+
 function startMeeting() {
+  focusMode = false;
   const rank = s => s === "Blocked" ? 0 : s === "In Progress" ? 1 : s === "Needs Review" ? 2 : 3;
   const srt = sorter();
   deck = allProjects().filter(match).filter(p => p.status !== "Completed")
@@ -594,6 +637,11 @@ function startMeeting() {
   showCard();
 }
 function progress() {
+  if (focusMode) {
+    $("meetProg").textContent = "Quick edit — changes queue in the Changes tray";
+    $("meetBarFill").style.width = "0%";
+    return;
+  }
   const done = [...discussedIds].filter(id => byId(id)).length;
   $("meetProg").textContent = done + " of " + deckTotal + " discussed";
   $("meetBarFill").style.width = (deckTotal ? Math.min(100, done / deckTotal * 100) : 0) + "%";
@@ -632,12 +680,21 @@ function showCard() {
     savePending(); updateTray();
     document.querySelectorAll(`#meetMain .schip[data-grp="${g}"]`).forEach(x => x.classList.toggle("sel", x.dataset.v === newVal));
   }));
-  $("meetActs").innerHTML = `
-    <button class="btn ghost" id="skipBtn">Skip ▸</button>
-    <button class="btn" id="nextBtn">Discussed — next ▸</button>
-    <span class="meet-hint">Space / → = discussed · S = skip · discussed cards fall to the back of the deck</span>`;
-  $("skipBtn").addEventListener("click", () => nextCard(false));
-  $("nextBtn").addEventListener("click", () => nextCard(true));
+  if (focusMode) {
+    $("meetActs").innerHTML = `
+      <button class="btn ghost" id="fullEditBtn">Full editor ▸</button>
+      <button class="btn" id="doneBtn">Save & close ✓</button>
+      <span class="meet-hint">Esc or Save & close returns to the board · changes queue in the Changes tray</span>`;
+    $("doneBtn").addEventListener("click", () => { saveMeetNote(); exitMeeting(); });
+    $("fullEditBtn").addEventListener("click", () => { const id = deck[0]; saveMeetNote(); exitMeeting(); openEditor(id); });
+  } else {
+    $("meetActs").innerHTML = `
+      <button class="btn ghost" id="skipBtn">Skip ▸</button>
+      <button class="btn" id="nextBtn">Discussed — next ▸</button>
+      <span class="meet-hint">Space / → = discussed · S = skip · discussed cards fall to the back of the deck</span>`;
+    $("skipBtn").addEventListener("click", () => nextCard(false));
+    $("nextBtn").addEventListener("click", () => nextCard(true));
+  }
 }
 function saveMeetNote() {
   const el = $("meetNote");
@@ -652,6 +709,7 @@ function saveMeetNote() {
 }
 function nextCard(markDiscussed) {
   if (!deck.length) return;
+  if (focusMode) { saveMeetNote(); exitMeeting(); return; }
   saveMeetNote();
   const id = deck.shift();
   if (markDiscussed) { discussedIds.add(id); savePending(); }
@@ -685,6 +743,8 @@ function showRecap(complete) {
 }
 function exitMeeting() {
   saveMeetNote();
+  focusMode = false;
+  deck = [];
   $("meet").classList.remove("on");
   document.body.style.overflow = "";
   refresh();
@@ -702,7 +762,11 @@ $("meetExit").addEventListener("click", exitMeeting);
 $("meetRecapBtn").addEventListener("click", () => showRecap(false));
 document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m) m.classList.remove("on"); }));
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { $("editModal").classList.remove("on"); $("trayModal").classList.remove("on"); return; }
+  if (e.key === "Escape") {
+    $("editModal").classList.remove("on"); $("trayModal").classList.remove("on");
+    if (focusMode && $("meet").classList.contains("on")) exitMeeting();
+    return;
+  }
   if (!$("meet").classList.contains("on") || inRecap) return;
   if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
   if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); nextCard(true); }

@@ -3,6 +3,17 @@
 All notable changes to the Ops Projects tracker (Airtable base + dashboard).
 Dashboard URL: https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
 
+## v5 — 2026-07-23 · Click-to-edit cards and 90 Day Focus stars
+
+- Click any card to open it full-screen in the meeting-style quick editor —
+  status chips, priority chips, and an update note — with **Save & close**
+  (or Esc) returning to the board and a **Full editor** shortcut for renames,
+  owners, target dates, and delete.
+- Star (☆/★) on every card assigns a project to the **90 Day Focus**: starred
+  projects pin to a dedicated section at the top of the board. Backed by a new
+  "90 Day Focus" checkbox field in the Airtable Projects table; star changes
+  sync through the Changes tray like all other edits.
+
 ## v4 — 2026-07-23 · Delete projects
 
 - **Delete…** button in the project editor for projects that are no longer
