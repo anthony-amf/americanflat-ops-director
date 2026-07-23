@@ -276,7 +276,7 @@ const PRI_RANK = {"Top": 0, "Mid": 1, "Low": 2, "Ad Hoc": 3};
 const LS_KEY = "opsProjectsPending.v1";
 
 const state = { q: "", cat: "", owner: "", status: "", priority: "", sort: "stale" };
-let pending = { edits: {}, adds: [] };
+let pending = { edits: {}, adds: [], deletes: [] };
 const discussedIds = new Set();
 let deck = [], deckTotal = 0, inRecap = false;
 
@@ -286,13 +286,14 @@ function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<":
 
 // ---- pending changes (persisted in localStorage) ----
 function savePending() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({edits: pending.edits, adds: pending.adds, discussed: [...discussedIds]})); } catch (e) {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify({edits: pending.edits, adds: pending.adds, deletes: pending.deletes, discussed: [...discussedIds]})); } catch (e) {}
 }
 function loadPending() {
   try {
     const s = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
     pending.edits = s.edits || {};
     pending.adds = s.adds || [];
+    pending.deletes = s.deletes || [];
     (s.discussed || []).forEach(i => discussedIds.add(i));
   } catch (e) {}
   // auto-reconcile: drop pending values the base data already reflects (i.e. applied + republished)
@@ -306,12 +307,13 @@ function loadPending() {
     if (!Object.keys(e).length) delete pending.edits[id];
   }
   pending.adds = pending.adds.filter(a => !DATA.some(p => p.name.toLowerCase() === a.name.toLowerCase()));
+  pending.deletes = pending.deletes.filter(id => DATA.some(p => p.id === id));
   savePending();
 }
-function pendingCount() { return Object.keys(pending.edits).length + pending.adds.length; }
+function pendingCount() { return Object.keys(pending.edits).length + pending.adds.length + pending.deletes.length; }
 function eff(p) { const e = pending.edits[p.id]; return e ? Object.assign({}, p, e, {note: e.note}) : p; }
-function allProjects() { return DATA.map(eff).concat(pending.adds); }
-function byId(id) { const p = DATA.find(x => x.id === id); return p ? eff(p) : pending.adds.find(a => a.id === id); }
+function allProjects() { return DATA.filter(p => !pending.deletes.includes(p.id)).map(eff).concat(pending.adds); }
+function byId(id) { if (pending.deletes.includes(id)) return undefined; const p = DATA.find(x => x.id === id); return p ? eff(p) : pending.adds.find(a => a.id === id); }
 function updateTray() {
   const n = pendingCount();
   $("trayBtn").textContent = "Changes (" + n + ")";
@@ -445,8 +447,8 @@ function openEditor(id) {
     ${isNew ? `<div><span class="f-label">Notes</span><textarea class="f-area" id="eNotes"></textarea></div>`
             : `<div><span class="f-label">Add update note</span><textarea class="f-area" id="eNote">${esc((pending.edits[id] || {}).note || "")}</textarea></div>`}
     <div class="modal-foot">
+      ${isNew ? "" : `<button class="btn ghost" id="eDelete" style="color:var(--alert);border-color:var(--alert);margin-right:auto">Delete…</button>`}
       ${!isNew && pending.edits[id] ? `<button class="btn ghost" id="eRevert">Discard pending edits</button>` : ""}
-      ${isNew ? "" : ""}
       <button class="btn ghost" id="eCancel">Cancel</button>
       <button class="btn" id="eSave">${isNew ? "Add project" : "Save"}</button>
     </div>`;
@@ -462,6 +464,14 @@ function openEditor(id) {
     }
   }));
   $("eCancel").addEventListener("click", closeEditor);
+  const del = $("eDelete");
+  if (del) del.addEventListener("click", () => {
+    if (!confirm('Delete "' + p.name + '"? It will be removed from Airtable when the changes are applied.')) return;
+    const ai = pending.adds.findIndex(x => x.id === id);
+    if (ai >= 0) pending.adds.splice(ai, 1);
+    else { if (!pending.deletes.includes(id)) pending.deletes.push(id); delete pending.edits[id]; discussedIds.delete(id); }
+    savePending(); closeEditor(); refresh();
+  });
   const rev = $("eRevert");
   if (rev) rev.addEventListener("click", () => { delete pending.edits[id]; savePending(); closeEditor(); refresh(); });
   $("eSave").addEventListener("click", () => {
@@ -526,6 +536,14 @@ function changesText() {
     }
     lines.push("");
   }
+  if (pending.deletes.length) {
+    lines.push("## Projects to delete from Airtable");
+    for (const id of pending.deletes) {
+      const p = DATA.find(x => x.id === id);
+      if (p) lines.push("- **" + p.name + "** [" + id + "]");
+    }
+    lines.push("");
+  }
   if (discussedIds.size) {
     const changedSet = new Set(editedIds);
     const noChange = [...discussedIds].map(byId).filter(Boolean).filter(p => !changedSet.has(p.id));
@@ -533,7 +551,7 @@ function changesText() {
     if (noChange.length) lines.push("", "## Discussed, no changes", ...noChange.map(p => "- " + p.name));
     lines.push("");
   }
-  if (!editedIds.length && !pending.adds.length) lines.push("(no pending changes)", "");
+  if (!editedIds.length && !pending.adds.length && !pending.deletes.length) lines.push("(no pending changes)", "");
   lines.push("_Paste this to Claude to apply everything to Airtable (and log the meeting if one was held)._");
   return lines.join("\\n");
 }
@@ -550,7 +568,7 @@ function openTray() {
   $("trayClose").addEventListener("click", () => $("trayModal").classList.remove("on"));
   $("trayClear").addEventListener("click", () => {
     if (!confirm("Discard all pending changes?")) return;
-    pending = {edits: {}, adds: []}; discussedIds.clear(); savePending();
+    pending = {edits: {}, adds: [], deletes: []}; discussedIds.clear(); savePending();
     $("trayModal").classList.remove("on"); refresh();
   });
   $("trayCopy").addEventListener("click", () => {

@@ -3,6 +3,14 @@
 All notable changes to the Ops Projects tracker (Airtable base + dashboard).
 Dashboard URL: https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
 
+## v4 — 2026-07-23 · Delete projects
+
+- **Delete…** button in the project editor for projects that are no longer
+  relevant. Deleted projects disappear from the board and meeting deck
+  immediately and queue in the Changes tray under "Projects to delete";
+  the Airtable records are removed when the changes are applied.
+- Deleting a not-yet-created project (added this session) simply discards it.
+
 ## v3 — 2026-07-21 · Filters, sorting, and edit mode
 
 - Status filter (In Progress / Blocked / Not Started / Needs Review / Completed)
