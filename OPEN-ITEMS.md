@@ -9,6 +9,7 @@ this file is the human decision queue. Update or prune as decisions land.*
 
 | Invoice | What | Amount | Evidence |
 |---|---|---|---|
+| 754698 | NJ SP/LTL | $17,530.92 | **HOLD — MSA conflicts (Anthony, 2026-07-27):** validation fully passed (math exact, MSA-schedule rates, Stedi 3,773/3,773) but bills $582.50 stretchwrap + $94.76 pack-out, both disputed under AF-7/AF-9 of the 7.15 MSA markup ($10 all-in pallet; pack-out removed per Yusen 4/28) |
 | 754807 | Fontana SP/LTL | $57,858.38 | Stedi 8,965/8,966; **open judgment:** pallet $10.00+$4.317 (+63%) and ecom picks +11% vs old card need confirming against the signed 2026-04-06 rate sheet (Kent Nunez) |
 | 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317 (= new $10+$4.317 structure) |
 | FTI0006458 | NL June warehousing | €20,317.20 | reconciles to Yusen AR statement exactly |
