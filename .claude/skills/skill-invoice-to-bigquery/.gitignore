@@ -1,0 +1,21 @@
+# Secrets
+.env
+*-key.json
+*-credentials.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Skill Fixer / Publisher Framework artifacts
+review-report.md
+
+# Scratch invoice JSON / extracted text
+invoice_*.json
+*.ndjson
+
+# OS
+.DS_Store
+Thumbs.db

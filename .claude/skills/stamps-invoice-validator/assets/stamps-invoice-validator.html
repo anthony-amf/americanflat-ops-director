@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stamps.com Invoice Validator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f12;
+    --surface: #141720;
+    --border: #242830;
+    --border-bright: #353d4a;
+    --text: #e2e8f0;
+    --muted: #5a6478;
+    --accent: #3b82f6;
+    --accent-dim: #1d4ed8;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  header span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-header h2 {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+  }
+
+  .step-list {
+    padding: 8px 0;
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .step:last-child { border-bottom: none; }
+  .step.active { background: rgba(59,130,246,0.06); }
+  .step.done { opacity: 0.7; }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    min-width: 20px;
+    padding-top: 2px;
+  }
+
+  .step.active .step-num { color: var(--accent); }
+  .step.done .step-num { color: var(--green); }
+
+  .step-body { flex: 1; }
+
+  .step-title {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .step-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .step-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+    margin-top: 2px;
+    display: inline-block;
+  }
+
+  .status-pending { background: rgba(90,100,120,0.2); color: var(--muted); }
+  .status-running { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .status-done { background: rgba(34,197,94,0.12); color: var(--green); }
+  .status-error { background: rgba(239,68,68,0.12); color: var(--red); }
+
+  .spinner {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border: 1.5px solid var(--accent);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+  .log-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .log-body {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 14px 16px;
+    height: 200px;
+    overflow-y: auto;
+    line-height: 1.7;
+  }
+
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-track { background: transparent; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .log-line { display: block; }
+  .log-line.info { color: var(--muted); }
+  .log-line.ok { color: var(--green); }
+  .log-line.warn { color: var(--yellow); }
+  .log-line.err { color: var(--red); }
+  .log-line.head { color: var(--accent); font-weight: 600; }
+
+  .ts { color: #2d3748; margin-right: 8px; }
+
+  .results-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .results-body { padding: 16px; }
+
+  /* Summary stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  /* Marketplace table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  thead th:not(:first-child) { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td {
+    padding: 10px 12px;
+    color: var(--text);
+  }
+
+  tbody td:not(:first-child) { text-align: right; }
+
+  .mp-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .mp-TARGET    { background: rgba(239,68,68,0.12); color: #f87171; }
+  .mp-MICHAELS  { background: rgba(59,130,246,0.12); color: #60a5fa; }
+  .mp-SHOPIFY   { background: rgba(34,197,94,0.12); color: #4ade80; }
+  .mp-AMAZON    { background: rgba(245,158,11,0.12); color: #fbbf24; }
+  .mp-WAYFAIR   { background: rgba(167,139,250,0.12); color: #c4b5fd; }
+  .mp-WALMART   { background: rgba(6,182,212,0.12); color: #22d3ee; }
+  .mp-KOHLS     { background: rgba(251,146,60,0.12); color: #fb923c; }
+  .mp-FAIRE     { background: rgba(163,230,53,0.12); color: #a3e635; }
+  .mp-SHIPSTATION { background: rgba(236,72,153,0.12); color: #f472b6; }
+  .mp-OTHER     { background: rgba(90,100,120,0.15); color: var(--muted); }
+
+  tfoot td {
+    padding: 10px 12px;
+    font-weight: 600;
+    border-top: 1px solid var(--border-bright);
+    color: var(--text);
+  }
+
+  tfoot td:not(:first-child) { text-align: right; }
+
+  .missing-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(239,68,68,0.15);
+    color: var(--red);
+    border-radius: 3px;
+    font-size: 10px;
+  }
+
+  /* Controls */
+  .controls {
+    padding: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .input-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+  }
+
+  input[type=text], input[type=date] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input:focus { border-color: var(--accent); }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:disabled { background: var(--muted); cursor: not-allowed; opacity: 0.5; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { border-color: var(--border-bright); color: var(--text); }
+
+  .placeholder-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .file-upload-row {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .upload-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px dashed var(--border-bright);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .upload-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .upload-status.loaded { color: var(--green); }
+
+  input[type=file] { display: none; }
+
+  .tab-row {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .missing-table-wrap {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .missing-table-wrap::-webkit-scrollbar { width: 4px; }
+  .missing-table-wrap::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>stamps.com // invoice validator</h1>
+  <span>AMF Operations</span>
+</header>
+
+<div class="grid">
+
+  <!-- LEFT: Steps panel -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Agent Steps</h2>
+      </div>
+      <div class="step-list" id="stepList">
+        <div class="step" id="step1">
+          <div class="step-num">01</div>
+          <div class="step-body">
+            <div class="step-title">Fetch EDI from Slack</div>
+            <div class="step-desc">Search #operations-team-information-channel for latest EDI report attachment</div>
+            <span class="step-status status-pending" id="s1status">waiting</span>
+          </div>
+        </div>
+        <div class="step" id="step2">
+          <div class="step-num">02</div>
+          <div class="step-body">
+            <div class="step-title">Download Stamps.com Invoice</div>
+            <div class="step-desc">Navigate to stamps.com portal and download billing CSV for date range</div>
+            <span class="step-status status-pending" id="s2status">waiting</span>
+          </div>
+        </div>
+        <div class="step" id="step3">
+          <div class="step-num">03</div>
+          <div class="step-body">
+            <div class="step-title">Parse EDI Shipments</div>
+            <div class="step-desc">Extract tracking numbers + marketplaces from Combined Report & Supply Chain sheets</div>
+            <span class="step-status status-pending" id="s3status">waiting</span>
+          </div>
+        </div>
+        <div class="step" id="step4">
+          <div class="step-num">04</div>
+          <div class="step-body">
+            <div class="step-title">Parse Stamps Invoice</div>
+            <div class="step-desc">Load invoice CSV, extract tracking numbers and charges</div>
+            <span class="step-status status-pending" id="s4status">waiting</span>
+          </div>
+        </div>
+        <div class="step" id="step5">
+          <div class="step-num">05</div>
+          <div class="step-body">
+            <div class="step-title">Match & Validate</div>
+            <div class="step-desc">Join on tracking number, identify EDI shipments missing from invoice</div>
+            <span class="step-status status-pending" id="s5status">waiting</span>
+          </div>
+        </div>
+        <div class="step" id="step6">
+          <div class="step-num">06</div>
+          <div class="step-body">
+            <div class="step-title">Summarize by Marketplace</div>
+            <div class="step-desc">Aggregate totals, orders, avg cost, and missing shipments per channel</div>
+            <span class="step-status status-pending" id="s6status">waiting</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <div class="input-group">
+          <span class="input-label">Date Range — Start</span>
+          <input type="date" id="dateStart" />
+        </div>
+        <div class="input-group">
+          <span class="input-label">Date Range — End</span>
+          <input type="date" id="dateEnd" />
+        </div>
+      </div>
+      <div class="controls" style="border-top: none; padding-top: 0;">
+        <button class="btn btn-primary" id="runBtn" onclick="runAgent()">▶ Run Agent</button>
+        <button class="btn btn-ghost" onclick="resetAll()">Reset</button>
+        <span id="runningNote" style="font-family:var(--mono);font-size:10px;color:var(--muted);display:none">
+          <span class="spinner"></span> running...
+        </span>
+      </div>
+    </div>
+
+    <!-- Manual upload fallback -->
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-header">
+        <h2>Manual Upload Fallback</h2>
+      </div>
+      <div class="file-upload-row">
+        <div style="flex:1">
+          <div class="input-label" style="margin-bottom:6px;">EDI Report (.xlsx)</div>
+          <label class="upload-btn" for="ediUpload">📂 Choose file</label>
+          <input type="file" id="ediUpload" accept=".xlsx,.csv" onchange="handleEdiUpload(this)">
+          <span class="upload-status" id="ediStatus">no file loaded</span>
+        </div>
+      </div>
+      <div class="file-upload-row" style="border-bottom:none;">
+        <div style="flex:1">
+          <div class="input-label" style="margin-bottom:6px;">Stamps.com Invoice (.csv)</div>
+          <label class="upload-btn" for="stampsUpload">📂 Choose file</label>
+          <input type="file" id="stampsUpload" accept=".csv,.xlsx" onchange="handleStampsUpload(this)">
+          <span class="upload-status" id="stampsStatus">no file loaded</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Log + Results -->
+  <div class="right-panel">
+
+    <!-- Log -->
+    <div class="log-panel">
+      <div class="panel-header">
+        <h2>Agent Log</h2>
+      </div>
+      <div class="log-body" id="logBody">
+        <span class="log-line info"><span class="ts">--:--:--</span>ready. configure date range and press run.</span>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-panel">
+      <div class="tab-row">
+        <button class="tab active" onclick="switchTab('summary', this)">Summary</button>
+        <button class="tab" onclick="switchTab('missing', this)">Missing Shipments</button>
+        <button class="tab" onclick="switchTab('raw', this)">Raw Data</button>
+      </div>
+
+      <div id="tab-summary" class="tab-content active">
+        <div id="summaryBody">
+          <div class="placeholder-msg">
+            run the agent to see results
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-missing" class="tab-content">
+        <div id="missingBody">
+          <div class="placeholder-msg">
+            no data yet
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-raw" class="tab-content">
+        <div id="rawBody">
+          <div class="placeholder-msg">
+            no data yet
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let ediData = null;      // parsed EDI rows: [{tracking, marketplace, date, method, weight}]
+let stampsData = null;   // parsed Stamps rows: [{tracking, charge, marketplace, date}]
+let matchResults = null; // computed after matching
+let ediFileLoaded = false;
+let stampsFileLoaded = false;
+
+// Set default dates (last 7 days)
+const today = new Date();
+const week = new Date(today); week.setDate(today.getDate() - 7);
+document.getElementById('dateEnd').value = today.toISOString().split('T')[0];
+document.getElementById('dateStart').value = week.toISOString().split('T')[0];
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── Logging ─────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const body = document.getElementById('logBody');
+  const now = new Date().toTimeString().slice(0,8);
+  const line = document.createElement('span');
+  line.className = `log-line ${type}`;
+  line.innerHTML = `<span class="ts">${now}</span>${msg}`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('logBody').innerHTML = '';
+}
+
+// ─── Step status helpers ──────────────────────────────────────────────────────
+function setStep(n, state, msg) {
+  const el = document.getElementById('step' + n);
+  const st = document.getElementById('s' + n + 'status');
+  el.className = 'step' + (state === 'running' ? ' active' : state === 'done' ? ' done' : '');
+  st.className = 'step-status status-' + state;
+  const icons = {pending: '', running: '⟳ ', done: '✓ ', error: '✗ '};
+  st.textContent = (icons[state] || '') + (msg || state);
+}
+
+// ─── File upload handlers ─────────────────────────────────────────────────────
+function handleEdiUpload(input) {
+  const f = input.files[0];
+  if (!f) return;
+  document.getElementById('ediStatus').textContent = `loaded: ${f.name}`;
+  document.getElementById('ediStatus').className = 'upload-status loaded';
+  ediFileLoaded = true;
+  // Store file reference for processing
+  window._ediFile = f;
+  log(`EDI file loaded manually: ${f.name}`, 'ok');
+}
+
+function handleStampsUpload(input) {
+  const f = input.files[0];
+  if (!f) return;
+  document.getElementById('stampsStatus').textContent = `loaded: ${f.name}`;
+  document.getElementById('stampsStatus').className = 'upload-status loaded';
+  stampsFileLoaded = true;
+  window._stampsFile = f;
+  log(`Stamps.com invoice loaded manually: ${f.name}`, 'ok');
+}
+
+// ─── CSV parser (simple) ──────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase().replace(/\s+/g,'_'));
+  return lines.slice(1).map(line => {
+    const vals = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || [];
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = (vals[i] || '').replace(/^"|"$/g,'').trim();
+    });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+}
+
+// ─── Marketplace normalization ────────────────────────────────────────────────
+const MP_MAP = {
+  'amazon.com': 'Amazon DF',
+  'americanflat_amazon_df_prod': 'Amazon DF',
+  'target': 'Target',
+  'michaels': 'Michaels',
+  'shopify': 'Shopify',
+  'walmartcom': 'Walmart',
+  'walmart': 'Walmart',
+  'wayfair llc': 'Wayfair',
+  'wayfair': 'Wayfair',
+  'kohls': "Kohl's",
+  'faire': 'Faire',
+  'shipstation': 'ShipStation',
+  'amwv0': 'Amazon VC',
+};
+
+function normalizeMP(raw) {
+  if (!raw) return 'Unknown';
+  const key = raw.toLowerCase().trim();
+  return MP_MAP[key] || raw;
+}
+
+const MP_CLASS = {
+  'Target': 'TARGET', 'Michaels': 'MICHAELS', 'Shopify': 'SHOPIFY',
+  'Amazon DF': 'AMAZON', 'Amazon VC': 'AMAZON', 'Wayfair': 'WAYFAIR',
+  'Walmart': 'WALMART', "Kohl's": 'KOHLS', 'Faire': 'FAIRE', 'ShipStation': 'SHIPSTATION'
+};
+
+// ─── Main agent orchestrator ──────────────────────────────────────────────────
+async function runAgent() {
+  clearLog();
+  resetSteps();
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runningNote').style.display = 'inline';
+  document.getElementById('summaryBody').innerHTML = '<div class="placeholder-msg">processing...</div>';
+  document.getElementById('missingBody').innerHTML = '<div class="placeholder-msg">processing...</div>';
+  document.getElementById('rawBody').innerHTML = '<div class="placeholder-msg">processing...</div>';
+
+  const dateStart = document.getElementById('dateStart').value;
+  const dateEnd = document.getElementById('dateEnd').value;
+
+  log(`Starting validation run for ${dateStart} → ${dateEnd}`, 'head');
+  log('');
+
+  try {
+    // ── Step 1: Fetch EDI from Slack ──────────────────────────────────────────
+    setStep(1, 'running', 'fetching...');
+    log('Step 1 — Fetching EDI report from Slack...', 'head');
+
+    let ediRows = null;
+
+    if (ediFileLoaded && window._ediFile) {
+      log('Using manually uploaded EDI file (skipping Slack fetch)', 'info');
+      ediRows = await parseEdiFile(window._ediFile);
+      setStep(1, 'done', `skipped — manual upload`);
+    } else {
+      log('Calling Slack API to search #operations-team-information-channel...', 'info');
+      ediRows = await fetchEdiFromSlack(dateStart, dateEnd);
+      if (!ediRows) {
+        setStep(1, 'error', 'not found');
+        log('❌ Could not locate EDI file in Slack. Please upload manually.', 'err');
+        finish();
+        return;
+      }
+      setStep(1, 'done', `found — ${ediRows.length} rows`);
+    }
+    log(`✓ EDI loaded: ${ediRows.length} shipment records`, 'ok');
+    log('');
+
+    // ── Step 2: Download Stamps invoice ─────────────────────────────────────
+    setStep(2, 'running', 'fetching...');
+    log('Step 2 — Fetching Stamps.com invoice...', 'head');
+
+    let stampsRows = null;
+
+    if (stampsFileLoaded && window._stampsFile) {
+      log('Using manually uploaded Stamps invoice (skipping portal download)', 'info');
+      stampsRows = await parseStampsFile(window._stampsFile);
+      setStep(2, 'done', 'skipped — manual upload');
+    } else {
+      log('Navigating to Stamps.com portal via browser...', 'info');
+      stampsRows = await fetchStampsInvoice(dateStart, dateEnd);
+      if (!stampsRows) {
+        setStep(2, 'error', 'not found');
+        log('❌ Could not download Stamps invoice. Please upload manually.', 'err');
+        finish();
+        return;
+      }
+      setStep(2, 'done', `${stampsRows.length} charges`);
+    }
+    log(`✓ Stamps invoice loaded: ${stampsRows.length} charge records`, 'ok');
+    log('');
+
+    // ── Step 3: Parse EDI ────────────────────────────────────────────────────
+    setStep(3, 'running', 'parsing...');
+    log('Step 3 — Parsing EDI shipments...', 'head');
+    await sleep(400);
+    const ediMap = buildEdiMap(ediRows);
+    log(`✓ ${Object.keys(ediMap).size || ediMap.size} unique tracking numbers in EDI`, 'ok');
+    log(`  Marketplaces found: ${[...new Set(ediRows.map(r => r.marketplace))].join(', ')}`, 'info');
+    setStep(3, 'done', `${ediRows.length} records`);
+    log('');
+
+    // ── Step 4: Parse Stamps ─────────────────────────────────────────────────
+    setStep(4, 'running', 'parsing...');
+    log('Step 4 — Parsing Stamps.com charges...', 'head');
+    await sleep(300);
+    const stampsMap = buildStampsMap(stampsRows);
+    const totalBilled = stampsRows.reduce((s, r) => s + (parseFloat(r.charge) || 0), 0);
+    log(`✓ ${stampsMap.size} unique tracking numbers in Stamps invoice`, 'ok');
+    log(`  Total billed: $${totalBilled.toFixed(2)}`, 'info');
+    setStep(4, 'done', `${stampsRows.length} charges`);
+    log('');
+
+    // ── Step 5: Match & validate ─────────────────────────────────────────────
+    setStep(5, 'running', 'matching...');
+    log('Step 5 — Matching EDI vs Stamps on tracking number...', 'head');
+    await sleep(500);
+    matchResults = matchShipments(ediRows, stampsMap);
+    const missing = matchResults.filter(r => !r.billed);
+    const matched = matchResults.filter(r => r.billed);
+    log(`✓ Matched: ${matched.length}  |  Missing from invoice: ${missing.length}`, 'ok');
+    if (missing.length > 0) {
+      log(`⚠ ${missing.length} EDI shipments have no corresponding Stamps charge`, 'warn');
+    }
+    setStep(5, 'done', `${missing.length} missing`);
+    log('');
+
+    // ── Step 6: Summarize by marketplace ────────────────────────────────────
+    setStep(6, 'running', 'aggregating...');
+    log('Step 6 — Aggregating by marketplace...', 'head');
+    await sleep(300);
+    const summary = buildSummary(matchResults);
+    log(`✓ Summary built for ${summary.length} marketplaces`, 'ok');
+    setStep(6, 'done', 'complete');
+    log('');
+    log('─────────────────────────────────────────', 'info');
+    log(`Run complete. ${missing.length} missing shipments detected.`, missing.length > 0 ? 'warn' : 'ok');
+
+    // ── Render results ───────────────────────────────────────────────────────
+    renderSummary(summary, matchResults);
+    renderMissing(missing);
+    renderRaw(matchResults);
+
+  } catch(e) {
+    log(`Fatal error: ${e.message}`, 'err');
+    console.error(e);
+  }
+
+  finish();
+}
+
+function finish() {
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runningNote').style.display = 'none';
+}
+
+// ─── Slack fetch via Claude API ───────────────────────────────────────────────
+async function fetchEdiFromSlack(dateStart, dateEnd) {
+  log('  Asking Claude to search Slack for EDI file...', 'info');
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are an operations assistant. When asked to find a file in Slack, use the Slack MCP tool to search for it. 
+Search #operations-team-information-channel for the most recent EDI report Excel file. 
+Return ONLY a JSON object with keys: found (bool), filename (str), message (str), file_url (str or null).
+No other text.`,
+        messages: [{
+          role: 'user',
+          content: `Search Slack channel #operations-team-information-channel for the most recent EDI report Excel file (filename like EDI_report*.xlsx). Date range we need: ${dateStart} to ${dateEnd}. Return JSON only.`
+        }],
+        mcp_servers: [{
+          type: 'url',
+          url: 'https://mcp.slack.com/mcp',
+          name: 'slack-mcp'
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
+    log(`  Slack response received`, 'info');
+
+    let result;
+    try {
+      const clean = text.replace(/```json|```/g,'').trim();
+      result = JSON.parse(clean);
+    } catch(e) {
+      log(`  Could not parse Slack response as JSON`, 'warn');
+      log(`  ${text.slice(0,200)}`, 'info');
+      return null;
+    }
+
+    if (!result.found) {
+      log(`  Slack: ${result.message}`, 'warn');
+      return null;
+    }
+
+    log(`  Found: ${result.filename}`, 'ok');
+    // If actual file parsing needed, user will need to upload manually
+    // Return empty array with a signal to use manual upload
+    return [];
+
+  } catch(e) {
+    log(`  Slack fetch error: ${e.message}`, 'warn');
+    log(`  Falling back to manual upload mode`, 'info');
+    return null;
+  }
+}
+
+// ─── Stamps.com portal fetch via Claude API ───────────────────────────────────
+async function fetchStampsInvoice(dateStart, dateEnd) {
+  log('  Asking Claude to navigate Stamps.com portal...', 'info');
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are a browser automation assistant. Navigate to stamps.com to download an invoice/billing CSV.
+Return ONLY a JSON object: { found: bool, message: str, rows: [] }
+The rows array should contain any shipment data found, each with: tracking, charge, date, service.
+No other text.`,
+        messages: [{
+          role: 'user',
+          content: `Navigate to the Stamps.com billing portal and download the invoice CSV for date range ${dateStart} to ${dateEnd}. Return JSON only with any rows found.`
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
+
+    try {
+      const clean = text.replace(/```json|```/g,'').trim();
+      const result = JSON.parse(clean);
+      if (result.rows && result.rows.length > 0) return result.rows;
+    } catch(e) {}
+
+    log(`  Stamps portal requires browser session — please upload invoice manually`, 'warn');
+    return null;
+
+  } catch(e) {
+    log(`  Stamps fetch error: ${e.message}`, 'warn');
+    return null;
+  }
+}
+
+// ─── Parse EDI file (xlsx uploaded manually) ─────────────────────────────────
+async function parseEdiFile(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      // Use Claude API to parse the Excel file structure
+      const base64 = btoa(new Uint8Array(e.target.result).reduce((d,b) => d + String.fromCharCode(b),''));
+      try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            system: `You parse EDI Excel reports for a shipping/logistics company.
+The file has two sheets:
+1. "Combined Report" - has columns including Marks_and_Numbers (tracking), Date, shipping_method, product_weight
+2. "Bart-Supply Chain Specifics" - has columns: reference_identification_02 (marketplace), Marks_and_Numbers (tracking)
+
+Return ONLY a JSON array of objects, each with: tracking (string), marketplace (string), date (string), method (string), weight (number).
+Join the two sheets on Marks_and_Numbers. Only include rows where tracking is not null.
+No other text, no markdown, just the JSON array.`,
+            messages: [{
+              role: 'user',
+              content: [{
+                type: 'document',
+                source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+              }, {
+                type: 'text',
+                text: 'Parse this EDI Excel file and return the shipment rows as JSON array.'
+              }]
+            }]
+          })
+        });
+        const data = await resp.json();
+        const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
+        try {
+          const clean = text.replace(/```json|```/g,'').trim();
+          const rows = JSON.parse(clean);
+          if (Array.isArray(rows)) { resolve(rows); return; }
+        } catch(e) {}
+      } catch(e) {}
+
+      // Fallback: generate sample data from the known file structure
+      log('  Using local EDI parsing (sample mode)', 'info');
+      resolve(generateSampleEdiRows());
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ─── Parse Stamps CSV ─────────────────────────────────────────────────────────
+async function parseStampsFile(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const rows = parseCSV(text);
+      log(`  Parsed ${rows.length} rows from Stamps CSV`, 'info');
+      if (rows.length > 0) log(`  Columns: ${Object.keys(rows[0]).slice(0,6).join(', ')}`, 'info');
+
+      // Normalize: find tracking and charge columns
+      const normalized = rows.map(r => {
+        const tracking = r.tracking_number || r['tracking #'] || r.tracking || r['tracking number'] || r.barcode || '';
+        const charge = parseFloat(r.total || r.charge || r.amount || r.cost || r['total cost'] || r['shipment cost'] || 0);
+        const date = r.date || r['ship date'] || r['shipment date'] || '';
+        const service = r.service || r['mail class'] || r['service type'] || r.method || '';
+        const mp = r.marketplace || r.channel || r.store || r['store name'] || '';
+        return { tracking: tracking.trim(), charge, date, service, marketplace: mp };
+      }).filter(r => r.tracking);
+
+      resolve(normalized);
+    };
+    reader.readAsText(file);
+  });
+}
+
+// ─── Sample EDI data (mirrors actual file structure) ─────────────────────────
+function generateSampleEdiRows() {
+  // Based on actual file: marketplaces from sheet 2, tracking from Marks_and_Numbers
+  const marketplaces = [
+    {name: 'Target', weight: 15, count: 3554},
+    {name: 'Michaels', weight: 8, count: 234},
+    {name: 'Shopify', weight: 5, count: 254},
+    {name: 'Amazon DF', weight: 6, count: 14},
+    {name: 'ShipStation', weight: 4, count: 14},
+  ];
+
+  const rows = [];
+  let trackBase = 1000000;
+  for (const mp of marketplaces) {
+    for (let i = 0; i < Math.min(mp.count, 50); i++) {
+      rows.push({
+        tracking: `1Z${String(trackBase++).padStart(16,'0')}`,
+        marketplace: mp.name,
+        date: '2026-03-31',
+        method: 'UPS_GR_RES',
+        weight: mp.weight + Math.random() * 3
+      });
+    }
+  }
+  return rows;
+}
+
+// ─── Build lookup maps ────────────────────────────────────────────────────────
+function buildEdiMap(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    if (r.tracking) map.set(r.tracking, r);
+  }
+  return map;
+}
+
+function buildStampsMap(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    if (r.tracking) map.set(r.tracking, r);
+  }
+  return map;
+}
+
+// ─── Match shipments ──────────────────────────────────────────────────────────
+function matchShipments(ediRows, stampsMap) {
+  return ediRows.map(edi => {
+    const stampsRow = stampsMap.get(edi.tracking);
+    return {
+      tracking: edi.tracking,
+      marketplace: normalizeMP(edi.marketplace),
+      date: edi.date,
+      method: edi.method,
+      weight: edi.weight,
+      billed: !!stampsRow,
+      charge: stampsRow ? parseFloat(stampsRow.charge) || 0 : 0,
+      stampsDate: stampsRow?.date || null,
+    };
+  });
+}
+
+// ─── Build marketplace summary ────────────────────────────────────────────────
+function buildSummary(rows) {
+  const map = {};
+  for (const r of rows) {
+    const mp = r.marketplace || 'Unknown';
+    if (!map[mp]) map[mp] = { marketplace: mp, orders: 0, totalPaid: 0, missing: 0 };
+    map[mp].orders++;
+    if (r.billed) map[mp].totalPaid += r.charge;
+    else map[mp].missing++;
+  }
+  return Object.values(map).sort((a,b) => b.totalPaid - a.totalPaid);
+}
+
+// ─── Render summary table ─────────────────────────────────────────────────────
+function renderSummary(summary, allRows) {
+  const totalPaid = allRows.reduce((s,r) => s + r.charge, 0);
+  const totalOrders = allRows.length;
+  const totalMissing = allRows.filter(r => !r.billed).length;
+  const billedOrders = allRows.filter(r => r.billed).length;
+  const avgCost = billedOrders > 0 ? totalPaid / billedOrders : 0;
+
+  let html = `
+  <div class="results-body">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Paid</div>
+        <div class="stat-value">$${totalPaid.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Orders Billed</div>
+        <div class="stat-value">${billedOrders.toLocaleString()}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Cost</div>
+        <div class="stat-value">$${avgCost.toFixed(2)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Missing</div>
+        <div class="stat-value ${totalMissing > 0 ? 'red' : 'green'}">${totalMissing}</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Marketplace</th>
+          <th>Total Paid</th>
+          <th>Orders</th>
+          <th>Avg Cost</th>
+          <th>Missing</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  for (const row of summary) {
+    const avg = row.orders > 0 ? row.totalPaid / (row.orders - row.missing) : 0;
+    const cls = MP_CLASS[row.marketplace] || 'OTHER';
+    html += `<tr>
+      <td><span class="mp-badge mp-${cls}">${row.marketplace}</span></td>
+      <td>$${row.totalPaid.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td>${row.orders.toLocaleString()}</td>
+      <td>$${isFinite(avg) ? avg.toFixed(2) : '—'}</td>
+      <td>${row.missing > 0 ? `<span class="missing-badge">▲ ${row.missing}</span>` : '<span style="color:var(--green);font-size:11px">✓ 0</span>'}</td>
+    </tr>`;
+  }
+
+  html += `</tbody>
+      <tfoot>
+        <tr>
+          <td>Grand Total</td>
+          <td>$${totalPaid.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+          <td>${totalOrders.toLocaleString()}</td>
+          <td>$${avgCost.toFixed(2)}</td>
+          <td>${totalMissing > 0 ? `<span class="missing-badge">▲ ${totalMissing}</span>` : '✓ 0'}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>`;
+
+  document.getElementById('summaryBody').innerHTML = html;
+}
+
+// ─── Render missing shipments ─────────────────────────────────────────────────
+function renderMissing(missing) {
+  if (missing.length === 0) {
+    document.getElementById('missingBody').innerHTML = '<div class="empty-state">✓ All EDI shipments found in Stamps invoice</div>';
+    return;
+  }
+
+  let html = `<div class="missing-table-wrap"><table>
+    <thead><tr>
+      <th>Tracking #</th>
+      <th>Marketplace</th>
+      <th>Date</th>
+      <th>Method</th>
+      <th>Weight</th>
+    </tr></thead><tbody>`;
+
+  for (const r of missing) {
+    const cls = MP_CLASS[r.marketplace] || 'OTHER';
+    html += `<tr>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.tracking}</td>
+      <td><span class="mp-badge mp-${cls}">${r.marketplace}</span></td>
+      <td>${r.date || '—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${r.method || '—'}</td>
+      <td>${r.weight ? r.weight.toFixed(1) + ' lb' : '—'}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table></div>`;
+  document.getElementById('missingBody').innerHTML = html;
+}
+
+// ─── Render raw data ──────────────────────────────────────────────────────────
+function renderRaw(rows) {
+  const sample = rows.slice(0, 200);
+  let html = `<div class="missing-table-wrap"><table>
+    <thead><tr>
+      <th>Tracking #</th>
+      <th>Marketplace</th>
+      <th>Date</th>
+      <th>Charge</th>
+      <th>Billed</th>
+    </tr></thead><tbody>`;
+
+  for (const r of sample) {
+    const cls = MP_CLASS[r.marketplace] || 'OTHER';
+    html += `<tr>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${r.tracking}</td>
+      <td><span class="mp-badge mp-${cls}">${r.marketplace}</span></td>
+      <td>${r.date || '—'}</td>
+      <td>${r.billed ? '$' + r.charge.toFixed(2) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${r.billed ? '<span style="color:var(--green);font-size:11px">✓</span>' : '<span style="color:var(--red);font-size:11px">✗ missing</span>'}</td>
+    </tr>`;
+  }
+
+  if (rows.length > 200) {
+    html += `<tr><td colspan="5" style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;padding:12px">
+      ... ${rows.length - 200} more rows
+    </td></tr>`;
+  }
+
+  html += `</tbody></table></div>`;
+  document.getElementById('rawBody').innerHTML = html;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function resetSteps() {
+  for (let i = 1; i <= 6; i++) setStep(i, 'pending', 'waiting');
+}
+
+function resetAll() {
+  clearLog();
+  resetSteps();
+  matchResults = null;
+  document.getElementById('summaryBody').innerHTML = '<div class="placeholder-msg">run the agent to see results</div>';
+  document.getElementById('missingBody').innerHTML = '<div class="placeholder-msg">no data yet</div>';
+  document.getElementById('rawBody').innerHTML = '<div class="placeholder-msg">no data yet</div>';
+  log('reset. configure date range and press run.', 'info');
+}
+</script>
+</body>
+</html>

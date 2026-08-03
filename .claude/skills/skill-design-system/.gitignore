@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Environment / secrets
+.env
+.env.local
+
+# Skill review artifacts
+review-report.md
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,20 @@
+[skill]
+name = "skill-pr-helper"
+version = "2.1.1"
+description = "Walks a Claude through shipping a change to an already-published Americanflat skill repo by committing directly to main (skill repos are no longer PR-gated), then notifying the Governors to update the ai-skills-registry (Governors only). Enforces house rules: one change at a time, semver bump, prose changelog, description sync, and a vX.Y.Z tag."
+owner = "Ivan Calderon <ivan@americanflat.com>"
+tier = 2  # writes-with-notify: commits directly to the skill repo's main and tags it, then notifies @governors to update the registry (no registry write access — never opens a registry PR).
+# language and [environment].python intentionally omitted — purely conversational skill, no .py files ship.
+
+[environment]
+requires_network = true    # opens PRs via gh and posts the merge-request ping to Slack
+requires_secrets = false   # SSH key handled outside the skill (per Notion GitHub & SSH Setup Guide); Slack auth via the MCP connector
+stdlib_only = true         # no pip dependencies — no Python ships at all
+
+[compatibility]
+platforms = ["windows", "macos", "linux"]
+providers = ["claude-code"]
+
+[system_deps]
+git = { required = true, purpose = "branch, commit, push, tag, and clone the registry" }
+gh = { required = false, purpose = "friendlier PR creation (gh pr create); PRs can also be opened in the GitHub UI" }

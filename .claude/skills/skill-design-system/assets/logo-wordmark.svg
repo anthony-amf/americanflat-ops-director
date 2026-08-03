@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Americanflat Wordmark
+  All-lowercase, geometric sans-serif, single line.
+  Source: Brand Guidelines v5 (Feb 2025), page 30.
+
+  Note: this is a text-based recreation using a web fallback. The
+  official wordmark uses Glacial Indifference Bold. For final
+  customer-facing use, swap in the official vector from Creative.
+
+  Usage:
+    <img src="logo-wordmark.svg" height="40" alt="Americanflat">
+  Minimum size: 30pt (about 40px web equivalent).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 80" role="img" aria-label="americanflat">
+  <title>americanflat</title>
+  <style>
+    .wm-text {
+      font-family: 'Glacial Indifference', 'DM Sans', 'Inter', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 64px;
+      letter-spacing: 0.04em;
+      fill: currentColor;
+    }
+    .wm-reg {
+      font-family: 'Glacial Indifference', 'DM Sans', 'Inter', system-ui, sans-serif;
+      font-weight: 400;
+      font-size: 16px;
+      fill: currentColor;
+    }
+  </style>
+  <text x="0" y="58" class="wm-text">americanflat</text>
+  <text x="442" y="22" class="wm-reg">®</text>
+</svg>

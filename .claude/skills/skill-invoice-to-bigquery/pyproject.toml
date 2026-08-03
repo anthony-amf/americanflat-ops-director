@@ -1,0 +1,8 @@
+[project]
+name = "skill-invoice-to-bigquery"
+version = "0.1.0"
+description = "Reads PDF invoices (variable layouts, variable line-item counts) and loads them into BigQuery via service-account impersonation, with a human sign-off on the invoice total."
+requires-python = ">=3.9"
+dependencies = [
+    "pymupdf",
+]

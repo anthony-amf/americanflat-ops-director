@@ -1,0 +1,24 @@
+{
+  "invoice_id": "13540",
+  "invoice_date": "2026-06-10",
+  "vendor_name": "Taylored Services",
+  "bill_to": "American Flat, 20 W 23rd St Fl 3, New York City",
+  "ship_to": "TAYLORED SERVICES 8375 SULTANA AVE UNIT 1 FONTANA, CA 92335",
+  "po_number": "CTAO26040340",
+  "terms": "Due on receipt",
+  "container_number": "OOLU9398757",
+  "currency": "USD",
+  "total_amount": 905.00,
+  "line_items": [
+    {"line_number": 1, "description": "Line Haul", "quantity": 1, "rate": 520.00, "amount": 520.00},
+    {"line_number": 2, "description": "FSC", "quantity": 1, "rate": 60.00, "amount": 60.00},
+    {"line_number": 3, "description": "Chassis Rental", "quantity": 1, "rate": 125.00, "amount": 125.00},
+    {"line_number": 4, "description": "BOB Tail", "quantity": 1, "rate": 200.00, "amount": 200.00}
+  ],
+  "source_file": "Bill_13540_INV__13540.pdf",
+  "raw_extraction": {
+    "note": "Put anything here that doesn't fit a canonical column - extra fees, remit-to addresses, tax lines, notes, a second container number, whatever the vendor printed. Nothing is lost, and unfamiliar layouts stay queryable later.",
+    "header_text_verbatim": "...optional: the raw extracted header block...",
+    "unmapped_fields": {}
+  }
+}

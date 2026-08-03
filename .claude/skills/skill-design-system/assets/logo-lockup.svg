@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Americanflat Extended Lockup (icon + wordmark).
+  Used when space allows both. Source: Brand Guidelines v5, page 30.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 120" role="img" aria-label="Americanflat">
+  <title>Americanflat</title>
+  <style>
+    .wm-text {
+      font-family: 'Glacial Indifference', 'DM Sans', 'Inter', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 64px;
+      letter-spacing: 0.04em;
+      fill: currentColor;
+    }
+    .wm-reg {
+      font-family: 'Glacial Indifference', 'DM Sans', 'Inter', system-ui, sans-serif;
+      font-weight: 400;
+      font-size: 16px;
+      fill: currentColor;
+    }
+  </style>
+  <g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="square" transform="translate(0,15)">
+    <path d="M 12 90 L 12 50 Q 12 15, 50 15 Q 88 15, 88 50 L 88 90" />
+    <path d="M 28 90 L 28 53 Q 28 33, 50 33 Q 72 33, 72 53 L 72 90" />
+    <path d="M 44 90 L 44 58 Q 44 50, 50 50" />
+  </g>
+  <text x="120" y="80" class="wm-text">americanflat</text>
+  <text x="568" y="42" class="wm-reg">®</text>
+</svg>

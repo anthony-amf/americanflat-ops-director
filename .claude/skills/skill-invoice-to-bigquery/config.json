@@ -1,0 +1,7 @@
+{
+  "project_id": "americanflat",
+  "dataset": "finance",
+  "table": "freight_invoices",
+  "impersonate_service_account": "invoice-writer@americanflat.iam.gserviceaccount.com",
+  "location": "US"
+}

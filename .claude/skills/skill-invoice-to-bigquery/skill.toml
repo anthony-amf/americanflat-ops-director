@@ -1,0 +1,18 @@
+[skill]
+name = "skill-invoice-to-bigquery"
+version = "0.1.0"
+description = "Reads PDF invoices (variable layouts, variable line-item counts) and loads them into BigQuery for Americanflat. Checks for gcloud, parses each PDF onto a fixed schema with a nested line_items array, requires human sign-off on the invoice total, then writes via service-account impersonation. Performs no IAM operations itself."
+owner = "Ivan Calderon <ivan@americanflat.com>"
+tier = 2
+department = "finance"
+language = "python"
+
+[environment]
+requires_network = true
+requires_secrets = false
+stdlib_only = false
+python = ">=3.9"
+
+[compatibility]
+platforms = ["macos", "linux", "windows"]
+providers = ["claude-code"]

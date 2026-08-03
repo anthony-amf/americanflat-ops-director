@@ -11,6 +11,26 @@ credentials/
 gcloud-key.json
 service-account-key.json
 
+# Skill sources under .claude/skills/ carry version-controlled config and
+# reference JSON (config.json, tokens.json, bq_schema.json). The blanket
+# *.json rule above must not silently swallow them...
+!.claude/skills/**/*.json
+# ...but credential-shaped names stay ignored everywhere, no exceptions.
+sa.json
+**/sa.json
+*-key.json
+*-credentials.json
+**/*-key.json
+**/*-credentials.json
+
+# Local Claude Code state — never committed (machine-specific, may hold tokens)
+.claude/settings.local.json
+.claude/projects/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/session-env/
+.claude/backups/
+
 # Python
 __pycache__/
 *.py[cod]

@@ -1,0 +1,15 @@
+[skill]
+name = "skill-design-system"
+version = "1.0.0"
+description = "Apply the Americanflat brand aesthetic (colors, typography, logo, layout) to dashboards, tools, agents, and any visual deliverable carrying the AF name."
+owner = "Kent Nunez <kent@americanflat.com>"
+tier = 1
+
+[environment]
+requires_network = false
+requires_secrets = false
+stdlib_only = true
+
+[compatibility]
+platforms = ["claude-code", "claude-desktop"]
+providers = ["anthropic"]

@@ -1,0 +1,219 @@
+/* =============================================================
+   AMERICANFLAT DESIGN TOKENS
+   Source: Americanflat Brand Guidelines v5 (Feb 2025)
+   Last updated: 2026-05-22
+   =============================================================
+   How to use: paste this into the top of your <style> block.
+   Reference variables with var(--af-black), var(--af-h1), etc.
+   Do not redefine these values inline. Update centrally here.
+   ============================================================= */
+
+@import url('https://fonts.cdnfonts.com/css/glacial-indifference-2');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&display=swap');
+
+:root {
+  /* ---- Primary palette ---- */
+  --af-black:        #0F0F0F;   /* NOT true black. This is the brand "black". */
+  --af-white:        #FFFFFF;
+
+  /* ---- Greys ---- */
+  --af-grey-4:       #1A1A1A;   /* Dense dark surfaces */
+  --af-grey-3:       #666666;   /* Secondary text, captions */
+  --af-grey-2:       #B3B3B3;   /* Borders, disabled */
+  --af-grey-1:       #E6E6E6;   /* Dividers, very light fills */
+
+  /* ---- Accents (use sparingly, never as primary) ---- */
+  --af-red:          #CE0E2D;
+  --af-blue:         #003595;
+
+  /* ---- Semantic mapping (use these in components) ---- */
+  --af-bg:           var(--af-white);
+  --af-bg-dark:      var(--af-black);
+  --af-text:         var(--af-black);
+  --af-text-muted:   var(--af-grey-3);
+  --af-text-inverse: var(--af-white);
+  --af-border:       var(--af-grey-1);
+  --af-border-bold:  var(--af-grey-2);
+  --af-alert:        var(--af-red);
+  --af-link:         var(--af-blue);
+
+  /* ---- Typography ---- */
+  --af-font:         'Glacial Indifference', 'DM Sans', 'Inter', system-ui, sans-serif;
+  --af-font-jp:      'Hiragino Kaku Gothic Pron', 'Noto Sans JP', sans-serif;
+  --af-weight-regular: 400;
+  --af-weight-bold:    700;
+
+  /* Type scale (PDF spec is in pt; web equivalent in rem at 16px base) */
+  --af-h1:           3rem;       /* 48pt   Bold   for hero headlines */
+  --af-h2:           1.875rem;   /* 30pt   Bold   for section heads */
+  --af-subhead:      1.5rem;     /* 24pt   Regular for sub-section labels */
+  --af-descriptor:   1.5rem;     /* 24pt   Regular for eyebrows / category labels */
+  --af-body:         1.3125rem;  /* 21pt   Regular for body copy */
+  --af-small:        1rem;       /* 16pt   Regular for UI labels */
+  --af-footer:       0.75rem;    /* 12pt   Regular for footers, legal */
+
+  --af-line-tight:   1.15;
+  --af-line-normal:  1.5;
+  --af-line-loose:   1.7;
+
+  --af-track-tight:  -0.01em;
+  --af-track-normal: 0;
+
+  /* ---- Spacing scale (8pt grid) ---- */
+  --af-space-1:      0.25rem;   /* 4px  */
+  --af-space-2:      0.5rem;    /* 8px  */
+  --af-space-3:      1rem;      /* 16px */
+  --af-space-4:      1.5rem;    /* 24px */
+  --af-space-5:      2rem;      /* 32px */
+  --af-space-6:      3rem;      /* 48px */
+  --af-space-7:      4rem;      /* 64px */
+  --af-space-8:      6rem;      /* 96px */
+
+  /* ---- Layout ---- */
+  --af-max-width:    1200px;
+  --af-gutter:       var(--af-space-6);
+  --af-radius-sm:    4px;
+  --af-radius-md:    8px;
+  --af-radius-lg:    16px;
+  --af-radius-pill:  9999px;
+
+  /* ---- Elevation (use sparingly, AF prefers flat) ---- */
+  --af-shadow-sm:    0 1px 2px rgba(15, 15, 15, 0.04);
+  --af-shadow-md:    0 4px 12px rgba(15, 15, 15, 0.06);
+
+  /* ---- Motion ---- */
+  --af-ease:         cubic-bezier(0.2, 0.8, 0.2, 1);
+  --af-dur-fast:     150ms;
+  --af-dur-normal:   250ms;
+}
+
+/* =============================================================
+   BASE STYLES (opt-in defaults you can include or omit)
+   ============================================================= */
+
+.af-root {
+  background: var(--af-bg);
+  color: var(--af-text);
+  font-family: var(--af-font);
+  font-weight: var(--af-weight-regular);
+  font-size: var(--af-body);
+  line-height: var(--af-line-normal);
+  letter-spacing: var(--af-track-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.af-h1 {
+  font-size: var(--af-h1);
+  font-weight: var(--af-weight-bold);
+  line-height: var(--af-line-tight);
+  color: var(--af-black);
+  margin: 0 0 var(--af-space-4) 0;
+}
+
+.af-h2 {
+  font-size: var(--af-h2);
+  font-weight: var(--af-weight-bold);
+  line-height: var(--af-line-tight);
+  color: var(--af-black);
+  margin: 0 0 var(--af-space-3) 0;
+}
+
+.af-subhead {
+  font-size: var(--af-subhead);
+  font-weight: var(--af-weight-regular);
+  color: var(--af-text-muted);
+  margin: 0 0 var(--af-space-3) 0;
+}
+
+.af-descriptor {
+  font-size: var(--af-descriptor);
+  font-weight: var(--af-weight-regular);
+  color: var(--af-text-muted);
+}
+
+.af-body {
+  font-size: var(--af-body);
+  font-weight: var(--af-weight-regular);
+  line-height: var(--af-line-normal);
+}
+
+.af-footer {
+  font-size: var(--af-footer);
+  color: var(--af-text-muted);
+}
+
+/* Containers and layout primitives */
+.af-container {
+  max-width: var(--af-max-width);
+  margin: 0 auto;
+  padding: 0 var(--af-gutter);
+}
+
+.af-section {
+  padding: var(--af-space-8) 0;
+}
+
+.af-divider {
+  border: 0;
+  border-top: 1px solid var(--af-border);
+  margin: var(--af-space-6) 0;
+}
+
+/* Cards: flat, no heavy shadow */
+.af-card {
+  background: var(--af-white);
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius-md);
+  padding: var(--af-space-5);
+}
+
+.af-card-dark {
+  background: var(--af-black);
+  color: var(--af-text-inverse);
+  border: none;
+  border-radius: var(--af-radius-md);
+  padding: var(--af-space-5);
+}
+
+/* Buttons: bold, flat, never gradient */
+.af-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--af-space-2);
+  padding: var(--af-space-3) var(--af-space-5);
+  background: var(--af-black);
+  color: var(--af-white);
+  border: 1px solid var(--af-black);
+  border-radius: var(--af-radius-sm);
+  font-family: var(--af-font);
+  font-weight: var(--af-weight-bold);
+  font-size: var(--af-small);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity var(--af-dur-fast) var(--af-ease);
+}
+.af-btn:hover { opacity: 0.85; }
+
+.af-btn-secondary {
+  background: var(--af-white);
+  color: var(--af-black);
+  border: 1px solid var(--af-black);
+}
+
+/* Status pills */
+.af-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--af-space-1) var(--af-space-3);
+  border-radius: var(--af-radius-pill);
+  background: var(--af-grey-1);
+  color: var(--af-black);
+  font-size: var(--af-footer);
+  font-weight: var(--af-weight-bold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.af-pill-alert { background: var(--af-red); color: var(--af-white); }
+.af-pill-info  { background: var(--af-blue); color: var(--af-white); }
+.af-pill-ok    { background: var(--af-black); color: var(--af-white); }

@@ -1,0 +1,20 @@
+[skill]
+name = "skill-fixer"
+version = "0.19.0"
+description = "Modifies a recently-assessed Americanflat AI skill to make it compliant with skill-publisher-framework, then optionally submits it for review (push to skill-candidates + Slack post)"
+owner = "Ivan Calderon <ivan@americanflat.com>"
+tier = 2  # writes-with-notify: edits files in the candidate skill folder, pushes a branch to the skill-candidates quarantine repo, posts a Slack message — each gated by explicit Builder approval
+# language and [environment].python intentionally omitted — purely conversational skill, no .py files ship.
+# skill-publisher-framework v0.12.0+ treats both fields as conditional on shipping Python code.
+
+[environment]
+requires_network = true    # Stage 6 pushes to skill-candidates and posts to Slack via the slack-by-salesforce MCP
+requires_secrets = false   # SSH key handled outside the skill (per Notion GitHub & SSH Setup Guide); Slack auth via the MCP connector
+stdlib_only = true         # no pip dependencies — and no Python dependencies of any kind
+
+[compatibility]
+platforms = ["windows", "macos", "linux"]
+providers = ["claude-code"]
+
+[system_deps]
+git = { required = true, purpose = "Stage 6 git clone + commit + push to americanflat/skill-candidates" }

@@ -13,11 +13,15 @@ validation logic.
 
 ## Critical: where the real code lives
 
-The **canonical skill source is NOT in this repo**. It lives at
-`~/.claude/skills/yusen-invoice-validator/` (SKILL.md, scripts/, references/).
-This repo carries:
+The **canonical skill source is `.claude/skills/`** in this repo (migrated
+2026-08-03 from `~/.claude/skills/`; see `.claude/skills/README.md`). Because
+it sits under `.claude/skills/`, every skill is live in any session opened in
+this repo — local or cloud — with no copying or repackaging. This repo also
+carries:
 
-- `yusen-invoice-validator.skill` — the packaged zip of that source (committed artifact)
+- `yusen-invoice-validator.skill` and the other root-level `*.skill` zips —
+  packaged distribution artifacts. Repackage and commit these alongside a
+  source change so the two don't drift.
 - Root-level `*.py` validators (`rate-card-validator.py`, `invoice-stedi-validator.py`,
   `invoice-validator-demo.py`, `scripts/parse_invoice_excel.py`) — **stale dev
   predecessors** of the skill scripts. Do not edit these expecting behavior to
@@ -25,10 +29,15 @@ This repo carries:
 - `refresh_yusen_dashboard.py` — live companion tool (see Dashboard below)
 
 **Change workflow for validator logic:**
-1. Edit files under `~/.claude/skills/yusen-invoice-validator/`
-2. Repackage: `cd "<skill-creator dir>" && python3 -m scripts.package_skill ~/.claude/skills/yusen-invoice-validator`
+1. Edit files under `.claude/skills/yusen-invoice-validator/` and commit
+2. If the change ships outward, repackage:
+   `cd "<skill-creator dir>" && python3 -m scripts.package_skill .claude/skills/yusen-invoice-validator`
    (skill-creator dir: `~/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/*/*/skills/skill-creator`)
-3. Copy the produced `.skill` to `~/Downloads/` and this repo, then commit
+   and commit the produced `.skill` alongside
+
+**Never commit a credential into `.claude/skills/`.** Skills read secrets from
+the environment; `.gitignore` blocks `sa.json`, `*-key.json`, and
+`*-credentials.json` anywhere in the tree.
 
 The skill is also published org-wide as `americanflat/skill-yusen-invoice-validator`
 (v1.0.0, promoted 2026-06-30). Local source is at **v1.1.0** with a complete
@@ -39,7 +48,7 @@ review; never push directly to the published repo.
 ## Common commands
 
 All validator commands run from the skill directory
-(`cd ~/.claude/skills/yusen-invoice-validator`) and need
+(`cd .claude/skills/yusen-invoice-validator`) and need
 `export STEDI_API_KEY=<key>` for Stedi steps plus gcloud ADC for BigQuery:
 
 ```bash
@@ -128,12 +137,15 @@ plain string replace will double-insert.
 
 ## Cloud sessions (no access to this Mac)
 
-- **Skill scripts:** the canonical source dir (`~/.claude/skills/...`) is
-  machine-local. In a cloud session, unzip the committed package instead:
-  `unzip -o yusen-invoice-validator.skill -d /tmp/skill && cd /tmp/skill/yusen-invoice-validator`
-  — it contains SKILL.md, scripts/, and references/ at the committed version.
+- **Skill scripts:** no longer a problem — `.claude/skills/` is in the repo, so
+  every skill is present and live in a cloud session. The old
+  `unzip yusen-invoice-validator.skill` workaround is obsolete.
 - **Decision queue:** local memory doesn't sync — read `OPEN-ITEMS.md` (kept as
   a mirror; update it when decisions land).
+- **Session transcripts:** local Claude Code history (`~/.claude/projects/`)
+  does not sync to cloud sessions and is deliberately not committed — it holds
+  raw tool output and pasted credentials. Durable context belongs in
+  `OPEN-ITEMS.md`, `validation-reports/`, and commit messages.
 - **Credentials:** `STEDI_API_KEY` must be provided as an environment secret.
   BigQuery needs non-interactive auth (service-account credentials) — the local
   gcloud ADC does not travel. Notion/Drive/Gmail/Slack connectors are

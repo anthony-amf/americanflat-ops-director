@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[REPLACE] Dashboard Title — Americanflat</title>
+
+<!--
+  AF Dashboard Template
+  Replace [REPLACE] placeholders with your content.
+  Do not modify the tokens block or the layout structure.
+  Add your specific styles after the /* PAGE STYLES */ marker.
+-->
+
+<!-- AF tokens (paste from tokens/tokens.css) -->
+<style>
+@import url('https://fonts.cdnfonts.com/css/glacial-indifference-2');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&display=swap');
+
+:root {
+  --af-black: #0F0F0F; --af-white: #FFFFFF;
+  --af-grey-4: #1A1A1A; --af-grey-3: #666666; --af-grey-2: #B3B3B3; --af-grey-1: #E6E6E6;
+  --af-red: #CE0E2D; --af-blue: #003595;
+  --af-font: 'Glacial Indifference', 'DM Sans', 'Inter', system-ui, sans-serif;
+  --af-h1: 3rem; --af-h2: 1.875rem; --af-subhead: 1.5rem;
+  --af-body: 1.3125rem; --af-small: 1rem; --af-footer: 0.75rem;
+  --af-space-3: 1rem; --af-space-4: 1.5rem; --af-space-5: 2rem;
+  --af-space-6: 3rem; --af-space-7: 4rem; --af-space-8: 6rem;
+  --af-radius-sm: 4px; --af-radius-md: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--af-white);
+  color: var(--af-black);
+  font-family: var(--af-font);
+  font-size: var(--af-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.af-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--af-space-6) var(--af-space-5);
+}
+
+/* Header with logo top-center */
+.af-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--af-space-5) 0 var(--af-space-7);
+  border-bottom: 1px solid var(--af-grey-1);
+  margin-bottom: var(--af-space-7);
+}
+
+.af-logo {
+  height: 40px;
+  color: var(--af-black);
+}
+
+/* Title block */
+.af-title-block {
+  margin-bottom: var(--af-space-7);
+}
+.af-eyebrow {
+  font-size: var(--af-footer);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--af-grey-3);
+  margin-bottom: var(--af-space-3);
+}
+.af-title-block h1 {
+  font-size: var(--af-h1);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--af-space-3);
+}
+.af-title-block .af-summary {
+  font-size: var(--af-subhead);
+  font-weight: 400;
+  color: var(--af-grey-3);
+  max-width: 70ch;
+}
+
+/* KPI grid */
+.af-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--af-space-4);
+  margin-bottom: var(--af-space-7);
+}
+.af-kpi {
+  background: var(--af-white);
+  border: 1px solid var(--af-grey-1);
+  border-radius: var(--af-radius-md);
+  padding: var(--af-space-5);
+}
+.af-kpi-label {
+  font-size: var(--af-footer);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-grey-3);
+  margin-bottom: var(--af-space-3);
+}
+.af-kpi-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: var(--af-space-2);
+}
+.af-kpi-delta {
+  font-size: var(--af-small);
+  color: var(--af-grey-3);
+}
+.af-kpi-delta.up { color: var(--af-black); }
+.af-kpi-delta.down { color: var(--af-red); }
+
+/* Section */
+.af-section {
+  margin-bottom: var(--af-space-7);
+}
+.af-section h2 {
+  font-size: var(--af-h2);
+  font-weight: 700;
+  margin-bottom: var(--af-space-4);
+}
+
+/* Table */
+.af-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--af-small);
+}
+.af-table th {
+  text-align: left;
+  font-weight: 700;
+  font-size: var(--af-footer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--af-grey-3);
+  padding: var(--af-space-3) var(--af-space-3);
+  border-bottom: 2px solid var(--af-black);
+}
+.af-table td {
+  padding: var(--af-space-3) var(--af-space-3);
+  border-bottom: 1px solid var(--af-grey-1);
+}
+
+/* Footer */
+.af-footer {
+  margin-top: var(--af-space-8);
+  padding-top: var(--af-space-5);
+  border-top: 1px solid var(--af-grey-1);
+  font-size: var(--af-footer);
+  color: var(--af-grey-3);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ============================================================
+   PAGE STYLES (add your dashboard-specific styles below)
+   ============================================================ */
+
+</style>
+</head>
+<body>
+  <div class="af-page">
+
+    <!-- HEADER (logo top-center) -->
+    <header class="af-header">
+      <svg class="af-logo" viewBox="0 0 480 80" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="58" font-family="'Glacial Indifference','DM Sans',sans-serif" font-weight="700" font-size="64" letter-spacing="0.04em" fill="currentColor">americanflat</text>
+      </svg>
+    </header>
+
+    <!-- TITLE BLOCK -->
+    <section class="af-title-block">
+      <div class="af-eyebrow">[REPLACE] Department · Date</div>
+      <h1>[REPLACE] Dashboard headline</h1>
+      <p class="af-summary">[REPLACE] One sentence about what this dashboard shows and why it matters.</p>
+    </section>
+
+    <!-- KPI ROW (optional) -->
+    <section class="af-kpi-grid">
+      <div class="af-kpi">
+        <div class="af-kpi-label">KPI label</div>
+        <div class="af-kpi-value">$00.0K</div>
+        <div class="af-kpi-delta up">+0% vs prior week</div>
+      </div>
+      <div class="af-kpi">
+        <div class="af-kpi-label">KPI label</div>
+        <div class="af-kpi-value">000</div>
+        <div class="af-kpi-delta">vs target 000</div>
+      </div>
+      <div class="af-kpi">
+        <div class="af-kpi-label">KPI label</div>
+        <div class="af-kpi-value">00%</div>
+        <div class="af-kpi-delta down">-0% vs prior week</div>
+      </div>
+    </section>
+
+    <!-- CONTENT SECTION -->
+    <section class="af-section">
+      <h2>Section heading</h2>
+      <table class="af-table">
+        <thead>
+          <tr>
+            <th>Column A</th>
+            <th>Column B</th>
+            <th>Column C</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Row 1</td><td>Value</td><td>Value</td></tr>
+          <tr><td>Row 2</td><td>Value</td><td>Value</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="af-footer">
+      <span>Americanflat · Internal</span>
+      <span>Generated 2026-05-22</span>
+    </footer>
+
+  </div>
+</body>
+</html>

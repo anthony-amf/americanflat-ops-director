@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Americanflat Icon
+  3 nested arches forming abstract A and F letters.
+  Source: Brand Guidelines v5 (Feb 2025), page 32.
+
+  Note: this is a clean re-creation of the icon shape for use in
+  agent-generated dashboards and internal tools. For final customer-
+  facing or external use, swap in the official vector from Creative.
+
+  Usage:
+    <img src="logo-icon.svg" width="48" height="48" alt="Americanflat">
+  Or inline. Recolor only by changing the `currentColor` fill via the
+  parent element's `color` CSS property.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Americanflat">
+  <title>Americanflat</title>
+  <g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="square">
+    <!-- Outer arch -->
+    <path d="M 15 105 L 15 55 Q 15 15, 60 15 Q 105 15, 105 55 L 105 105" />
+    <!-- Middle arch -->
+    <path d="M 35 105 L 35 60 Q 35 35, 60 35 Q 85 35, 85 60 L 85 105" />
+    <!-- Inner arch -->
+    <path d="M 55 105 L 55 65 Q 55 55, 65 55 Q 65 55, 65 55" />
+  </g>
+</svg>

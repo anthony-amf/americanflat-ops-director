@@ -1,0 +1,25 @@
+[
+  {"name": "invoice_id", "type": "STRING", "mode": "REQUIRED", "description": "Invoice number - natural key"},
+  {"name": "invoice_date", "type": "DATE", "description": "Invoice date, normalized to YYYY-MM-DD"},
+  {"name": "vendor_name", "type": "STRING", "description": "Who issued the invoice"},
+  {"name": "bill_to", "type": "STRING"},
+  {"name": "ship_to", "type": "STRING"},
+  {"name": "po_number", "type": "STRING"},
+  {"name": "terms", "type": "STRING"},
+  {"name": "container_number", "type": "STRING"},
+  {"name": "currency", "type": "STRING"},
+  {"name": "total_amount", "type": "NUMERIC", "description": "Invoice grand total as printed"},
+  {"name": "line_items", "type": "RECORD", "mode": "REPEATED", "description": "Variable number of line items", "fields": [
+    {"name": "line_number", "type": "INTEGER"},
+    {"name": "description", "type": "STRING"},
+    {"name": "quantity", "type": "NUMERIC"},
+    {"name": "rate", "type": "NUMERIC"},
+    {"name": "amount", "type": "NUMERIC"}
+  ]},
+  {"name": "source_file", "type": "STRING", "description": "Original PDF filename"},
+  {"name": "source_gcs_uri", "type": "STRING", "description": "GCS path if archived; nullable"},
+  {"name": "extracted_by", "type": "STRING", "description": "Model id that parsed the PDF, or 'manual'"},
+  {"name": "raw_extraction", "type": "STRING", "description": "Full freeform JSON capture (parse with PARSE_JSON). Preserves anything not mapped to a canonical column - the safety net for unfamiliar vendor layouts"},
+  {"name": "ingested_at", "type": "TIMESTAMP", "description": "When the row was loaded (UTC)"},
+  {"name": "ingested_by", "type": "STRING", "description": "gcloud account that ran the load"}
+]
