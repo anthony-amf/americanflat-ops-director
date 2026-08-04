@@ -98,25 +98,27 @@ body {
   inset: 0;
   display: none;
   flex-direction: column;
-  padding: 4.2% 6.5% 5.5%;
-  /* type scale in container query units so slides hold their proportions
-     at any viewport size — 1cqw = 1% of stage width */
-  font-size: 1.35cqw;
+  padding: 3.6% 5.6% 5%;
+  /* Type scale in container query units so slides hold their proportions at
+     any viewport size — 1cqw = 1% of stage width. Sized for a projector and
+     a shared screen: the floor matters more than the headline, so the small
+     text sits much closer to body size than a print deck would allow. */
+  font-size: 1.5cqw;
 }
 .slide[data-active="true"] { display: flex; }
 
 .eyebrow {
-  font-size: 0.86em;
+  font-size: 0.9em;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin: 0 0 1.6em;
+  margin: 0 0 1.1em;
 }
 .eyebrow .mark { color: var(--accent); }
 
 h1 {
   font-weight: var(--w-bold);
-  font-size: 3.4em;
+  font-size: 3.2em;
   line-height: 1.05;
   letter-spacing: -0.02em;
   margin: 0;
@@ -124,11 +126,11 @@ h1 {
 }
 h2 {
   font-weight: var(--w-bold);
-  font-size: 2.35em;
-  line-height: 1.1;
+  font-size: 2.15em;
+  line-height: 1.12;
   letter-spacing: -0.015em;
-  margin: 0 0 0.7em;
-  max-width: 17em;
+  margin: 0 0 0.55em;
+  max-width: 18em;
   text-wrap: balance;
 }
 h3 {
@@ -137,11 +139,11 @@ h3 {
   line-height: 1.3;
   margin: 0 0 0.5em;
 }
-p { margin: 0 0 0.9em; line-height: 1.55; }
+p { margin: 0 0 0.8em; line-height: 1.5; }
 
-.lede { font-size: 1.28em; line-height: 1.5; max-width: 30em; color: var(--ink); }
-.note { color: var(--ink-soft); max-width: 34em; }
-.small { font-size: 0.86em; }
+.lede { font-size: 1.24em; line-height: 1.45; max-width: 30em; color: var(--ink); }
+.note { color: var(--ink-soft); max-width: 36em; }
+.small { font-size: 0.94em; }
 
 .body-col { max-width: 40em; }
 
@@ -178,33 +180,34 @@ p { margin: 0 0 0.9em; line-height: 1.55; }
 .section-slide .note { color: var(--ink-soft); }
 .section-slide .rule-top {
   position: absolute;
-  top: 4.2%; left: 6.5%; right: 6.5%;
+  top: 3.6%; left: 5.6%; right: 5.6%;
   height: 4px;
   background: var(--accent);
 }
 
 /* ---------- agenda ----------------------------------------------------- */
 
-.agenda { display: flex; flex-direction: column; gap: 0; margin-top: 1em; }
+.agenda { display: flex; flex-direction: column; gap: 0; margin-top: 0.6em; }
 .agenda-row {
   display: grid;
-  grid-template-columns: 3.2em 1fr 12em;
-  gap: 2em;
+  grid-template-columns: 2.6em 1fr 9em;
+  gap: 1.6em;
   align-items: start;
-  padding: 1.5em 0;
+  padding: 1.15em 0;
   border-top: 1px solid var(--rule);
 }
 .agenda-row:last-child { border-bottom: 1px solid var(--rule); }
 .agenda-row .num {
   font-weight: var(--w-bold);
-  font-size: 1.5em;
-  line-height: 1;
+  font-size: 1.3em;
+  line-height: 1.1;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
-.agenda-row h3 { font-size: 1.5em; margin-bottom: 0.3em; }
-.agenda-row .note { font-size: 0.95em; margin: 0; }
-.agenda-row .who { color: var(--ink-soft); font-size: 0.9em; text-align: right; }
+.agenda-row h3 { font-size: 1.3em; margin-bottom: 0.25em; }
+.agenda-row .note { font-size: 1em; margin: 0; max-width: 40em; }
+.agenda-row .who { color: var(--ink-soft); font-size: 0.94em; text-align: right; }
+.asks .agenda-row { padding: 0.9em 0; }
 
 /* ---------- big stat --------------------------------------------------- */
 
@@ -212,34 +215,34 @@ p { margin: 0 0 0.9em; line-height: 1.55; }
 
 .bignum {
   font-weight: var(--w-bold);
-  font-size: 11em;
+  font-size: 9.4em;
   line-height: 0.82;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
   margin: 0;
 }
-.bignum-label { font-size: 1.35em; line-height: 1.35; margin: 0.55em 0 0; max-width: 12em; }
-.bignum-sub { color: var(--ink-soft); font-size: 0.95em; margin-top: 0.9em; max-width: 22em; }
+.bignum-label { font-size: 1.3em; line-height: 1.3; margin: 0.5em 0 0; max-width: 12em; }
+.bignum-sub { color: var(--ink-soft); font-size: 1em; margin-top: 0.7em; max-width: 20em; }
 
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
-.tile { background: var(--ground); padding: 1.5em 1.4em; }
+.tile { background: var(--ground); padding: 1.15em 1.1em; }
 .tile .k {
-  font-size: 0.78em; letter-spacing: 0.13em; text-transform: uppercase;
-  color: var(--ink-soft); margin: 0 0 0.7em;
+  font-size: 0.85em; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-soft); margin: 0 0 0.5em;
 }
 .tile .v {
-  font-weight: var(--w-bold); font-size: 2.4em; line-height: 1;
+  font-weight: var(--w-bold); font-size: 2.1em; line-height: 1;
   font-variant-numeric: tabular-nums; margin: 0;
 }
-.tile .d { color: var(--ink-soft); font-size: 0.86em; margin: 0.6em 0 0; line-height: 1.4; }
+.tile .d { color: var(--ink-soft); font-size: 0.94em; margin: 0.45em 0 0; line-height: 1.35; }
 
 /* ---------- charts ----------------------------------------------------- */
 
-.chart { display: flex; align-items: flex-end; gap: 3.5em; height: 100%; padding-bottom: 0.5em; }
+.chart { display: flex; align-items: flex-end; gap: 3em; height: 100%; padding-bottom: 0; }
 .bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
 .bar-val {
-  font-weight: var(--w-bold); font-size: 2.6em; line-height: 1;
-  font-variant-numeric: tabular-nums; margin-bottom: 0.28em;
+  font-weight: var(--w-bold); font-size: 2.3em; line-height: 1;
+  font-variant-numeric: tabular-nums; margin-bottom: 0.25em;
 }
 .bar {
   background: var(--ink);
@@ -248,15 +251,15 @@ p { margin: 0 0 0.9em; line-height: 1.55; }
 .bar.is-accent { background: var(--accent); }
 .bar-key {
   border-top: 1px solid var(--rule-bold);
-  padding-top: 0.75em;
-  margin-top: 0.75em;
-  font-size: 0.92em;
+  padding-top: 0.6em;
+  margin-top: 0.6em;
+  font-size: 1em;
 }
 .bar-key b { display: block; font-weight: var(--w-bold); }
-.bar-key span { color: var(--ink-soft); font-size: 0.88em; }
+.bar-key span { color: var(--ink-soft); font-size: 0.94em; }
 
-.hbars { display: flex; flex-direction: column; gap: 0.85em; }
-.hbar-row { display: grid; grid-template-columns: 7.5em 1fr 3em; gap: 1em; align-items: center; font-size: 0.98em; }
+.hbars { display: flex; flex-direction: column; gap: 0.7em; }
+.hbar-row { display: grid; grid-template-columns: 7em 1fr 2.6em; gap: 0.9em; align-items: center; font-size: 1.04em; }
 .hbar-row .lbl { color: var(--ink); }
 .hbar-track { height: 0.85em; background: var(--fill-soft); }
 .hbar-fill { height: 100%; background: var(--ink); }
@@ -264,79 +267,79 @@ p { margin: 0 0 0.9em; line-height: 1.55; }
 
 /* ---------- two-column generic ---------------------------------------- */
 
-.cols { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 4em; flex: 1; align-content: start; }
-.cols.narrow-left { grid-template-columns: minmax(0,0.85fr) minmax(0,1.15fr); }
+.cols { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 3.4em; flex: 1; align-content: start; }
+.cols.narrow-left { grid-template-columns: minmax(0,0.95fr) minmax(0,1.05fr); }
 .cols.wide-left { grid-template-columns: minmax(0,1.2fr) minmax(0,0.8fr); }
 
 .quote {
-  border-left: 2px solid var(--accent);
-  padding-left: 1.2em;
-  margin: 0 0 1.5em;
+  border-left: 3px solid var(--accent);
+  padding-left: 1.1em;
+  margin: 0 0 1em;
 }
-.quote p { font-size: 1.12em; line-height: 1.45; margin: 0 0 0.5em; }
+.quote p { font-size: 1.12em; line-height: 1.4; margin: 0 0 0.4em; }
 .quote cite {
-  font-style: normal; font-size: 0.85em; color: var(--ink-soft);
-  letter-spacing: 0.04em;
+  font-style: normal; font-size: 0.92em; color: var(--ink-soft);
+  letter-spacing: 0.03em;
 }
 
 .list { list-style: none; padding: 0; margin: 0; }
 .list li {
-  padding: 0.85em 0;
+  padding: 0.6em 0;
   border-top: 1px solid var(--rule);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 .list li:first-child { border-top: none; padding-top: 0; }
 .list li b { font-weight: var(--w-bold); }
-.list li .sub { display: block; color: var(--ink-soft); font-size: 0.88em; margin-top: 0.25em; }
+.list li .sub { display: block; color: var(--ink-soft); font-size: 0.96em; margin-top: 0.2em; line-height: 1.4; }
 
 /* timeline */
 .timeline { list-style: none; padding: 0; margin: 0; }
 .timeline li {
   display: grid;
-  grid-template-columns: 6.5em 1fr;
-  gap: 1.5em;
-  padding: 0.8em 0;
+  grid-template-columns: 5.2em 1fr;
+  gap: 1.1em;
+  padding: 0.55em 0;
   border-top: 1px solid var(--rule);
-  line-height: 1.45;
+  line-height: 1.4;
 }
 .timeline li:last-child { border-bottom: 1px solid var(--rule); }
 .timeline .when {
-  color: var(--ink-soft); font-size: 0.88em; letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums; padding-top: 0.15em;
+  color: var(--ink-soft); font-size: 0.96em; letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums; padding-top: 0.05em;
 }
 .timeline li.is-now .when { color: var(--accent); font-weight: var(--w-bold); }
 .timeline .what b { font-weight: var(--w-bold); }
-.timeline .what span { display: block; color: var(--ink-soft); font-size: 0.88em; margin-top: 0.2em; }
+.timeline .what span { display: block; color: var(--ink-soft); font-size: 0.96em; margin-top: 0.15em; }
 
 /* callout */
 .callout {
   border: 1px solid var(--rule-bold);
-  padding: 1.4em 1.5em;
+  padding: 1.05em 1.15em;
   margin-top: auto;
 }
 .callout .k {
-  font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--accent); font-weight: var(--w-bold); margin: 0 0 0.6em;
+  font-size: 0.85em; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--accent); font-weight: var(--w-bold); margin: 0 0 0.45em;
 }
-.callout p { margin: 0; line-height: 1.5; }
+.callout p { margin: 0; line-height: 1.45; }
 
 .gap-note {
   border: 1px dashed var(--rule-bold);
-  padding: 1.3em 1.4em;
+  padding: 1em 1.1em;
   color: var(--ink-soft);
 }
 .gap-note .k {
-  font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--ink); font-weight: var(--w-bold); margin: 0 0 0.55em;
+  font-size: 0.85em; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--ink); font-weight: var(--w-bold); margin: 0 0 0.4em;
 }
-.gap-note p { margin: 0; line-height: 1.5; font-size: 0.95em; }
+.gap-note p { margin: 0; line-height: 1.45; font-size: 1em; }
 
 /* figure */
 figure { margin: 0; display: flex; flex-direction: column; gap: 1em; flex: 1; min-height: 0; }
 figure svg { width: 100%; height: 100%; min-height: 0; display: block; }
-figcaption { color: var(--ink-soft); font-size: 0.88em; line-height: 1.5; max-width: 52em; }
+figcaption { color: var(--ink-soft); font-size: 0.96em; line-height: 1.4; max-width: 56em; }
 
-.legend { display: flex; gap: 2em; font-size: 0.85em; color: var(--ink-soft); align-items: center; }
+.legend { display: flex; gap: 2em; font-size: 0.94em; color: var(--ink-soft); align-items: center; }
 .legend span { display: inline-flex; align-items: center; gap: 0.55em; }
 .swatch {
   display: inline-block;
@@ -380,8 +383,8 @@ code {
 .hud .count { min-width: 4.2rem; text-align: right; }
 
 .slide-tag {
-  position: absolute; bottom: 2.6%; left: 6.5%;
-  font-size: 0.72em; letter-spacing: 0.14em; text-transform: uppercase;
+  position: absolute; bottom: 2.2%; left: 5.6%;
+  font-size: 0.8em; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--ink-faint);
 }
 .section-slide .slide-tag { color: var(--ink-faint); }
@@ -505,7 +508,7 @@ code {
         <li><b>8 July</b> — published skill repos stopped being PR-gated. Commit straight to main, like saving a Notion page.
           <span class="sub">Repo Merge Policy — Direct-to-Main</span></li>
       </ul>
-      <p class="note small" style="margin-top:1.2em">Removing the friction is what moved the number. Not more people being told to build skills.</p>
+      <p class="note small" style="margin-top:1em">Removing friction moved the number — not telling more people to build skills.</p>
     </div>
   </div>
   <div class="slide-tag">Growth</div>
@@ -517,7 +520,7 @@ code {
   <h2>This stopped being a side project of three people.</h2>
   <div class="cols" style="align-content:start">
     <div>
-      <p class="note" style="margin-bottom:1.4em">25 people now own a live skill. Seven of them published for the first time in May, eleven in June, seven more in July — a steady stream of new builders, not the same few shipping faster.</p>
+      <p class="note" style="margin-bottom:1.1em">25 people own a live skill. Seven published for the first time in May, eleven in June, seven more in July — a steady stream of new builders, not the same few shipping faster.</p>
       <div class="hbars">
         <div class="hbar-row"><span class="lbl">Sales</span><div class="hbar-track"><div class="hbar-fill" style="width:100%"></div></div><span class="n">60</span></div>
         <div class="hbar-row"><span class="lbl">Operations</span><div class="hbar-track"><div class="hbar-fill" style="width:66.7%"></div></div><span class="n">40</span></div>
@@ -551,13 +554,13 @@ code {
   <h2>Nothing syncs the registry automatically. That is the catch.</h2>
   <div class="cols wide-left">
     <div>
-      <p class="note">The skill repo and the registry entry are two different gates. Since 8 July you can commit straight to main on your own skill — but the registry stays Governor-gated by design. If you bump a version or change a description and do not flag it, the registry entry quietly goes stale.</p>
-      <p class="note">At 127 skills nobody can eyeball that. Two things are already visible in the snapshot:</p>
-      <ul class="list" style="margin-top:1.1em">
+      <p class="note">The skill repo and the registry entry are two different gates. Since 8 July you can commit straight to main on your own skill — but the registry stays Governor-gated. Bump a version without flagging it and the entry quietly goes stale.</p>
+      <p class="note">At 127 skills nobody can eyeball that. Two problems are already in the snapshot:</p>
+      <ul class="list" style="margin-top:1em">
         <li><b>Three live skills still carry a sub-1.0 version.</b>
-          <span class="sub"><code>skill-log-notion</code> 0.0.1 · <code>skill-yusen-invoice-processor</code> 0.1.0 · <code>skill-casepack-xref</code> 0.2.0 — published and in use, but the registry says they are pre-release. Version lineage drifted from the tag.</span></li>
+          <span class="sub"><code>skill-log-notion</code> 0.0.1 · <code>skill-yusen-invoice-processor</code> 0.1.0 · <code>skill-casepack-xref</code> 0.2.0. In use, but the registry calls them pre-release — the version drifted from the tag.</span></li>
         <li><b>Four entries were provisioned and never published.</b>
-          <span class="sub">Three have sat since early May. One is <code>skill-test-provision</code>, a smoke test whose own description says it is safe to delete after verification.</span></li>
+          <span class="sub">Three have sat since early May. One is a smoke test whose own description says it is safe to delete.</span></li>
       </ul>
     </div>
     <div style="display:flex; flex-direction:column">
@@ -594,17 +597,16 @@ code {
         <cite>Iván Calderón · #operations-team-information-channel · 18 June</cite>
       </div>
       <div class="quote">
-        <p>“We already have a plan for the next 90 days in AI, focused on Frame.OS (Agentic AI) and automating some of our more complex processes, mostly the ones that deal with money.”</p>
+        <p>“Our plan for the next 90 days in AI is focused on Frame.OS (Agentic AI) and automating our more complex processes — mostly the ones that deal with money.”</p>
         <cite>Kent Nunez · #operations-team-information-channel · 18 June</cite>
       </div>
     </div>
     <div>
-      <h3 style="font-size:1.1em; margin-bottom:0.9em">The problem it is meant to solve</h3>
-      <p class="note">Right now an agent runs, does something, and the evidence is a Slack post or a file in Drive. If it did the wrong thing we find out downstream. If it did nothing we might not find out at all.</p>
-      <p class="note">Frame OS is the layer that answers four questions about any agent, at any time:</p>
-      <ul class="list" style="margin-top:1em">
+      <h3 style="font-size:1.15em; margin-bottom:0.8em">The problem it is meant to solve</h3>
+      <p class="note">Today an agent runs and the only evidence is a Slack post or a file in Drive. If it did the wrong thing we find out downstream; if it did nothing, maybe never. Frame OS answers four questions about any agent:</p>
+      <ul class="list" style="margin-top:0.9em">
         <li><b>What did it do?</b><span class="sub">A record of actions, not just outputs.</span></li>
-        <li><b>Did it work?</b><span class="sub">Performance against what it was supposed to achieve.</span></li>
+        <li><b>Did it work?</b><span class="sub">Performance against what it was meant to achieve.</span></li>
         <li><b>What did it cost?</b><span class="sub">Tokens and compute, per agent, per run.</span></li>
         <li><b>Should it be allowed to?</b><span class="sub">Approval before the risky steps, not after.</span></li>
       </ul>
@@ -619,18 +621,17 @@ code {
   <h2>The model is Cake: a bakery that runs on one app.</h2>
   <div class="cols narrow-left">
     <div>
-      <p class="note">Cake is the internal operating system of a bakery business. One web app, phone and desktop, and its home screen is a launcher organised by business function — not a chat window with tools bolted on the side.</p>
-      <ul class="list" style="margin-top:1.1em">
+      <p class="note">Cake is the internal operating system of a bakery business. One web app whose home screen is a launcher organised by business function — not a chat window with tools bolted on the side.</p>
+      <ul class="list" style="margin-top:1em">
         <li><b>AI Agents</b> — seven named assistants, each with a face and a job title
-          <span class="sub">My&nbsp;Agent (personal) · Sam (bakery scheduling) · Phyllis (finance manager) · Jamie (payroll) · three more</span></li>
-        <li><b>Operations</b> — eight apps<span class="sub">The day-to-day production and scheduling tools</span></li>
-        <li><b>Safety &amp; Quality</b> — four apps<span class="sub">Compliance and inspection</span></li>
-        <li><b>People &amp; Finance</b> — two apps<span class="sub">Payroll and accounting</span></li>
+          <span class="sub">My&nbsp;Agent (personal) · Sam (bakery scheduling) · Phyllis (finance) · Jamie (payroll) · three more</span></li>
+        <li><b>Then the apps</b> — fourteen of them, grouped by function
+          <span class="sub">Operations (8) · Safety &amp; Quality (4) · People &amp; Finance (2)</span></li>
       </ul>
-      <p class="note small" style="margin-top:1.1em">The agents are listed <em>first</em>, above the apps. That ordering is the whole thesis: the assistant is the front door to the business, and the apps are what it reaches through.</p>
+      <p class="note" style="margin-top:0.9em">The agents are listed <em>first</em> — the assistant is the front door, the apps are what it reaches through.</p>
     </div>
     <div style="display:flex; flex-direction:column">
-      <h3 style="font-size:1.1em; margin-bottom:0.8em">How it reached us</h3>
+      <h3 style="font-size:1.15em; margin-bottom:0.7em">How it reached us</h3>
       <ul class="timeline">
         <li>
           <span class="when">9 Apr</span>
@@ -638,20 +639,16 @@ code {
         </li>
         <li>
           <span class="when">29 Apr</span>
-          <span class="what"><b>Anthony shares the Cake demo</b><span>Sent to Iván “for reference” the week Kent was prepping the automation share for Giorgio</span></span>
+          <span class="what"><b>Anthony shares the Cake demo</b><span>Sent to Iván “for reference” the week Kent was prepping the automation share</span></span>
         </li>
         <li>
           <span class="when">5 May</span>
-          <span class="what"><b>Giorgio asks directly</b><span>He had heard of a company run entirely on agentic AI, and wanted to know how AF is setting up for it</span></span>
-        </li>
-        <li>
-          <span class="when">16 Jun</span>
-          <span class="what"><b>Frame OS goes on the wall</b><span>Concept page published on the AF Claude hub</span></span>
+          <span class="what"><b>Giorgio asks directly</b><span>He had heard of a company run entirely on agentic AI, and asked how AF is setting up for it</span></span>
         </li>
       </ul>
       <div class="callout" style="margin-top:auto">
         <p class="k">Why “Frame”</p>
-        <p>Cake sells cake. We sell frames. And the job is literal — put a frame around an agent so you can watch it work. Iván uses exactly that word: the next step is to <em>frame</em> the Data Analyst agent into a system that shows its actions and performance.</p>
+        <p>Cake sells cake. We sell frames — and the job is literal. Iván uses exactly that word: <em>frame</em> the Data Analyst agent into a system that shows its actions and performance.</p>
       </div>
     </div>
   </div>
@@ -662,28 +659,28 @@ code {
 <section class="slide">
   <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
   <h2>Four things in the demo worth copying exactly.</h2>
-  <p class="note" style="max-width:52em; margin-top:-0.4em">In the recording, an operator asks Eva to rebuild a weekly maintenance report out of Odoo and post it to a team channel. Everything below is visible on screen while she does it.</p>
-  <div class="cols" style="margin-top:1.4em">
+  <p class="note" style="max-width:54em; margin-top:-0.3em">An operator asks Eva to rebuild a weekly maintenance report out of Odoo and post it to a team channel. All four are visible on screen while she works.</p>
+  <div class="cols" style="margin-top:1.1em">
     <div>
       <ul class="list">
-        <li><b>1 · Permission mode lives on the agent, as a switch.</b>
-          <span class="sub">Three modes in the header — <b>Read Only · Normal · Power</b> — plus Train&nbsp;Eva and Re-do&nbsp;Onboarding. We already hold this data: every registry entry declares an action tier. Cake makes it a live control instead of a metadata field.</span></li>
+        <li><b>1 · Permission mode is a switch on the agent.</b>
+          <span class="sub"><b>Read Only · Normal · Power</b> in the header. We already hold this data — every registry entry declares an action tier. Cake makes it a live control, not a metadata field.</span></li>
         <li><b>2 · Every step is a named tool with a duration.</b>
-          <span class="sub">The trace reads <code>Querying Odoo 21ms</code>, <code>Testing code tool 423ms</code>, <code>maintenance-weekly-report 3 mins</code>. Nothing the agent does is a black box, and slow steps are obvious.</span></li>
+          <span class="sub"><code>Querying Odoo 21ms</code> · <code>Testing code tool 423ms</code> · <code>maintenance-weekly-report 3 mins</code>. Nothing is a black box.</span></li>
       </ul>
     </div>
     <div>
       <ul class="list">
-        <li><b>3 · Approval gates explain themselves in plain English.</b>
-          <span class="sub">Before posting, a card appears: <em>“send_cliq_channel_message: Post a message to a Zoho Cliq channel. The message is sent from your dedicated bot.”</em> You approve the described action, not an opaque function name.</span></li>
+        <li><b>3 · Approval gates explain themselves.</b>
+          <span class="sub">A card appears before it fires: <em>“Post a message to a Zoho Cliq channel, sent from your dedicated bot.”</em> You approve the described action, not a function name.</span></li>
         <li><b>4 · Failures are shown, not swallowed.</b>
-          <span class="sub">The demo's own post <em>failed</em> — HTTP 400, invalid request URL — and the UI printed it. They shipped the video with the error in it. That honesty is the feature: an agent you cannot see failing is an agent you cannot trust.</span></li>
+          <span class="sub">The demo's own post failed — HTTP 400 — and the UI printed it. An agent you cannot see failing is one you cannot trust.</span></li>
       </ul>
     </div>
   </div>
   <div class="callout">
     <p class="k">And one thing to argue about</p>
-    <p>Eva did not <em>use</em> a maintenance report tool — she <b>built one</b>. The trace shows <code>Creating code tool</code> → <code>Testing code tool</code> → <code>Updating code tool</code>, then runs it. She explored the Odoo schema, worked out the fields, and authored a reusable tool on the spot. That is the opposite of our registry: ours is human-authored, reviewed, tiered and Governor-gated. Theirs is faster; ours is auditable. <b>Deciding where Frame OS sits on that line is the real design question</b> — not which charts go on the dashboard.</p>
+    <p>Eva did not <em>use</em> a report tool — she <b>built one</b>: <code>Creating code tool</code> → <code>Testing code tool</code> → <code>Updating code tool</code>, then runs it. Ours are human-authored, reviewed and Governor-gated. Theirs is faster; ours is auditable. <b>Where Frame OS sits on that line is the real design question.</b></p>
   </div>
   <div class="slide-tag">What to steal</div>
 </section>
@@ -705,44 +702,44 @@ code {
 
       <!-- Layer 1: systems of record -->
       <rect x="20" y="322" width="960" height="62" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.55"/>
-      <text x="34" y="344" font-size="12" font-weight="700" fill="currentColor">SYSTEMS OF RECORD</text>
-      <text x="34" y="366" font-size="12.5" fill="currentColor" opacity="0.7">BigQuery · Stedi EDI · Yusen / Taylored portals · Amazon VC + SC · Walmart, Target, Shopify · Airtable · QuickBooks · Slack, Gmail, Drive, Notion</text>
+      <text x="34" y="344" font-size="15" font-weight="700" fill="currentColor">SYSTEMS OF RECORD</text>
+      <text x="34" y="366" font-size="15" fill="currentColor" opacity="0.7">BigQuery · Stedi EDI · Yusen portals · Amazon VC + SC · Walmart, Target, Shopify · Airtable · QuickBooks · Slack, Drive</text>
 
       <!-- Layer 2: registry -->
       <rect x="20" y="228" width="960" height="66" fill="none" stroke="currentColor" stroke-width="1.5"/>
-      <text x="34" y="250" font-size="12" font-weight="700" fill="currentColor">SKILLS REGISTRY — 127 live</text>
-      <text x="34" y="272" font-size="12.5" fill="currentColor" opacity="0.7">Versioned, owned, tiered capabilities. Each entry already declares its action tier: T1 read-only · T2 writes · T3 acts unattended.</text>
+      <text x="34" y="250" font-size="15" font-weight="700" fill="currentColor">SKILLS REGISTRY — 127 live</text>
+      <text x="34" y="272" font-size="15" fill="currentColor" opacity="0.7">Versioned, owned, tiered capabilities. Each entry declares its action tier: T1 read-only · T2 writes · T3 unattended.</text>
 
       <!-- Layer 3: agents -->
       <rect x="20" y="134" width="470" height="66" fill="none" stroke="currentColor" stroke-width="1.5"/>
-      <text x="34" y="156" font-size="12" font-weight="700" fill="currentColor">AGENTS</text>
-      <text x="34" y="178" font-size="12.5" fill="currentColor" opacity="0.7">Data Analyst bot · scheduled routines · Claude sessions</text>
+      <text x="34" y="156" font-size="15" font-weight="700" fill="currentColor">AGENTS</text>
+      <text x="34" y="178" font-size="15" fill="currentColor" opacity="0.7">Data Analyst bot · scheduled routines · Claude sessions</text>
 
       <rect x="510" y="134" width="470" height="66" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.45"/>
-      <text x="524" y="156" font-size="12" font-weight="700" fill="currentColor" opacity="0.6">MORE AGENTS TO COME</text>
-      <text x="524" y="178" font-size="12.5" fill="currentColor" opacity="0.45">The money processes: chargebacks, invoice audit, CX</text>
+      <text x="524" y="156" font-size="15" font-weight="700" fill="currentColor" opacity="0.6">MORE AGENTS TO COME</text>
+      <text x="524" y="178" font-size="15" fill="currentColor" opacity="0.45">The money processes: chargebacks, invoice audit, CX</text>
 
       <!-- Layer 4: Frame OS -->
       <rect x="20" y="24" width="960" height="82" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="7 5"/>
-      <text x="34" y="48" font-size="13" font-weight="700" fill="var(--accent)">FRAME OS — to build</text>
-      <text x="34" y="70" font-size="12.5" fill="currentColor" opacity="0.75">See every action · measure performance · track cost · approve before the risky step</text>
-      <text x="34" y="90" font-size="12.5" fill="currentColor" opacity="0.5">Backend / observability is the pending work</text>
+      <text x="34" y="48" font-size="16" font-weight="700" fill="var(--accent)">FRAME OS — to build</text>
+      <text x="34" y="70" font-size="15" fill="currentColor" opacity="0.75">See every action · measure performance · track cost · approve before the risky step</text>
+      <text x="34" y="90" font-size="15" fill="currentColor" opacity="0.5">Backend / observability is the pending work</text>
 
       <!-- arrows: systems -> registry -->
       <line x1="120" y1="322" x2="120" y2="298" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
-      <text x="130" y="313" font-size="11" fill="currentColor" opacity="0.7">reads / writes</text>
+      <text x="130" y="313" font-size="14" fill="currentColor" opacity="0.7">reads / writes</text>
 
       <!-- registry -> agents -->
       <line x1="120" y1="228" x2="120" y2="204" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
-      <text x="130" y="219" font-size="11" fill="currentColor" opacity="0.7">agents call skills</text>
+      <text x="130" y="219" font-size="14" fill="currentColor" opacity="0.7">agents call skills</text>
 
       <!-- agents -> frame os (observe) -->
       <line x1="200" y1="134" x2="200" y2="110" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar-a)"/>
-      <text x="210" y="125" font-size="11" fill="var(--accent)" font-weight="700">emits actions + cost</text>
+      <text x="210" y="125" font-size="14" fill="var(--accent)" font-weight="700">emits actions + cost</text>
 
       <!-- frame os -> agents (gate) -->
       <line x1="700" y1="110" x2="700" y2="134" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar-a)"/>
-      <text x="710" y="126" font-size="11" fill="var(--accent)" font-weight="700">approves / halts by tier</text>
+      <text x="710" y="126" font-size="14" fill="var(--accent)" font-weight="700">approves / halts by tier</text>
     </svg>
     <div class="legend">
       <span><i class="swatch"></i> Exists today</span>
@@ -759,21 +756,21 @@ code {
   <h2>Honest status: one agent, foundations drafted, front end not built.</h2>
   <div class="cols">
     <div>
-      <h3 style="font-size:1.1em; margin-bottom:0.9em">What is real</h3>
+      <h3 style="font-size:1.15em; margin-bottom:0.8em">What is real</h3>
       <ul class="list">
-        <li><b>The pilot agent works.</b><span class="sub">The Data Analyst bot now reaches every BigQuery table and has a primitive knowledge base, so it can learn what it does not already know. Iván asked the group to stress-test it before it gets framed.</span></li>
-        <li><b>Foundations are drafted.</b><span class="sub">Iván logged “drafted the foundations for the Frame OS agentic system” on 28 July, and assessed the Data Analyst bot's fitness for it.</span></li>
-        <li><b>The concept is published.</b><span class="sub">Frame OS has a page on the AF Claude hub alongside the agent library and fleet dashboard.</span></li>
-        <li><b>It is on the 90-day list.</b><span class="sub">Alongside Canada integration, Amazon DF with ATS, closing SC, POD rollout and Walmart 3P.</span></li>
+        <li><b>The pilot agent works.</b><span class="sub">The Data Analyst bot reaches every BigQuery table and has a knowledge base, so it can learn what it does not know.</span></li>
+        <li><b>Foundations are drafted.</b><span class="sub">Logged by Iván on 28 July, with the bot's fitness for the system.</span></li>
+        <li><b>The concept is published.</b><span class="sub">Frame OS has a page on the AF Claude hub.</span></li>
+        <li><b>It is on the 90-day list.</b><span class="sub">Alongside Canada, DF with ATS, closing SC, POD and Walmart 3P.</span></li>
       </ul>
     </div>
     <div>
-      <h3 style="font-size:1.1em; margin-bottom:0.9em">What is not</h3>
+      <h3 style="font-size:1.15em; margin-bottom:0.8em">What is not</h3>
       <ul class="list">
-        <li><b>No front end yet.</b><span class="sub">The interface Iván describes — see and execute — does not exist. This is the biggest single piece of work.</span></li>
-        <li><b>No observability backend.</b><span class="sub">Nothing currently records what an agent did, whether it succeeded, or what it cost.</span></li>
-        <li><b>One agent is not a fleet.</b><span class="sub">Frame OS is only worth building if several agents are running unattended. Today that is the Data Analyst bot and a handful of scheduled routines.</span></li>
-        <li><b>Build-vs-adopt is unresolved.</b><span class="sub">The team has already raised that platform tooling is moving fast enough that some of Frame OS may arrive off the shelf. Worth deciding deliberately rather than by default.</span></li>
+        <li><b>No front end yet.</b><span class="sub">The interface Iván describes — see and execute — does not exist. The biggest piece of work.</span></li>
+        <li><b>No observability backend.</b><span class="sub">Nothing records what an agent did, whether it worked, or what it cost.</span></li>
+        <li><b>One agent is not a fleet.</b><span class="sub">Only worth building if several agents run unattended. Today: one bot and some routines.</span></li>
+        <li><b>Build-vs-adopt is unresolved.</b><span class="sub">Some of Frame OS may arrive off the shelf. Worth deciding deliberately, not by default.</span></li>
       </ul>
     </div>
   </div>
@@ -804,12 +801,12 @@ code {
 <section class="slide">
   <p class="eyebrow">Close</p>
   <h2>What I need from the room.</h2>
-  <div class="agenda" style="margin-top:0.5em">
+  <div class="agenda asks" style="margin-top:0.2em">
     <div class="agenda-row">
       <div class="num">01</div>
       <div>
         <h3>Flag your registry changes</h3>
-        <p class="note">Bumped a version or changed a description on a published skill? Two lines in #ai-github-skills tagging the Governors. Nothing syncs it for you.</p>
+        <p class="note">Bumped a version or changed a description? Two lines in #ai-github-skills tagging the Governors. Nothing syncs it for you.</p>
       </div>
       <div class="who">Everyone</div>
     </div>
@@ -817,7 +814,7 @@ code {
       <div class="num">02</div>
       <div>
         <h3>Test the Data Analyst bot</h3>
-        <p class="note">It is the pilot agent for Frame OS. Iván has asked for a thorough test before it gets framed. Better to find the gaps now than after it is wired into a control layer.</p>
+        <p class="note">The pilot agent for Frame OS. Iván has asked for a thorough test — better to find gaps now than after it is wired into a control layer.</p>
       </div>
       <div class="who">Leaders</div>
     </div>
@@ -825,14 +822,14 @@ code {
       <div class="num">03</div>
       <div>
         <h3>Settle how much rope the agents get</h3>
-        <p class="note">Cake's agent writes its own tools mid-task. Ours only run reviewed, tiered skills. Before we spend a quarter on a front end, agree where Frame OS sits between those two — and how much we expect the platform to hand us for free.</p>
+        <p class="note">Cake's agent writes its own tools mid-task. Ours only run reviewed, tiered skills. Agree where Frame OS sits between those two before we spend a quarter on a front end.</p>
       </div>
       <div class="who">Anthony, Kent, Iván</div>
     </div>
   </div>
   <div class="callout">
     <p class="k">Sources</p>
-    <p class="small" style="color:var(--ink-soft)">Figures from <code>americanflat/ai-skills-registry</code> as at 30 July 2026 — 131 entries, 127 live. Frame OS references from #operations-team-information-channel, #af-eodupdates and #ai-github-skills, June–July 2026. Cake detail read from the April demo recording.</p>
+    <p class="small" style="color:var(--ink-soft)">Registry as at 30 July 2026 — 131 entries, 127 live. Frame OS from Slack, June–July. Cake from the April demo recording.</p>
   </div>
   <div class="slide-tag">Asks</div>
 </section>
