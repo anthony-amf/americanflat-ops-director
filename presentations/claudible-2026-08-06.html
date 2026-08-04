@@ -1,0 +1,885 @@
+<title>Claudible — Skills Registry & Frame OS</title>
+
+<style>
+/* ==========================================================================
+   AMERICANFLAT DESIGN TOKENS  (Brand Guidelines v5, Feb 2025)
+   Note on type: the brand face is Glacial Indifference. Artifact CSP blocks
+   font CDNs and no local copy is embeddable, so we run the brand's own
+   documented fallback chain, system-first. One family, two weights, per brand
+   — hierarchy comes from scale and white space, not a second typeface.
+   ========================================================================== */
+:root {
+  --af-black:      #0F0F0F;
+  --af-white:      #FFFFFF;
+  --af-grey-4:     #1A1A1A;
+  --af-grey-3:     #666666;
+  --af-grey-2:     #B3B3B3;
+  --af-grey-1:     #E6E6E6;
+  --af-red:        #CE0E2D;
+
+  /* semantic */
+  --ground:        var(--af-white);
+  --ink:           var(--af-black);
+  --ink-soft:      var(--af-grey-3);
+  --ink-faint:     var(--af-grey-2);
+  --rule:          var(--af-grey-1);
+  --rule-bold:     var(--af-grey-2);
+  --accent:        var(--af-red);
+  --fill-soft:     #F5F5F5;
+
+  --font: 'Glacial Indifference', system-ui, -apple-system, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+
+  --w-reg: 400;
+  --w-bold: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground:    var(--af-black);
+    --ink:       var(--af-white);
+    --ink-soft:  #9A9A9A;
+    --ink-faint: #4D4D4D;
+    --rule:      #2A2A2A;
+    --rule-bold: #3D3D3D;
+    --accent:    #F04058;      /* AF Red, lifted for legibility on near-black */
+    --fill-soft: var(--af-grey-4);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:    var(--af-black);
+  --ink:       var(--af-white);
+  --ink-soft:  #9A9A9A;
+  --ink-faint: #4D4D4D;
+  --rule:      #2A2A2A;
+  --rule-bold: #3D3D3D;
+  --accent:    #F04058;
+  --fill-soft: var(--af-grey-4);
+}
+:root[data-theme="light"] {
+  --ground:    var(--af-white);
+  --ink:       var(--af-black);
+  --ink-soft:  var(--af-grey-3);
+  --ink-faint: var(--af-grey-2);
+  --rule:      var(--af-grey-1);
+  --rule-bold: var(--af-grey-2);
+  --accent:    var(--af-red);
+  --fill-soft: #F5F5F5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: var(--w-reg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- deck chrome ---------------------------------------------- */
+
+.deck {
+  position: relative;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  /* the container must be the ancestor, not the slide itself — a container
+     cannot resolve its own cqw units against itself */
+  container-type: inline-size;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  padding: 4.2% 6.5% 5.5%;
+  /* type scale in container query units so slides hold their proportions
+     at any viewport size — 1cqw = 1% of stage width */
+  font-size: 1.35cqw;
+}
+.slide[data-active="true"] { display: flex; }
+
+.eyebrow {
+  font-size: 0.86em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 1.6em;
+}
+.eyebrow .mark { color: var(--accent); }
+
+h1 {
+  font-weight: var(--w-bold);
+  font-size: 3.4em;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+h2 {
+  font-weight: var(--w-bold);
+  font-size: 2.35em;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.7em;
+  max-width: 17em;
+  text-wrap: balance;
+}
+h3 {
+  font-weight: var(--w-bold);
+  font-size: 1em;
+  line-height: 1.3;
+  margin: 0 0 0.5em;
+}
+p { margin: 0 0 0.9em; line-height: 1.55; }
+
+.lede { font-size: 1.28em; line-height: 1.5; max-width: 30em; color: var(--ink); }
+.note { color: var(--ink-soft); max-width: 34em; }
+.small { font-size: 0.86em; }
+
+.body-col { max-width: 40em; }
+
+/* ---------- cover ------------------------------------------------------ */
+
+.cover { justify-content: space-between; }
+.cover .wordmark {
+  font-weight: var(--w-bold);
+  font-size: 1.5em;
+  letter-spacing: 0.04em;
+}
+.cover h1 { font-size: 4.4em; max-width: 13em; }
+.cover .meta {
+  display: flex;
+  gap: 3em;
+  border-top: 1px solid var(--rule-bold);
+  padding-top: 1.4em;
+  color: var(--ink-soft);
+  font-size: 0.95em;
+}
+.cover .meta b { display: block; color: var(--ink); font-weight: var(--w-bold); }
+
+/* ---------- section divider ------------------------------------------- */
+
+.section-slide {
+  background: var(--af-black);
+  color: var(--af-white);
+  justify-content: flex-end;
+}
+.section-slide .eyebrow { color: var(--af-grey-2); }
+.section-slide h1 { font-size: 4.2em; }
+.section-slide .note { color: var(--af-grey-2); }
+.section-slide .rule-top {
+  position: absolute;
+  top: 4.2%; left: 6.5%; right: 6.5%;
+  height: 2px;
+  background: var(--accent);
+}
+
+/* ---------- agenda ----------------------------------------------------- */
+
+.agenda { display: flex; flex-direction: column; gap: 0; margin-top: 1em; }
+.agenda-row {
+  display: grid;
+  grid-template-columns: 3.2em 1fr 12em;
+  gap: 2em;
+  align-items: start;
+  padding: 1.5em 0;
+  border-top: 1px solid var(--rule);
+}
+.agenda-row:last-child { border-bottom: 1px solid var(--rule); }
+.agenda-row .num {
+  font-weight: var(--w-bold);
+  font-size: 1.5em;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.agenda-row h3 { font-size: 1.5em; margin-bottom: 0.3em; }
+.agenda-row .note { font-size: 0.95em; margin: 0; }
+.agenda-row .who { color: var(--ink-soft); font-size: 0.9em; text-align: right; }
+
+/* ---------- big stat --------------------------------------------------- */
+
+.stat-wrap { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); gap: 4em; align-items: center; flex: 1; }
+
+.bignum {
+  font-weight: var(--w-bold);
+  font-size: 11em;
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+.bignum-label { font-size: 1.35em; line-height: 1.35; margin: 0.55em 0 0; max-width: 12em; }
+.bignum-sub { color: var(--ink-soft); font-size: 0.95em; margin-top: 0.9em; max-width: 22em; }
+
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.tile { background: var(--ground); padding: 1.5em 1.4em; }
+.tile .k {
+  font-size: 0.78em; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--ink-soft); margin: 0 0 0.7em;
+}
+.tile .v {
+  font-weight: var(--w-bold); font-size: 2.4em; line-height: 1;
+  font-variant-numeric: tabular-nums; margin: 0;
+}
+.tile .d { color: var(--ink-soft); font-size: 0.86em; margin: 0.6em 0 0; line-height: 1.4; }
+
+/* ---------- charts ----------------------------------------------------- */
+
+.chart { display: flex; align-items: flex-end; gap: 3.5em; height: 100%; padding-bottom: 0.5em; }
+.bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.bar-val {
+  font-weight: var(--w-bold); font-size: 2.6em; line-height: 1;
+  font-variant-numeric: tabular-nums; margin-bottom: 0.28em;
+}
+.bar {
+  background: var(--ink);
+  width: 100%;
+}
+.bar.is-accent { background: var(--accent); }
+.bar-key {
+  border-top: 1px solid var(--rule-bold);
+  padding-top: 0.75em;
+  margin-top: 0.75em;
+  font-size: 0.92em;
+}
+.bar-key b { display: block; font-weight: var(--w-bold); }
+.bar-key span { color: var(--ink-soft); font-size: 0.88em; }
+
+.hbars { display: flex; flex-direction: column; gap: 0.85em; }
+.hbar-row { display: grid; grid-template-columns: 7.5em 1fr 3em; gap: 1em; align-items: center; font-size: 0.98em; }
+.hbar-row .lbl { color: var(--ink); }
+.hbar-track { height: 0.85em; background: var(--fill-soft); }
+.hbar-fill { height: 100%; background: var(--ink); }
+.hbar-row .n { text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--w-bold); }
+
+/* ---------- two-column generic ---------------------------------------- */
+
+.cols { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 4em; flex: 1; align-content: start; }
+.cols.narrow-left { grid-template-columns: minmax(0,0.85fr) minmax(0,1.15fr); }
+.cols.wide-left { grid-template-columns: minmax(0,1.2fr) minmax(0,0.8fr); }
+
+.quote {
+  border-left: 2px solid var(--accent);
+  padding-left: 1.2em;
+  margin: 0 0 1.5em;
+}
+.quote p { font-size: 1.12em; line-height: 1.45; margin: 0 0 0.5em; }
+.quote cite {
+  font-style: normal; font-size: 0.85em; color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+
+.list { list-style: none; padding: 0; margin: 0; }
+.list li {
+  padding: 0.85em 0;
+  border-top: 1px solid var(--rule);
+  line-height: 1.5;
+}
+.list li:first-child { border-top: none; padding-top: 0; }
+.list li b { font-weight: var(--w-bold); }
+.list li .sub { display: block; color: var(--ink-soft); font-size: 0.88em; margin-top: 0.25em; }
+
+/* timeline */
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline li {
+  display: grid;
+  grid-template-columns: 6.5em 1fr;
+  gap: 1.5em;
+  padding: 0.8em 0;
+  border-top: 1px solid var(--rule);
+  line-height: 1.45;
+}
+.timeline li:last-child { border-bottom: 1px solid var(--rule); }
+.timeline .when {
+  color: var(--ink-soft); font-size: 0.88em; letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums; padding-top: 0.15em;
+}
+.timeline li.is-now .when { color: var(--accent); font-weight: var(--w-bold); }
+.timeline .what b { font-weight: var(--w-bold); }
+.timeline .what span { display: block; color: var(--ink-soft); font-size: 0.88em; margin-top: 0.2em; }
+
+/* callout */
+.callout {
+  border: 1px solid var(--rule-bold);
+  padding: 1.4em 1.5em;
+  margin-top: auto;
+}
+.callout .k {
+  font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); font-weight: var(--w-bold); margin: 0 0 0.6em;
+}
+.callout p { margin: 0; line-height: 1.5; }
+
+.gap-note {
+  border: 1px dashed var(--rule-bold);
+  padding: 1.3em 1.4em;
+  color: var(--ink-soft);
+}
+.gap-note .k {
+  font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink); font-weight: var(--w-bold); margin: 0 0 0.55em;
+}
+.gap-note p { margin: 0; line-height: 1.5; font-size: 0.95em; }
+
+/* figure */
+figure { margin: 0; display: flex; flex-direction: column; gap: 1em; flex: 1; min-height: 0; }
+figure svg { width: 100%; height: 100%; min-height: 0; display: block; }
+figcaption { color: var(--ink-soft); font-size: 0.88em; line-height: 1.5; max-width: 52em; }
+
+.legend { display: flex; gap: 2em; font-size: 0.85em; color: var(--ink-soft); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 0.55em; }
+.swatch {
+  display: inline-block;
+  width: 1.6em; height: 0;
+  border-top: 2px solid var(--ink);
+  flex: 0 0 auto;
+}
+.swatch.dashed { border-top: 2px dashed var(--accent); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--fill-soft);
+  padding: 0.1em 0.35em;
+  color: inherit;
+}
+
+/* ---------- chrome ----------------------------------------------------- */
+
+.progress {
+  position: fixed; top: 0; left: 0; height: 2px;
+  background: var(--accent); z-index: 20;
+  transition: width 0.25s ease;
+}
+@media (prefers-reduced-motion: reduce) { .progress { transition: none; } }
+
+.hud {
+  position: fixed; bottom: 1.1rem; right: 1.4rem; z-index: 20;
+  display: flex; align-items: center; gap: 0.9rem;
+  font-size: 0.8rem; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.hud button {
+  font: inherit; font-family: var(--font);
+  background: transparent; color: var(--ink-soft);
+  border: 1px solid var(--rule-bold); border-radius: 0;
+  width: 2rem; height: 2rem; cursor: pointer; line-height: 1;
+}
+.hud button:hover { color: var(--ink); border-color: var(--ink); }
+.hud button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hud .count { min-width: 4.2rem; text-align: right; }
+
+.slide-tag {
+  position: absolute; bottom: 2.6%; left: 6.5%;
+  font-size: 0.72em; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.section-slide .slide-tag { color: var(--af-grey-3); }
+
+@media (max-width: 700px) {
+  .hud { bottom: 0.6rem; right: 0.7rem; }
+}
+</style>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck">
+<div class="stage" id="stage">
+
+<!-- ============ 1. COVER ============ -->
+<section class="slide" data-active="true">
+  <div class="wordmark">americanflat</div>
+  <div style="margin-top:auto">
+    <p class="eyebrow">Claudible <span class="mark">/</span> Thursday 6 August 2026</p>
+    <h1>Where the skills registry got to, and what Frame OS is for.</h1>
+  </div>
+  <div class="meta" style="margin-top:auto">
+    <div><b>Presenter</b>Anthony Armstrong</div>
+    <div><b>Registry snapshot</b>30 July 2026</div>
+    <div><b>Running time</b>~20 minutes + discussion</div>
+  </div>
+</section>
+
+<!-- ============ 2. AGENDA ============ -->
+<section class="slide">
+  <p class="eyebrow">Two things</p>
+  <h2>One is a number. One is a direction.</h2>
+  <div class="agenda">
+    <div class="agenda-row">
+      <div class="num">01</div>
+      <div>
+        <h3>The skills registry</h3>
+        <p class="note">Where we are, how fast we got here, who is actually building — and the two housekeeping problems that come with growing this fast.</p>
+      </div>
+      <div class="who">~8 min</div>
+    </div>
+    <div class="agenda-row">
+      <div class="num">02</div>
+      <div>
+        <h3>Frame OS</h3>
+        <p class="note">What it is, where the idea came from, and how it plugs into what we have already built. Including the parts that are still an open question.</p>
+      </div>
+      <div class="who">~12 min</div>
+    </div>
+  </div>
+  <div class="callout">
+    <p class="k">The thread connecting them</p>
+    <p>The registry is the inventory of what our AI can do. Frame OS is the layer that lets us watch it do it. You cannot build the second one without the first — which is exactly why last week's GitHub conversation mattered.</p>
+  </div>
+  <div class="slide-tag">Agenda</div>
+</section>
+
+<!-- ============ 3. THE NUMBER ============ -->
+<section class="slide">
+  <p class="eyebrow">01 <span class="mark">/</span> Skills registry</p>
+  <div class="stat-wrap">
+    <div>
+      <p class="bignum">127</p>
+      <p class="bignum-label">live skills in <code>americanflat/ai-skills-registry</code></p>
+      <p class="bignum-sub">131 entries in total. 127 published and live; 4 provisioned but never shipped. Three months ago the number was zero.</p>
+    </div>
+    <div class="tiles">
+      <div class="tile">
+        <p class="k">People publishing</p>
+        <p class="v">25</p>
+        <p class="d">Distinct owners with at least one live skill.</p>
+      </div>
+      <div class="tile">
+        <p class="k">Departments</p>
+        <p class="v">6</p>
+        <p class="d">Sales, Ops, Finance, PD, Marketing, Exec.</p>
+      </div>
+      <div class="tile">
+        <p class="k">Past v1.0.0</p>
+        <p class="v">17</p>
+        <p class="d">Skills that have shipped a real update since launch — maintained, not abandoned.</p>
+      </div>
+      <div class="tile">
+        <p class="k">Tier 2 or 3</p>
+        <p class="v">70</p>
+        <p class="d">Skills that write somewhere or act on shared systems. 57 are read-only Tier 1.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-tag">The number</div>
+</section>
+
+<!-- ============ 4. THE CURVE ============ -->
+<section class="slide">
+  <p class="eyebrow">01 <span class="mark">/</span> Skills registry</p>
+  <h2>We added more skills in July than in May and June combined.</h2>
+  <div style="flex:1; display:grid; grid-template-columns: minmax(0,1.15fr) minmax(0,0.85fr); gap:4em; min-height:0">
+    <div class="chart">
+      <div class="bar-col">
+        <div class="bar-val">32</div>
+        <div class="bar" style="height:25%"></div>
+        <div class="bar-key"><b>May</b><span>Registry stood up</span></div>
+      </div>
+      <div class="bar-col">
+        <div class="bar-val">73</div>
+        <div class="bar" style="height:57%"></div>
+        <div class="bar-key"><b>June</b><span>+41 published</span></div>
+      </div>
+      <div class="bar-col">
+        <div class="bar-val">127</div>
+        <div class="bar is-accent" style="height:100%"></div>
+        <div class="bar-key"><b>July</b><span>+54 published</span></div>
+      </div>
+    </div>
+    <div>
+      <p class="lede" style="font-size:1.1em">Cumulative live skills at each month end.</p>
+      <p class="note">Two things changed in early July, and the curve responded to both.</p>
+      <ul class="list" style="margin-top:1.2em">
+        <li><b>1 June</b> — publishing simplified to build → <code>skill-fixer</code> → submit, and <code>skill-fixer</code> became an org skill so everyone got the same pre-flight.
+          <span class="sub">Announced in #ai-github-skills</span></li>
+        <li><b>8 July</b> — published skill repos stopped being PR-gated. Commit straight to main, like saving a Notion page.
+          <span class="sub">Repo Merge Policy — Direct-to-Main</span></li>
+      </ul>
+      <p class="note small" style="margin-top:1.2em">Removing the friction is what moved the number. Not more people being told to build skills.</p>
+    </div>
+  </div>
+  <div class="slide-tag">Growth</div>
+</section>
+
+<!-- ============ 5. WHO IS BUILDING ============ -->
+<section class="slide">
+  <p class="eyebrow">01 <span class="mark">/</span> Skills registry</p>
+  <h2>This stopped being a side project of three people.</h2>
+  <div class="cols" style="align-content:start">
+    <div>
+      <p class="note" style="margin-bottom:1.4em">25 people now own a live skill. Seven of them published for the first time in May, eleven in June, seven more in July — a steady stream of new builders, not the same few shipping faster.</p>
+      <div class="hbars">
+        <div class="hbar-row"><span class="lbl">Sales</span><div class="hbar-track"><div class="hbar-fill" style="width:100%"></div></div><span class="n">60</span></div>
+        <div class="hbar-row"><span class="lbl">Operations</span><div class="hbar-track"><div class="hbar-fill" style="width:66.7%"></div></div><span class="n">40</span></div>
+        <div class="hbar-row"><span class="lbl">Finance</span><div class="hbar-track"><div class="hbar-fill" style="width:20%"></div></div><span class="n">12</span></div>
+        <div class="hbar-row"><span class="lbl">Product Dev</span><div class="hbar-track"><div class="hbar-fill" style="width:16.7%"></div></div><span class="n">10</span></div>
+        <div class="hbar-row"><span class="lbl">Marketing</span><div class="hbar-track"><div class="hbar-fill" style="width:5%"></div></div><span class="n">3</span></div>
+        <div class="hbar-row"><span class="lbl">Exec</span><div class="hbar-track"><div class="hbar-fill" style="width:3.3%"></div></div><span class="n">2</span></div>
+      </div>
+      <p class="note small" style="margin-top:1.1em">Live skills by department.</p>
+    </div>
+    <div>
+      <h3 style="font-size:1.1em; margin-bottom:0.9em">What that actually looks like</h3>
+      <ul class="list">
+        <li><b>Ops</b> has the widest bench — 12 different people own a live Ops skill.
+          <span class="sub">EDI 940 generation, late-order flagging, marketplace reconciliation, warehouse invoices, candidate screening</span></li>
+        <li><b>Sales</b> has the deepest stack — 60 skills across 9 owners.
+          <span class="sub">Bulk-ops optimisers for eight Amazon accounts, deal analysis, keyword research, catalog audits</span></li>
+        <li><b>Finance</b> went from nothing to 12 skills in six weeks.
+          <span class="sub">VC clearing reconciliation, payroll journal entries, EU VAT invoices, invoice-to-BigQuery</span></li>
+        <li><b>Exec</b> is on the list too — Giorgio owns two.
+          <span class="sub">GS&amp;R prep and the seasonal virtual background</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-tag">Who is building</div>
+</section>
+
+<!-- ============ 6. THE HOUSEKEEPING ============ -->
+<section class="slide">
+  <p class="eyebrow">01 <span class="mark">/</span> Skills registry</p>
+  <h2>Nothing syncs the registry automatically. That is the catch.</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="note">The skill repo and the registry entry are two different gates. Since 8 July you can commit straight to main on your own skill — but the registry stays Governor-gated by design. If you bump a version or change a description and do not flag it, the registry entry quietly goes stale.</p>
+      <p class="note">At 127 skills nobody can eyeball that. Two things are already visible in the snapshot:</p>
+      <ul class="list" style="margin-top:1.1em">
+        <li><b>Three live skills still carry a sub-1.0 version.</b>
+          <span class="sub"><code>skill-log-notion</code> 0.0.1 · <code>skill-yusen-invoice-processor</code> 0.1.0 · <code>skill-casepack-xref</code> 0.2.0 — published and in use, but the registry says they are pre-release. Version lineage drifted from the tag.</span></li>
+        <li><b>Four entries were provisioned and never published.</b>
+          <span class="sub">Three have sat since early May. One is <code>skill-test-provision</code>, a smoke test whose own description says it is safe to delete after verification.</span></li>
+      </ul>
+    </div>
+    <div style="display:flex; flex-direction:column">
+      <div class="callout" style="margin-top:0">
+        <p class="k">The ask</p>
+        <p>When you change a published skill, post it in <b>#ai-github-skills</b> and tag the Governors — version, and whether the description changed. It is two lines. It is the only thing keeping the registry honest.</p>
+      </div>
+      <div class="gap-note" style="margin-top:1.2em">
+        <p class="k">Worth deciding</p>
+        <p>Do we clear the four stale provisioned entries, and reconcile the three sub-1.0 versions against their tags? Both are small jobs now and annoying jobs at 250 skills.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-tag">Housekeeping</div>
+</section>
+
+<!-- ============ 7. SECTION BREAK ============ -->
+<section class="slide section-slide">
+  <div class="rule-top"></div>
+  <p class="eyebrow">02 <span class="mark">/</span></p>
+  <h1>Frame OS</h1>
+  <p class="note" style="max-width:34em; margin-top:1em">127 skills is a parts bin. Frame OS is the question of what we build out of it — and how we watch it run.</p>
+  <div class="slide-tag">Part two</div>
+</section>
+
+<!-- ============ 8. WHAT IT IS ============ -->
+<section class="slide">
+  <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
+  <h2>An interface for agents, not another agent.</h2>
+  <div class="cols">
+    <div>
+      <div class="quote">
+        <p>“FRAME.OS should be the interface / front-end where we can see and execute this, a lot of work pending on the backend to make this real.”</p>
+        <cite>Iván Calderón · #operations-team-information-channel · 18 June</cite>
+      </div>
+      <div class="quote">
+        <p>“We already have a plan for the next 90 days in AI, focused on Frame.OS (Agentic AI) and automating some of our more complex processes, mostly the ones that deal with money.”</p>
+        <cite>Kent Nunez · #operations-team-information-channel · 18 June</cite>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:1.1em; margin-bottom:0.9em">The problem it is meant to solve</h3>
+      <p class="note">Right now an agent runs, does something, and the evidence is a Slack post or a file in Drive. If it did the wrong thing we find out downstream. If it did nothing we might not find out at all.</p>
+      <p class="note">Frame OS is the layer that answers four questions about any agent, at any time:</p>
+      <ul class="list" style="margin-top:1em">
+        <li><b>What did it do?</b><span class="sub">A record of actions, not just outputs.</span></li>
+        <li><b>Did it work?</b><span class="sub">Performance against what it was supposed to achieve.</span></li>
+        <li><b>What did it cost?</b><span class="sub">Tokens and compute, per agent, per run.</span></li>
+        <li><b>Should it be allowed to?</b><span class="sub">Approval before the risky steps, not after.</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-tag">Definition</div>
+</section>
+
+<!-- ============ 9. CAKE — WHAT IT IS ============ -->
+<section class="slide">
+  <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
+  <h2>The model is Cake: a bakery that runs on one app.</h2>
+  <div class="cols narrow-left">
+    <div>
+      <p class="note">Cake is the internal operating system of a bakery business. One web app, phone and desktop, and its home screen is a launcher organised by business function — not a chat window with tools bolted on the side.</p>
+      <ul class="list" style="margin-top:1.1em">
+        <li><b>AI Agents</b> — seven named assistants, each with a face and a job title
+          <span class="sub">My&nbsp;Agent (personal) · Sam (bakery scheduling) · Phyllis (finance manager) · Jamie (payroll) · three more</span></li>
+        <li><b>Operations</b> — eight apps<span class="sub">The day-to-day production and scheduling tools</span></li>
+        <li><b>Safety &amp; Quality</b> — four apps<span class="sub">Compliance and inspection</span></li>
+        <li><b>People &amp; Finance</b> — two apps<span class="sub">Payroll and accounting</span></li>
+      </ul>
+      <p class="note small" style="margin-top:1.1em">The agents are listed <em>first</em>, above the apps. That ordering is the whole thesis: the assistant is the front door to the business, and the apps are what it reaches through.</p>
+    </div>
+    <div style="display:flex; flex-direction:column">
+      <h3 style="font-size:1.1em; margin-bottom:0.8em">How it reached us</h3>
+      <ul class="timeline">
+        <li>
+          <span class="when">9 Apr</span>
+          <span class="what"><b>Kent contacts Cake's builder</b><span>“to see if I can learn from him”</span></span>
+        </li>
+        <li>
+          <span class="when">29 Apr</span>
+          <span class="what"><b>Anthony shares the Cake demo</b><span>Sent to Iván “for reference” the week Kent was prepping the automation share for Giorgio</span></span>
+        </li>
+        <li>
+          <span class="when">5 May</span>
+          <span class="what"><b>Giorgio asks directly</b><span>He had heard of a company run entirely on agentic AI, and wanted to know how AF is setting up for it</span></span>
+        </li>
+        <li>
+          <span class="when">16 Jun</span>
+          <span class="what"><b>Frame OS goes on the wall</b><span>Concept page published on the AF Claude hub</span></span>
+        </li>
+      </ul>
+      <div class="callout" style="margin-top:auto">
+        <p class="k">Why “Frame”</p>
+        <p>Cake sells cake. We sell frames. And the job is literal — put a frame around an agent so you can watch it work. Iván uses exactly that word: the next step is to <em>frame</em> the Data Analyst agent into a system that shows its actions and performance.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-tag">The Cake inspiration</div>
+</section>
+
+<!-- ============ 10. CAKE — WHAT TO STEAL ============ -->
+<section class="slide">
+  <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
+  <h2>Four things in the demo worth copying exactly.</h2>
+  <p class="note" style="max-width:52em; margin-top:-0.4em">In the recording, an operator asks Eva to rebuild a weekly maintenance report out of Odoo and post it to a team channel. Everything below is visible on screen while she does it.</p>
+  <div class="cols" style="margin-top:1.4em">
+    <div>
+      <ul class="list">
+        <li><b>1 · Permission mode lives on the agent, as a switch.</b>
+          <span class="sub">Three modes in the header — <b>Read Only · Normal · Power</b> — plus Train&nbsp;Eva and Re-do&nbsp;Onboarding. We already hold this data: every registry entry declares an action tier. Cake makes it a live control instead of a metadata field.</span></li>
+        <li><b>2 · Every step is a named tool with a duration.</b>
+          <span class="sub">The trace reads <code>Querying Odoo 21ms</code>, <code>Testing code tool 423ms</code>, <code>maintenance-weekly-report 3 mins</code>. Nothing the agent does is a black box, and slow steps are obvious.</span></li>
+      </ul>
+    </div>
+    <div>
+      <ul class="list">
+        <li><b>3 · Approval gates explain themselves in plain English.</b>
+          <span class="sub">Before posting, a card appears: <em>“send_cliq_channel_message: Post a message to a Zoho Cliq channel. The message is sent from your dedicated bot.”</em> You approve the described action, not an opaque function name.</span></li>
+        <li><b>4 · Failures are shown, not swallowed.</b>
+          <span class="sub">The demo's own post <em>failed</em> — HTTP 400, invalid request URL — and the UI printed it. They shipped the video with the error in it. That honesty is the feature: an agent you cannot see failing is an agent you cannot trust.</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout">
+    <p class="k">And one thing to argue about</p>
+    <p>Eva did not <em>use</em> a maintenance report tool — she <b>built one</b>. The trace shows <code>Creating code tool</code> → <code>Testing code tool</code> → <code>Updating code tool</code>, then runs it. She explored the Odoo schema, worked out the fields, and authored a reusable tool on the spot. That is the opposite of our registry: ours is human-authored, reviewed, tiered and Governor-gated. Theirs is faster; ours is auditable. <b>Deciding where Frame OS sits on that line is the real design question</b> — not which charts go on the dashboard.</p>
+  </div>
+  <div class="slide-tag">What to steal</div>
+</section>
+
+<!-- ============ 10. ARCHITECTURE ============ -->
+<section class="slide">
+  <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
+  <h2>How it plugs into Americanflat.</h2>
+  <figure>
+    <svg viewBox="0 0 1000 400" role="img" aria-label="Four-layer diagram: Americanflat systems of record feed skills in the registry, which agents call to do work; Frame OS is a new layer above that observes and gates the agents.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- Layer 1: systems of record -->
+      <rect x="20" y="322" width="960" height="62" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.55"/>
+      <text x="34" y="344" font-size="12" font-weight="700" fill="currentColor">SYSTEMS OF RECORD</text>
+      <text x="34" y="366" font-size="12.5" fill="currentColor" opacity="0.7">BigQuery · Stedi EDI · Yusen / Taylored portals · Amazon VC + SC · Walmart, Target, Shopify · Airtable · QuickBooks · Slack, Gmail, Drive, Notion</text>
+
+      <!-- Layer 2: registry -->
+      <rect x="20" y="228" width="960" height="66" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <text x="34" y="250" font-size="12" font-weight="700" fill="currentColor">SKILLS REGISTRY — 127 live</text>
+      <text x="34" y="272" font-size="12.5" fill="currentColor" opacity="0.7">Versioned, owned, tiered capabilities. Each entry already declares its action tier: T1 read-only · T2 writes · T3 acts unattended.</text>
+
+      <!-- Layer 3: agents -->
+      <rect x="20" y="134" width="470" height="66" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <text x="34" y="156" font-size="12" font-weight="700" fill="currentColor">AGENTS</text>
+      <text x="34" y="178" font-size="12.5" fill="currentColor" opacity="0.7">Data Analyst bot · scheduled routines · Claude sessions</text>
+
+      <rect x="510" y="134" width="470" height="66" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.45"/>
+      <text x="524" y="156" font-size="12" font-weight="700" fill="currentColor" opacity="0.6">MORE AGENTS TO COME</text>
+      <text x="524" y="178" font-size="12.5" fill="currentColor" opacity="0.45">The money processes: chargebacks, invoice audit, CX</text>
+
+      <!-- Layer 4: Frame OS -->
+      <rect x="20" y="24" width="960" height="82" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="34" y="48" font-size="13" font-weight="700" fill="var(--accent)">FRAME OS — to build</text>
+      <text x="34" y="70" font-size="12.5" fill="currentColor" opacity="0.75">See every action · measure performance · track cost · approve before the risky step</text>
+      <text x="34" y="90" font-size="12.5" fill="currentColor" opacity="0.5">Backend / observability is the pending work</text>
+
+      <!-- arrows: systems -> registry -->
+      <line x1="120" y1="322" x2="120" y2="298" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+      <text x="130" y="313" font-size="11" fill="currentColor" opacity="0.7">reads / writes</text>
+
+      <!-- registry -> agents -->
+      <line x1="120" y1="228" x2="120" y2="204" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+      <text x="130" y="219" font-size="11" fill="currentColor" opacity="0.7">agents call skills</text>
+
+      <!-- agents -> frame os (observe) -->
+      <line x1="200" y1="134" x2="200" y2="110" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar-a)"/>
+      <text x="210" y="125" font-size="11" fill="var(--accent)" font-weight="700">emits actions + cost</text>
+
+      <!-- frame os -> agents (gate) -->
+      <line x1="700" y1="110" x2="700" y2="134" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar-a)"/>
+      <text x="710" y="126" font-size="11" fill="var(--accent)" font-weight="700">approves / halts by tier</text>
+    </svg>
+    <div class="legend">
+      <span><i class="swatch"></i> Exists today</span>
+      <span><i class="swatch dashed"></i> What Frame OS adds</span>
+    </div>
+    <figcaption>The bottom three layers are already running. Frame OS is the missing top layer — and the useful surprise is that the registry already carries the field it needs: every skill declares an action tier, which is exactly the signal a control layer would gate on.</figcaption>
+  </figure>
+  <div class="slide-tag">Architecture</div>
+</section>
+
+<!-- ============ 11. STATUS ============ -->
+<section class="slide">
+  <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
+  <h2>Honest status: one agent, foundations drafted, front end not built.</h2>
+  <div class="cols">
+    <div>
+      <h3 style="font-size:1.1em; margin-bottom:0.9em">What is real</h3>
+      <ul class="list">
+        <li><b>The pilot agent works.</b><span class="sub">The Data Analyst bot now reaches every BigQuery table and has a primitive knowledge base, so it can learn what it does not already know. Iván asked the group to stress-test it before it gets framed.</span></li>
+        <li><b>Foundations are drafted.</b><span class="sub">Iván logged “drafted the foundations for the Frame OS agentic system” on 28 July, and assessed the Data Analyst bot's fitness for it.</span></li>
+        <li><b>The concept is published.</b><span class="sub">Frame OS has a page on the AF Claude hub alongside the agent library and fleet dashboard.</span></li>
+        <li><b>It is on the 90-day list.</b><span class="sub">Alongside Canada integration, Amazon DF with ATS, closing SC, POD rollout and Walmart 3P.</span></li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="font-size:1.1em; margin-bottom:0.9em">What is not</h3>
+      <ul class="list">
+        <li><b>No front end yet.</b><span class="sub">The interface Iván describes — see and execute — does not exist. This is the biggest single piece of work.</span></li>
+        <li><b>No observability backend.</b><span class="sub">Nothing currently records what an agent did, whether it succeeded, or what it cost.</span></li>
+        <li><b>One agent is not a fleet.</b><span class="sub">Frame OS is only worth building if several agents are running unattended. Today that is the Data Analyst bot and a handful of scheduled routines.</span></li>
+        <li><b>Build-vs-adopt is unresolved.</b><span class="sub">The team has already raised that platform tooling is moving fast enough that some of Frame OS may arrive off the shelf. Worth deciding deliberately rather than by default.</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-tag">Status</div>
+</section>
+
+<!-- ============ 12. THE THREAD ============ -->
+<section class="slide">
+  <p class="eyebrow">Both halves</p>
+  <h2>This is why last Claudible was about GitHub.</h2>
+  <div class="cols wide-left">
+    <div>
+      <p class="lede">Frame OS can only see what is in the registry. A skill living on someone's laptop is invisible to it — it cannot be versioned, tiered, called by an agent, or watched.</p>
+      <p class="note" style="margin-top:1.2em">That is the whole argument for pushing to GitHub, and it is not an administrative preference. It is a prerequisite. Every skill that stays local is a capability the company does not actually own and a future agent cannot use.</p>
+      <p class="note">127 live skills is the asset. The registry is the inventory. Frame OS is the control room. They are one project, in that order.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; justify-content:center">
+      <div class="callout" style="margin-top:0">
+        <p class="k">Put another way</p>
+        <p>Every skill we publish makes Frame OS more worth building. Every skill we keep local makes it less.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-tag">The connection</div>
+</section>
+
+<!-- ============ 13. ASKS ============ -->
+<section class="slide">
+  <p class="eyebrow">Close</p>
+  <h2>What I need from the room.</h2>
+  <div class="agenda" style="margin-top:0.5em">
+    <div class="agenda-row">
+      <div class="num">01</div>
+      <div>
+        <h3>Flag your registry changes</h3>
+        <p class="note">Bumped a version or changed a description on a published skill? Two lines in #ai-github-skills tagging the Governors. Nothing syncs it for you.</p>
+      </div>
+      <div class="who">Everyone</div>
+    </div>
+    <div class="agenda-row">
+      <div class="num">02</div>
+      <div>
+        <h3>Test the Data Analyst bot</h3>
+        <p class="note">It is the pilot agent for Frame OS. Iván has asked for a thorough test before it gets framed. Better to find the gaps now than after it is wired into a control layer.</p>
+      </div>
+      <div class="who">Leaders</div>
+    </div>
+    <div class="agenda-row">
+      <div class="num">03</div>
+      <div>
+        <h3>Settle how much rope the agents get</h3>
+        <p class="note">Cake's agent writes its own tools mid-task. Ours only run reviewed, tiered skills. Before we spend a quarter on a front end, agree where Frame OS sits between those two — and how much we expect the platform to hand us for free.</p>
+      </div>
+      <div class="who">Anthony, Kent, Iván</div>
+    </div>
+  </div>
+  <div class="callout">
+    <p class="k">Sources</p>
+    <p class="small" style="color:var(--ink-soft)">Figures from <code>americanflat/ai-skills-registry</code> as at 30 July 2026 — 131 entries, 127 live. Frame OS references from #operations-team-information-channel, #af-eodupdates and #ai-github-skills, June–July 2026. Cake detail read from the April demo recording.</p>
+  </div>
+  <div class="slide-tag">Asks</div>
+</section>
+
+</div>
+</div>
+
+<div class="hud">
+  <button id="prev" aria-label="Previous slide">&#8592;</button>
+  <button id="next" aria-label="Next slide">&#8594;</button>
+  <span class="count"><span id="cur">1</span> / <span id="tot">14</span></span>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  var cur = document.getElementById('cur');
+  var tot = document.getElementById('tot');
+  var bar = document.getElementById('progress');
+  tot.textContent = slides.length;
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) { s.setAttribute('data-active', k === i ? 'true' : 'false'); });
+    cur.textContent = i + 1;
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+  }
+
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); e.preventDefault(); }
+    else if (e.key === 'End') { show(slides.length - 1); e.preventDefault(); }
+  });
+
+  document.getElementById('stage').addEventListener('click', function (e) {
+    if (e.target.closest('a, button')) return;
+    var r = this.getBoundingClientRect();
+    show(i + ((e.clientX - r.left) < r.width * 0.25 ? -1 : 1));
+  });
+
+  show(0);
+})();
+</script>
