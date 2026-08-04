@@ -34,28 +34,24 @@
   --w-bold: 700;
 }
 
+/* This deck deliberately commits to a single light world. It is presented
+   over screenshare and projected — it must not change with the viewer's OS
+   theme or theme toggle, so the light tokens are re-asserted for both. */
+:root { color-scheme: light; }
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground:    var(--af-black);
-    --ink:       var(--af-white);
-    --ink-soft:  #9A9A9A;
-    --ink-faint: #4D4D4D;
-    --rule:      #2A2A2A;
-    --rule-bold: #3D3D3D;
-    --accent:    #F04058;      /* AF Red, lifted for legibility on near-black */
-    --fill-soft: var(--af-grey-4);
+    --ground:    var(--af-white);
+    --ink:       var(--af-black);
+    --ink-soft:  var(--af-grey-3);
+    --ink-faint: var(--af-grey-2);
+    --rule:      var(--af-grey-1);
+    --rule-bold: var(--af-grey-2);
+    --accent:    var(--af-red);
+    --fill-soft: #F5F5F5;
   }
 }
-:root[data-theme="dark"] {
-  --ground:    var(--af-black);
-  --ink:       var(--af-white);
-  --ink-soft:  #9A9A9A;
-  --ink-faint: #4D4D4D;
-  --rule:      #2A2A2A;
-  --rule-bold: #3D3D3D;
-  --accent:    #F04058;
-  --fill-soft: var(--af-grey-4);
-}
+:root[data-theme="dark"],
 :root[data-theme="light"] {
   --ground:    var(--af-white);
   --ink:       var(--af-black);
@@ -170,18 +166,20 @@ p { margin: 0 0 0.9em; line-height: 1.55; }
 
 /* ---------- section divider ------------------------------------------- */
 
+/* Divider reads as a break through scale and the accent rule, not a
+   colour field — the brand is 70% white and the deck stays that way. */
 .section-slide {
-  background: var(--af-black);
-  color: var(--af-white);
+  background: var(--ground);
+  color: var(--ink);
   justify-content: flex-end;
 }
-.section-slide .eyebrow { color: var(--af-grey-2); }
-.section-slide h1 { font-size: 4.2em; }
-.section-slide .note { color: var(--af-grey-2); }
+.section-slide .eyebrow { color: var(--ink-soft); }
+.section-slide h1 { font-size: 4.6em; }
+.section-slide .note { color: var(--ink-soft); }
 .section-slide .rule-top {
   position: absolute;
   top: 4.2%; left: 6.5%; right: 6.5%;
-  height: 2px;
+  height: 4px;
   background: var(--accent);
 }
 
@@ -386,7 +384,7 @@ code {
   font-size: 0.72em; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--ink-faint);
 }
-.section-slide .slide-tag { color: var(--af-grey-3); }
+.section-slide .slide-tag { color: var(--ink-faint); }
 
 @media (max-width: 700px) {
   .hud { bottom: 0.6rem; right: 0.7rem; }
