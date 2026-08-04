@@ -22,6 +22,16 @@ this file is the human decision queue. Update or prune as decisions land.*
 
 ## Standing follow-ups
 
+- **Artifact dashboard auto-refresh** — rebuilt 2026-08-04 as a fingerprint-gated
+  cloud Routine (`refresh-yusen-artifact-gated`, Mon/Thu 7:09 AM ET,
+  `trig_01YG7tbcgDnpBRKkxo1KDHok`). Two things still open: (1) the refresher
+  lives on branch `claude/website-auto-refresh-efficiency-9x474j` and the
+  Routine checks that branch out by name — once it merges to `main`, simplify
+  the trigger prompt to drop the checkout; (2) the old Mac-side
+  `refresh-yusen-dashboard-artifact` task is now redundant and should be
+  disabled so the two don't both publish. Also worth cleaning up: the orphaned
+  duplicate artifact `cedf6b82…` from 2026-07-09.
+
 - Publish **v1.1.0** of `skill-yusen-invoice-validator` (org repo stuck at
   v1.0.0, many commits behind) — via skill-fixer → `skill-candidates` → review.
 - **Notion rate card** needs the April-2026 rates entered (see the verified
