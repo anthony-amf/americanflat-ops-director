@@ -96,15 +96,37 @@ instead of the sequential script.
 
 **The Claude Artifact is the user-facing invoice search UI** (stable URL
 `https://claude.ai/code/artifact/23dd148b-1fb0-4219-80e1-53ca8d9d3d97`) — people
-search invoices there, not in raw BigQuery. Built by `~/build_artifact_dashboard.py`
-(imports `~/generate_yusen_dashboard.py`; both live in `~`, outside this repo),
-auto-refreshed weekdays ~7:09 AM ET by the `refresh-yusen-dashboard-artifact`
-scheduled task; ingestion itself runs daily 3 PM MT via launchd. Two traps:
-republishing MUST pass `url:` with the stable artifact URL or a duplicate
-artifact gets minted; and pre-2026-07-13 rows hold legacy `docs.google.com`
-supporting-doc links in BigQuery — deliberately not backfilled, the generators
-rewrite them to `drive.google.com/file/d/<id>/view` at render time (any
-non-dashboard consumer of `supporting_doc_url` needs the same rewrite).
+search invoices there, not in raw BigQuery. Ingestion runs daily 3 PM MT via
+launchd (rows land ~21:00 UTC). Two traps: republishing MUST pass `url:` with
+the stable artifact URL or a duplicate artifact gets minted (this has already
+happened once — `cedf6b82…`, an orphaned "Yusen Invoices" from 2026-07-09); and
+pre-2026-07-13 rows hold legacy `docs.google.com` supporting-doc links in
+BigQuery — deliberately not backfilled, the generators rewrite them to
+`drive.google.com/file/d/<id>/view` at render time (any non-dashboard consumer
+of `supporting_doc_url` needs the same rewrite).
+
+Refreshed by this repo's **`refresh_artifact_dashboard.py`**, run from a cloud
+Routine (Mon/Thu ~7:09 AM ET). It is *fingerprint-gated*: one SELECT, hash the
+projected rows, and if the hash matches `.dashboard-state.json` it prints
+`NO_CHANGE` and stops, so the session never invokes the Artifact tool. The old
+setup rebuilt and republished on every weekday firing regardless — roughly half
+of those runs had no data change behind them — and being Mac-bound it silently
+stopped for a week in late July 2026, leaving the artifact 5 invoices stale.
+Output contract, last stdout line: `NO_CHANGE <fp>` or `CHANGED <path> <fp>`.
+
+`dashboard_template.html` **is the published page** — the live artifact's exact
+markup/CSS/JS with its `const DATA` / `const KPI` literals swapped for
+`/*DATA*/` and `/*KPI*/`. Refreshes only ever substitute data, so the design
+(teal accent, `.yid-` classes, light/dark theming) cannot drift. Change the
+look by editing the template; the `normalize()` projection must stay in sync
+with the fields the template's `render()` reads. Note the template has **no
+Validated column** — that column exists only on the local twin below. The
+predecessor generator embedded in `yusen-invoice-processor.skill.md` is an
+older, differently-styled design; do not regenerate the artifact from it.
+
+BigQuery access is dual-path: REST against `bigquery.googleapis.com` (works in
+cloud sessions, where the agent proxy injects credentials) with automatic
+fallback to the `bq` CLI (workstation with gcloud ADC). No ADC needed in cloud.
 
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's
