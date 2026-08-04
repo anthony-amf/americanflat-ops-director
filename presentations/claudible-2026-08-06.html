@@ -107,7 +107,7 @@ body {
   inset: 0;
   display: none;
   flex-direction: column;
-  padding: 3.6% 5.6% 5%;
+  padding: 3% 5.6% 4.2%;
   /* Type scale in container query units so slides hold their proportions at
      any viewport size — 1cqw = 1% of stage width. Sized for a projector and
      a shared screen: the floor matters more than the headline, so the small
@@ -121,7 +121,7 @@ body {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin: 0 0 1.1em;
+  margin: 0 0 0.85em;
 }
 .eyebrow .mark { color: var(--accent); }
 
@@ -189,7 +189,7 @@ p { margin: 0 0 0.8em; line-height: 1.5; }
 .section-slide .note { color: var(--ink-soft); }
 .section-slide .rule-top {
   position: absolute;
-  top: 3.6%; left: 5.6%; right: 5.6%;
+  top: 3%; left: 5.6%; right: 5.6%;
   height: 4px;
   background: var(--accent);
 }
@@ -293,7 +293,7 @@ p { margin: 0 0 0.8em; line-height: 1.5; }
 
 .list { list-style: none; padding: 0; margin: 0; }
 .list li {
-  padding: 0.6em 0;
+  padding: 0.48em 0;
   border-top: 1px solid var(--rule);
   line-height: 1.4;
 }
@@ -319,6 +319,27 @@ p { margin: 0 0 0.8em; line-height: 1.5; }
 .timeline li.is-now .when { color: var(--accent); font-weight: var(--w-bold); }
 .timeline .what b { font-weight: var(--w-bold); }
 .timeline .what span { display: block; color: var(--ink-soft); font-size: 0.96em; margin-top: 0.15em; }
+
+/* Cake -> AF crosswalk: the claim on the left, what it means for us on
+   the right, so no row is left as somebody else's product trivia. */
+.xwalk { display: flex; flex-direction: column; margin-top: 0.1em; }
+.xwalk-head, .xwalk-row {
+  display: grid;
+  grid-template-columns: minmax(0,0.82fr) minmax(0,1.18fr);
+  gap: 2.2em;
+}
+.xwalk-head {
+  font-size: 0.85em; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--ink-faint); padding-bottom: 0.45em;
+}
+.xwalk-row { padding: 0.42em 0; border-top: 1px solid var(--rule); }
+.xwalk-row:last-child { border-bottom: 1px solid var(--rule); }
+.xwalk-row b { font-weight: var(--w-bold); display: block; line-height: 1.3; }
+.xwalk-row span {
+  display: block; color: var(--ink-soft); font-size: 0.94em;
+  margin-top: 0.12em; line-height: 1.35;
+}
+.xwalk-row > div:last-child > b { color: var(--accent); }
 
 /* callout */
 .callout {
@@ -392,7 +413,7 @@ code {
 .hud .count { min-width: 4.2rem; text-align: right; }
 
 .slide-tag {
-  position: absolute; bottom: 2.2%; left: 5.6%;
+  position: absolute; bottom: 1.5%; left: 5.6%;
   font-size: 0.8em; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--ink-faint);
 }
@@ -544,8 +565,7 @@ code {
       </div>
     </div>
     <div>
-      <p class="lede" style="font-size:1.1em">Cumulative live skills at each month end.</p>
-      <p class="note">Two things changed in early July, and the curve responded to both.</p>
+      <p class="note" style="margin-bottom:0.6em">Cumulative live skills at month end. Two things changed in early July, and the curve responded to both.</p>
       <ul class="list" style="margin-top:1.2em">
         <li><b>1 June</b> — publishing simplified to build → <code>skill-fixer</code> → submit, and <code>skill-fixer</code> became an org skill so everyone got the same pre-flight.
           <span class="sub">Announced in #ai-github-skills</span></li>
@@ -578,12 +598,12 @@ code {
     <div>
       <h3 style="font-size:1.1em; margin-bottom:0.9em">What that actually looks like</h3>
       <ul class="list">
-        <li><b>Ops</b> has the widest bench — 12 different people own a live Ops skill.
-          <span class="sub">EDI 940 generation, late-order flagging, marketplace reconciliation, warehouse invoices, candidate screening</span></li>
+        <li><b>Ops</b> has the widest bench — 12 people own a live Ops skill.
+          <span class="sub">EDI 940s, late-order flagging, marketplace reconciliation, warehouse invoices</span></li>
         <li><b>Sales</b> has the deepest stack — 60 skills across 9 owners.
-          <span class="sub">Bulk-ops optimisers for eight Amazon accounts, deal analysis, keyword research, catalog audits</span></li>
+          <span class="sub">Bulk-ops optimisers for eight Amazon accounts, deals, keyword research</span></li>
         <li><b>Finance</b> went from nothing to 12 skills in six weeks.
-          <span class="sub">VC clearing reconciliation, payroll journal entries, EU VAT invoices, invoice-to-BigQuery</span></li>
+          <span class="sub">VC clearing, payroll journals, EU VAT invoices, invoice-to-BigQuery</span></li>
         <li><b>Exec</b> is on the list too — Giorgio owns two.
           <span class="sub">GS&amp;R prep and the seasonal virtual background</span></li>
       </ul>
@@ -659,74 +679,32 @@ code {
   <div class="slide-tag">Definition</div>
 </section>
 
-<!-- ============ 9. CAKE — WHAT IT IS ============ -->
+<!-- ============ 9. CAKE → AF CROSSWALK ============ -->
 <section class="slide">
   <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
-  <h2>The model is Cake: a bakery that runs on one app.</h2>
-  <div class="cols narrow-left">
-    <div>
-      <p class="note">Cake is the internal operating system of a bakery business. One web app whose home screen is a launcher organised by business function — not a chat window with tools bolted on the side.</p>
-      <ul class="list" style="margin-top:1em">
-        <li><b>AI Agents</b> — seven named assistants, each with a face and a job title
-          <span class="sub">My&nbsp;Agent (personal) · Sam (bakery scheduling) · Phyllis (finance) · Jamie (payroll) · three more</span></li>
-        <li><b>Then the apps</b> — fourteen of them, grouped by function
-          <span class="sub">Operations (8) · Safety &amp; Quality (4) · People &amp; Finance (2)</span></li>
-      </ul>
-      <p class="note" style="margin-top:0.9em">The agents are listed <em>first</em> — the assistant is the front door, the apps are what it reaches through.</p>
+  <h2>What the demo does, and what it would mean here.</h2>
+  <p class="note" style="max-width:54em">Cake runs a bakery on one app. Their assistant agent rebuilds a weekly report out of their ERP and posts it to a team channel — the same shape as our Data Analyst bot reading BigQuery and posting to Slack.</p>
+  <div class="xwalk">
+    <div class="xwalk-head"><span>In the Cake demo</span><span>At Americanflat</span></div>
+    <div class="xwalk-row">
+      <div><b>Read Only · Normal · Power</b><span>A permission switch on the agent</span></div>
+      <div><b>We already store this.</b><span>Every entry declares an action tier — T1 read-only, T2 writes, T3 unattended.</span></div>
     </div>
-    <div style="display:flex; flex-direction:column">
-      <h3 style="font-size:1.15em; margin-bottom:0.7em">How it reached us</h3>
-      <ul class="timeline">
-        <li>
-          <span class="when">9 Apr</span>
-          <span class="what"><b>Kent contacts Cake's builder</b><span>“to see if I can learn from him”</span></span>
-        </li>
-        <li>
-          <span class="when">29 Apr</span>
-          <span class="what"><b>Anthony shares the Cake demo</b><span>Sent to Iván “for reference” the week Kent was prepping the automation share</span></span>
-        </li>
-        <li>
-          <span class="when">5 May</span>
-          <span class="what"><b>Giorgio asks directly</b><span>He had heard of a company run entirely on agentic AI, and asked how AF is setting up for it</span></span>
-        </li>
-      </ul>
-      <div class="callout" style="margin-top:auto">
-        <p class="k">Why “Frame”</p>
-        <p>Cake sells cake. We sell frames — and the job is literal. Iván uses exactly that word: <em>frame</em> the Data Analyst agent into a system that shows its actions and performance.</p>
-      </div>
+    <div class="xwalk-row">
+      <div><b>Every step is a named tool, timed</b><span>Slow steps are obvious</span></div>
+      <div><b>Our skills are already named and versioned.</b><span>Nothing records that a run happened, how long it took, or what it cost.</span></div>
+    </div>
+    <div class="xwalk-row">
+      <div><b>An approval card in plain English</b><span>Shown before the action fires</span></div>
+      <div><b>“Post to #ops-vendorcentral as the bot.”</b><span>Approve the sentence, not a function name. Matters most for the money processes.</span></div>
+    </div>
+    <div class="xwalk-row">
+      <div><b>The post failed, and the screen said so</b><span>The demo shipped with the error in it</span></div>
+      <div><b>Today a failed run is silent.</b><span>We find out when somebody notices the Slack post never arrived.</span></div>
     </div>
   </div>
-  <div class="slide-tag">The Cake inspiration</div>
-</section>
-
-<!-- ============ 10. CAKE — WHAT TO STEAL ============ -->
-<section class="slide">
-  <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
-  <h2>Four things in the demo worth copying exactly.</h2>
-  <p class="note" style="max-width:54em; margin-top:-0.3em">An operator asks Eva to rebuild a weekly maintenance report out of Odoo and post it to a team channel. All four are visible on screen while she works.</p>
-  <div class="cols" style="margin-top:1.1em">
-    <div>
-      <ul class="list">
-        <li><b>1 · Permission mode is a switch on the agent.</b>
-          <span class="sub"><b>Read Only · Normal · Power</b> in the header. We already hold this data — every registry entry declares an action tier. Cake makes it a live control, not a metadata field.</span></li>
-        <li><b>2 · Every step is a named tool with a duration.</b>
-          <span class="sub"><code>Querying Odoo 21ms</code> · <code>Testing code tool 423ms</code> · <code>maintenance-weekly-report 3 mins</code>. Nothing is a black box.</span></li>
-      </ul>
-    </div>
-    <div>
-      <ul class="list">
-        <li><b>3 · Approval gates explain themselves.</b>
-          <span class="sub">A card appears before it fires: <em>“Post a message to a Zoho Cliq channel, sent from your dedicated bot.”</em> You approve the described action, not a function name.</span></li>
-        <li><b>4 · Failures are shown, not swallowed.</b>
-          <span class="sub">The demo's own post failed — HTTP 400 — and the UI printed it. An agent you cannot see failing is one you cannot trust.</span></li>
-      </ul>
-    </div>
-  </div>
-  <div class="callout">
-    <p class="k">And one thing to argue about</p>
-    <p>Eva did not <em>use</em> a report tool — she <b>built one</b>: <code>Creating code tool</code> → <code>Testing code tool</code> → <code>Updating code tool</code>, then runs it. Ours are human-authored, reviewed and Governor-gated. Theirs is faster; ours is auditable. <b>Where Frame OS sits on that line is the real design question.</b></p>
-  </div>
-  <div class="slide-tag">What to steal</div>
+  <p class="note small" style="margin-top:0.35em; max-width:58em">Worth arguing about: their agent <b>wrote its own tool</b> mid-task. Ours are Governor-gated — theirs is faster, ours auditable.</p>
+  <div class="slide-tag">Cake → Americanflat</div>
 </section>
 
 <!-- ============ 10. ARCHITECTURE ============ -->
@@ -885,7 +863,7 @@ code {
   <button id="fs" aria-label="Toggle full screen" title="Full screen (F)">&#9974;</button>
   <button id="prev" aria-label="Previous slide">&#8592;</button>
   <button id="next" aria-label="Next slide">&#8594;</button>
-  <span class="count"><span id="cur">1</span> / <span id="tot">14</span></span>
+  <span class="count"><span id="cur">1</span> / <span id="tot">13</span></span>
 </div>
 
 <script>
