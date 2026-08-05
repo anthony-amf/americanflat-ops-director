@@ -36,10 +36,17 @@ have adopted AF-9 already.
 ## Standing follow-ups
 
 - Publish **v1.1.0** of `skill-yusen-invoice-validator` (org repo stuck at
-  v1.0.0, many commits behind) — via skill-fixer → `skill-candidates` → review.
-- **Notion rate card** needs the April-2026 rates entered (see the verified
-  rate-history table in `YUSEN-INVOICE-VALIDATOR.md`); Canada admin is billed
-  monthly, not weekly as the card says.
+  v1.0.0). Per the 2026-07-08 Repo Merge Policy: direct commit + tag on the
+  skill repo's `main`, then @governors ping in #ai-github-skills. Blocked on
+  the Claude GitHub app being granted access to
+  `americanflat/skill-yusen-invoice-validator` (admin: org Settings → GitHub
+  Apps → Claude → Repository access).
+- **Validate-on-ingest automation** — Mac punch list in
+  `VALIDATION-AUTOMATION.md` (backfill SQL → dashboard refresh → skill v1.2.0
+  disputed-status hook → post-ingestion launchd sweep).
+- ~~Notion rate card April-2026 rates~~ — **done 2026-08-05**: card rebuilt
+  from the MSA rate schedule (current rates + pre-June history + disputed-
+  charges warning); Canada monthly-billing note corrected.
 - Yusen NL: FTI0006458 was never emailed to Americanflat (resend was on the
   table in the John Alink action-tracker thread) — it has since been loaded
   via Drive, so only the process fix remains with Yusen.

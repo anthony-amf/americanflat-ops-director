@@ -103,26 +103,42 @@ token-matching guards short codes like "SC" from false substring hits).
 BOL numbers are **not** Stedi identifiers — verify them by count against the
 worksheet, and exclude them from the Stedi denominator.
 
-## Verified rate history (as of July 2026)
+## Verified rate history (as of August 2026)
 
-New Taylored rates arrived 2026-04-06 and took effect with the billing weeks
-starting ~May 4–10; the Notion card still shows pre-April rates. Verified from
-40+ invoice PDF worksheets:
+Current-rate source of truth: the **AMERICANFLAT Yusen MSA** (draft 7.15.2026;
+Anthony confirmed 8/5/26 the rates are final — only KPI/insurance language
+open). Rate validity April 2026 – March 31, 2027. The rate schedule is an
+embedded image in the docx — extract text from `word/media/image2.emf`
+(EMR_EXTTEXTOUTW records), don't trust pandoc/text alone. The Notion card was
+rebuilt from it 2026-08-05 and is current. New rates hit invoices from the
+**June 2026 billing weeks** (NJ/Fontana storage switched earlier, ~May 4–10).
 
-| | Old (pre-May) | New (May →) |
+| | Old (billed Mar–May) | MSA / current (June →) |
 |---|---|---|
 | Storage $/pallet | SC 5.0925 · NJ 5.98 · Fontana 5.9055 | **SC 3.35 · NJ 4.34 · Fontana 4.47** (−24–34%) |
-| Ship carton | 2.05 / 1.94 / 1.79 | 1.8887 / 1.7871 / 1.642 (−8%) |
-| Order fee | 2.35 / 2.36 | 2.1585 / 2.1735 (−8%) |
+| Handling out / ship carton | 2.05 / 1.94 / 1.79 | 1.8887 (CA) / 1.7871 (NJ) / 1.6422 (SC) (−8%) |
+| Order fee | 2.35 / 2.36 | 2.1585 (CA) / 2.1735 (NJ) |
 | BOL | 7.63 / 6.83 / 6.83 | 6.50 (all sites) |
-| Pallet + wrap | 6.14 + 4.69 | **10.00 + ~4.32–4.35** (pallet +63% — confirm vs signed sheet) |
-| E-com order / picks | 2.42 / 0.455–0.63 | 2.2264 (all) / 0.506–0.579 (**picks +11%** — confirm) |
+| Pallet | Fontana 10.3274 combined · NJ 4.91→5.6235 + 4.725 wrap · SC 11.74 via VAS | **10.00 national all-in (AF-9)** — separate wrap ($4.317–4.347) billed June–mid-July is **disputed**, not a rate |
+| E-com order | 2.42 | 2.2264 (all) |
+| E-com picks | 0.55 billed (old card said 0.455–0.63), additional-only | 0.506 / SC 0.5796 — **"Per Additional Ecom Pick"**: first pick never billable; Fontana's June every-pick billing is disputed |
+| Small parcels (UPS/FedEx per ctn) | 0.7478 / 0.71 / 0.84 | 0.6879 / 0.6532 / 0.84 |
+| Pack out | NJ 1.00 ("PACK CARTONS") | **removed per Yusen 4/28 (AF-7)** — 0.92/0.966 billings are disputed |
 | UCC label | 0.45 | 0.30 |
+| Handling in per ctn | — | 0.9173 (CA) / 0.9467 (NJ) / 0.7728 (SC) |
+| Container admin | — | 52.8831 / 47.334 / 47.288 |
+| Sortation per SKU | — | 31.2981 / 29.946 / 24.15 |
+
+Invoice-billing conventions verified from worksheets: e-com **pick charges
+invoice at exactly half the supporting-worksheet pick-column sum** (both eras —
+the worksheet counts pick+pack events); SC bills pallets through **VAS work
+orders**, not SP/LTL invoices; Fontana embeds wrap in a combined pallet rate
+while NJ lines it separately (both superseded by the $10 all-in).
 
 NJ admin labor tax: 5% through the week invoiced 2026-04-20, dropped from
 2026-04-27 (modeled as on/off date-intervals — a future reinstatement is a
 config line, not a code change). Canada admin ($1,000 + $100 WMS) bills
-**monthly** (card says weekly — needs correcting).
+**monthly** (Notion card note corrected 2026-08-05).
 
 ## Scripts
 
