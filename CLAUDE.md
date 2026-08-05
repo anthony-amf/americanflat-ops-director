@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## NO-DELETE RULE (standing order from Anthony, 2026-08-05)
+
+Never run — and never hand Anthony terminal commands containing — anything
+that deletes or destructively overwrites: no `rm`, no `rsync --delete`, no
+`git clean`/`git reset --hard`, no force flags, no `mv` onto an existing path,
+no `>` truncation of existing files. Copies are additive only, into freshly
+created directories (never `~`, never a populated folder). If removal is truly
+needed, `mv` the item into a dated quarantine folder as its own explicitly
+approved step. Any multi-command block MUST chain with `&&` so a failure stops
+the chain. (Origin: a pasted command block where a failed `git clone` + `cd`
+let `rsync --delete` run against the Mac home directory.)
+
 ## What this repo is
 
 Americanflat's invoice-audit workspace for Yusen/Taylored 3PL freight invoices.
