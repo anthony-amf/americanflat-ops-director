@@ -25,18 +25,32 @@ and a detailed per-invoice spec readable from both dashboards.*
 
 ## Mac-side punch list (in order)
 
+*Status 2026-08-05 (afternoon): ALL FIVE DONE. Backfill ran once (13 disputed
++ 3 notes verified); both dashboards refreshed/republished with disputed chips
+and report tooltips; skill at v1.2.0 (repackaged + committed); sweep
+LaunchAgent `com.americanflat.yusen-validator-sweep` loaded at 15:30 MT.
+Two incidents found and fixed along the way: (a) `refresh_yusen_dashboard.py`
+passed the DATA JSON as a regex replacement string, so `\n` escapes became raw
+newlines and broke the embedded JS — now a lambda replacement; (b) a concurrent
+invoice-processor session's "mark valid on payment" replay overwrote the fresh
+disputed stamps on paid 754699/754704 — restored, and v1.2.0 makes both
+disputed and paid-valid stamps sticky against re-sweeps.*
+
 1. **Run the backfill:**
    `bq query --use_legacy_sql=false < sql/backfill_validation_2026-08-05.sql`
-   (Run ONCE — the report append is not idempotent.)
+   (Run ONCE — the report append is not idempotent.) **DONE 2026-08-05.**
 2. **Refresh the local dashboard:** `python3 refresh_yusen_dashboard.py`
-   (picks up the disputed chips + notes automatically).
+   (picks up the disputed chips + notes automatically). **DONE.**
 3. **Artifact dashboard:** add the same two `valChip` additions to
    `~/generate_yusen_dashboard.py` / `~/build_artifact_dashboard.py`
    (`.v-disputed` CSS + the `disputed` label branch — copy from
    `refresh_yusen_dashboard.py`), then let the 7:09 AM scheduled refresh
    republish, or run it manually. Remember: republish MUST pass the stable
-   artifact `url:` or a duplicate gets minted.
-4. **Skill v1.2.0 — the actual hook** (edit `~/.claude/skills/yusen-invoice-validator/scripts/validate_rate_card.py`):
+   artifact `url:` or a duplicate gets minted. **DONE** — also: disputed chip
+   checked *before* the hasVariance branch (disputed rows carry the disputed $
+   in `validation_variance`, which otherwise shadows the chip), chip shows the
+   amount, and `validation_report` now rides along as the hover tooltip.
+4. **Skill v1.2.0 — the actual hook** (edit `~/.claude/skills/yusen-invoice-validator/scripts/validate_rate_card.py`): **DONE — shipped as v1.2.0.**
    - **Write the detailed report at validation time**, not only on
      `--mark-paid`: the sweep already builds the per-invoice verdict; store it
      to `validation_report` (append-style with a dated tag) on every `--write`.
@@ -59,7 +73,10 @@ and a detailed per-invoice spec readable from both dashboards.*
    later, giving the streaming buffer time to clear):
    `cd ~/.claude/skills/yusen-invoice-validator && export STEDI_API_KEY=... && python3 scripts/validate_rate_card.py --list-all --limit 400 --write`
    Rows still in the streaming buffer auto-defer; the next day's sweep catches
-   them (existing behavior).
+   them (existing behavior). **DONE** —
+   `~/Library/LaunchAgents/com.americanflat.yusen-validator-sweep.plist`,
+   daily 15:30 Mountain (ingestion + 30 min), sources `~/.yusen/yusen.env`,
+   logs to `~/Library/Logs/yusen-validator-sweep.log`.
 
 ## Status vocabulary (for finance)
 
