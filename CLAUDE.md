@@ -144,6 +144,14 @@ plain string replace will double-insert.
 
 ## Conventions
 
+- **NO DELETE ANYTHING** (standing rule, Anthony 2026-08-05). Never run *or
+  suggest* `rm`, `rsync --delete`, `git clean`, `git reset --hard`, force flags,
+  `mv` onto an existing path, or `>` truncation of an existing file. Copies are
+  additive only, into freshly created directories. If removal is genuinely
+  needed, move the item to a dated quarantine folder
+  (`~/quarantine/YYYY-MM-DD/`) as its own separately approved step — never
+  bundled into a larger command. All multi-command blocks chain with `&&` so a
+  failure stops the chain.
 - Commits go directly to `main`; messages are imperative summaries with a body
   explaining the why (see `git log`).
 - Payment status (`paid_at`) is written **only** on explicit user confirmation —
