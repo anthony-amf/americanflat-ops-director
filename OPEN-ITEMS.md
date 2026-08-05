@@ -35,10 +35,12 @@ have adopted AF-9 already.
 
 ## Standing follow-ups
 
-- Publish `skill-yusen-invoice-validator` (org repo stuck at v1.0.0, many
-  commits behind) — via skill-fixer → `skill-candidates` → review. Local source
-  is now **v1.2.0** (2026-08-05: `disputed` status hook, sticky
-  disputed/paid-valid stamps, report card on every `--write`); publish that.
+- ~~Publish v1.1.0 of `skill-yusen-invoice-validator`~~ **DONE 2026-08-05**:
+  org repo at v1.1.0 (`587b377`, tagged) via direct main commit per the
+  2026-07-08 Repo Merge Policy. Remaining: publish **v1.2.0** (2026-08-05 local:
+  `disputed` status hook, sticky disputed/paid-valid stamps, report card on
+  every `--write`) the same way when ready. Registry deliberately not touched
+  (Governors-only).
 - **Notion rate card** needs the April-2026 rates entered (see the verified
   rate-history table in `YUSEN-INVOICE-VALIDATOR.md`); Canada admin is billed
   monthly, not weekly as the card says.
