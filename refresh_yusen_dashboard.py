@@ -27,6 +27,7 @@ CSS_BLOCK = """  .vchip { display:inline-block; padding:2px 8px; border-radius:9
   .v-valid { background:#e7f6ec; color:#16a34a; }
   .v-discrepancy { background:#fdeaea; color:#dc2626; }
   .v-needs_detail { background:#fef3e2; color:#d97706; }
+  .v-disputed { background:#fee2e2; color:#b91c1c; }
   .v-error { background:#eef0f3; color:#6b7280; }
 """
 
@@ -49,6 +50,7 @@ VALCHIP_FN = """function valChip(r) {
   if (s === 'valid') label = '\\u2713 valid';
   else if (s === 'discrepancy') label = '\\uD83D\\uDEA8 ' + (r.validation_variance != null ? '$' + Number(r.validation_variance).toFixed(2) : 'discrepancy');
   else if (s === 'needs_detail') label = 'needs detail';
+  else if (s === 'disputed') label = '\\u26A0 disputed' + (r.validation_variance != null ? ' $' + Number(r.validation_variance).toFixed(2) : '');
   return '<span class="vchip v-' + s + '"' + tip + '>' + esc(label) + '</span>';
 }
 
@@ -85,10 +87,13 @@ def fetch_rows(client: bigquery.Client) -> list:
 def patch_html(html: str, rows: list) -> tuple[str, list]:
     changes = []
 
-    # 1. CSS chip classes (once)
+    # 1. CSS chip classes (once) — and upgrade older CSS lacking the disputed chip
     if ".vchip" not in html:
         html = html.replace("</style>", CSS_BLOCK + "</style>", 1)
         changes.append("added chip CSS")
+    elif ".v-disputed" not in html:
+        html = html.replace("  .v-error", "  .v-disputed { background:#fee2e2; color:#b91c1c; }\n  .v-error", 1)
+        changes.append("added disputed chip CSS")
 
     # 2. Header columns after Amount (once each)
     if 'data-k="validation_status"' not in html:
@@ -115,13 +120,14 @@ def patch_html(html: str, rows: list) -> tuple[str, list]:
         html = html.replace(anchor, new, 1)
         changes.append("added Paid cell")
 
-    # 4. chip helpers (once) — and upgrade an older valChip lacking report tooltips
+    # 4. chip helpers (once) — and upgrade an older valChip lacking report
+    #    tooltips or the disputed status
     if "function valChip" not in html:
         html = html.replace("function render() {", VALCHIP_FN + "function render() {", 1)
         changes.append("added valChip() helper")
-    elif "r.validation_report" not in html:
+    elif "r.validation_report" not in html or "'disputed'" not in html:
         html = re.sub(r"function valChip\(r\) \{.*?\n\}\n\n", lambda _: VALCHIP_FN, html, count=1, flags=re.S)
-        changes.append("upgraded valChip() for report tooltips")
+        changes.append("upgraded valChip() (report tooltips / disputed status)")
     if "function paidChip" not in html:
         html = html.replace("function render() {", PAIDCHIP_FN + "function render() {", 1)
         changes.append("added paidChip() helper")
