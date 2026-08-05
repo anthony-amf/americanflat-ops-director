@@ -44,9 +44,13 @@ This repo carries:
 
 The skill is also published org-wide as `americanflat/skill-yusen-invoice-validator`
 (v1.0.0, promoted 2026-06-30). Local source is at **v1.1.0** with a complete
-changelog — submission-ready but not yet published. Updates go through the
-`skill-fixer` skill → `americanflat/skill-candidates` branch → Publisher
-review; never push directly to the published repo.
+changelog — not yet pushed. Per the Repo Merge Policy (2026-07-08), published
+skill repos are **no longer PR-gated**: commit directly to the skill repo's
+`main`, tag `vX.Y.Z` matching `skill.toml`, then ask `@governors` in
+#ai-github-skills to update the `ai-skills-registry` entry (Governors-only —
+never edit the registry yourself). Use the `skill-pr-helper` skill for this
+flow. The push must run from the Mac (or a session sourced on that repo) —
+sessions scoped to `anthony-amf` cannot reach `americanflat/*` repos.
 
 ## Common commands
 
@@ -99,10 +103,23 @@ instead of the sequential script.
 - Warehouse text is free-form; `WAREHOUSE_MAP` in `validate_rate_card.py`
   normalizes it. Savannah = TS South = South Carolina; Schiphol/Moerdijk = NL.
   Short aliases ("SC", "NJ") must match whole tokens, never substrings.
-- The Notion rate card (page `3898555c2abc81efab1decc73a53973a`) is the rate
-  source of truth but **lags the contract** — see the rate history table in
-  `YUSEN-INVOICE-VALIDATOR.md` before flagging discrepancies. Below-card
-  billing is a stale-card flag, not a dispute.
+  **SC bills pallets through VAS work orders, not SP/LTL invoices** — and SC
+  VAS PDFs are scanned images (no text layer; OCR them).
+- **Rate source of truth is the Yusen MSA** (draft 7.15.2026; Anthony confirmed
+  8/5 the rates are final). The Notion rate card (page
+  `3898555c2abc81efab1decc73a53973a`) was rebuilt from it 2026-08-05 and is
+  current, with pre-June history preserved. The MSA's rate table is an
+  **embedded EMF image** in the docx — extract text from
+  `word/media/image2.emf` (EMR_EXTTEXTOUTW records); pandoc/text alone misses
+  it. Below-card billing is a stale-card flag, not a dispute.
+- **`validation_status` vocabulary:** `valid` / `needs_detail` / `discrepancy`
+  / **`disputed`** (MSA-conflict charges present — wrap beside a $10 pallet,
+  0.92/0.966 pack-out, Fontana every-pick billing; disputed $ goes in
+  `validation_variance`, detailed spec appended to `validation_report`, which
+  both dashboards render as the chip tooltip/report card). Never re-stamp a
+  `disputed` row back to `needs_detail`. Consolidated dispute position:
+  `validation-reports/yusen-msa-billing-dispute-2026-08-05.md`; automation
+  punch list: `VALIDATION-AUTOMATION.md`.
 
 ## Dashboards
 
@@ -132,7 +149,13 @@ plain string replace will double-insert.
   (`README.md`, `IMPLEMENTATION_GUIDE.md`, `STEDI_*.md`) — the original design
   docs and scaffolding for the extraction→BigQuery pipeline. Extraction itself
   is owned by the separate `skill-invoice-to-bigquery` skill, not this repo.
-- `validation-reports/` — per-invoice markdown report cards, written on request.
+- `validation-reports/` — per-invoice markdown report cards, written on
+  request, plus the consolidated MSA dispute report.
+- `sql/` — one-off BigQuery scripts (e.g. the 2026-08-05 disputed-status
+  backfill); run from the Mac, once each.
+- `VALIDATION-AUTOMATION.md` — the validate-on-ingest design + Mac punch list
+  (backfill → dashboard → skill v1.2.0 disputed hook → post-ingestion launchd
+  sweep).
 - `selling-partner-api-models-main/` — vendored Amazon SP-API models (reference
   only; unrelated to invoice validation).
 - Committed `*.skill` files are packaged artifacts of other personal skills;
@@ -147,17 +170,30 @@ plain string replace will double-insert.
 - **Decision queue:** local memory doesn't sync — read `OPEN-ITEMS.md` (kept as
   a mirror; update it when decisions land).
 - **Credentials:** `STEDI_API_KEY` must be provided as an environment secret.
-  BigQuery needs non-interactive auth (service-account credentials) — the local
-  gcloud ADC does not travel. Notion/Drive/Gmail/Slack connectors are
-  account-level and work in cloud; Chrome automation (used for Gmail
-  attachment → Drive hops) does not.
+  **BigQuery via the cloud proxy is READ-ONLY** — `SELECT` against
+  `bigquery.googleapis.com` works with proxy-injected auth (curl the REST API
+  directly), but DML/ALTER return permission-denied. All writes (stamps,
+  backfills, `--init`) run from the Mac's gcloud ADC. Notion/Drive/Gmail/Slack
+  MCP connectors work in cloud; Chrome automation does not; there is **no `gh`
+  CLI** — use the GitHub MCP tools.
+- **PDF tooling:** the container's `pypdf` is broken until
+  `pip install cryptography cffi`; `apt-get install tesseract-ocr
+  poppler-utils` works (needed for the scanned SC VAS invoices).
+- **Repo scope:** cloud sessions are scoped to one repo owner — a session on
+  this repo cannot attach or push to `americanflat/*` repos (cross-tier), and
+  Gmail MCP cannot download attachments (ask for the file, or via Drive).
 - **Dashboard:** `~/yusen_invoices_dashboard.html` and `refresh_yusen_dashboard.py`
   are local-to-the-Mac; skip dashboard refreshes in cloud sessions.
 
 ## Conventions
 
-- Commits go directly to `main`; messages are imperative summaries with a body
-  explaining the why (see `git log`).
+- Local (Mac) commits go directly to `main`; cloud sessions push to their
+  designated feature branch, with a PR when Anthony wants review (PR #1 set
+  the pattern). Messages are imperative summaries with a body explaining the
+  why (see `git log`).
 - Payment status (`paid_at`) is written **only** on explicit user confirmation —
   never inferred, never from "OK to pay" verdicts. SP/LTL invoices additionally
   require a Stedi order-level pass before payment marking.
+- Invoice-billing convention: e-com **pick charges invoice at exactly half the
+  supporting-worksheet pick-column sum** (the worksheet counts pick+pack
+  events) — the invoice never matches the raw worksheet total.
