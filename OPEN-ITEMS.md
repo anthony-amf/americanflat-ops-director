@@ -3,7 +3,7 @@
 *Mirror of the local memory note so cloud sessions see it. BigQuery
 (`finance.yusen_invoices`, `paid_at IS NULL`) is the authoritative ledger;
 this file is the human decision queue. Update or prune as decisions land.*
-*Last updated: 2026-07-13.*
+*Last updated: 2026-08-05.*
 
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
@@ -14,6 +14,15 @@ this file is the human decision queue. Update or prune as decisions land.*
 | 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317 (= new $10+$4.317 structure) |
 | FTI0006458 | NL June warehousing | €20,317.20 | reconciles to Yusen AR statement exactly |
 | 754864 | NJ storage | $20,580.28 | 4,742 pallets @ $4.34, worksheet exact |
+
+## Approved — needs local `--mark-paid` (cloud BigQuery credential is read-only)
+
+- **754855** ($2.52, SC VAS — P65 warning labels, WO 5001823, 6 @ $0.42) —
+  validated 2026-08-05 in a cloud session (math exact 6 × $0.42 = $2.52; SC has
+  no contracted label rate — immaterial; no Stedi gate for VAS). **Anthony
+  approved payment 2026-08-05.** The cloud write failed
+  (`bigquery.tables.updateData` denied), so from a local session run:
+  `python3 scripts/validate_rate_card.py 754855 --mark-paid`
 
 ## Pre-approved, waiting on data
 
