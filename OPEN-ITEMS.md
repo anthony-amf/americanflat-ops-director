@@ -14,7 +14,19 @@ this file is the human decision queue. Update or prune as decisions land.*
 | 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317 (= new $10+$4.317 structure) |
 | FTI0006458 | NL June warehousing | €20,317.20 | reconciles to Yusen AR statement exactly |
 | 754864 | NJ storage | $20,580.28 | 4,742 pallets @ $4.34, worksheet exact |
-| 754889 | SC storage (wk end 7/05) | $7,859.10 | PDF exact: peak day 6/30, 2,346 pallets @ $3.35 (verified new SC rate; Notion card $5.09 is stale — not a dispute). Pallet-count GO (2026-08-05): AF's Taylored Storage Cost model shows 2,353 for that week (−0.3% vs billed); cube model on the invoice-week inventory (168K units, 99.3% dim coverage) justifies ~2,800 positions, so billed is ~16% below justified; utilization ≈36% vs 53% contract target (~$2.5K/wk consolidation upside — Angela's MSA data point, not a dispute) |
+
+## Approved — needs local `--mark-paid` (cloud BigQuery credential is read-only)
+
+- **754889** ($7,859.10, SC storage wk end 7/05) — validated 2026-08-05: PDF
+  exact (peak day 6/30, 2,346 pallets @ $3.35, the verified new SC rate; stale
+  Notion card $5.09 is not a dispute). Pallet-count GO: AF's Taylored Storage
+  Cost model shows 2,353 for the same week (−0.3%); cube model on the
+  invoice-week inventory (168K units, 99.3% dim coverage) justifies ~2,800
+  positions, billed is ~16% below that. Utilization ≈36% vs 53% contract
+  target (~$2.5K/wk consolidation upside — logged for Angela's MSA
+  pallet-methodology work, not a dispute). **Anthony approved payment
+  2026-08-05.** From a local session run:
+  `python3 scripts/validate_rate_card.py 754889 --mark-paid`
 
 ## Pre-approved, waiting on data
 
