@@ -3,15 +3,28 @@
 *Mirror of the local memory note so cloud sessions see it. BigQuery
 (`finance.yusen_invoices`, `paid_at IS NULL`) is the authoritative ledger;
 this file is the human decision queue. Update or prune as decisions land.*
-*Last updated: 2026-07-13.*
+*Last updated: 2026-08-05.*
+
+## MSA billing dispute — consolidated (2026-08-05)
+
+Full sweep of all US SP/LTL + SC VAS invoices against the 7.15 MSA markup
+(Anthony confirmed draft-MSA rates are final): **≈$9,011 disputed across 13
+invoices** — stretchwrap billed above the $10 all-in pallet (AF-9, $5,958.39),
+pack-out billed after the 4/28 removal (AF-7, $764.52), and Fontana charging
+every ecom pick where the schedule line is "Per **Additional** Ecom Pick"
+(~$2,289). $1,347.34 of it already paid (754699, 754704) → credit-memo claims.
+Per-invoice detail + contract cites:
+`validation-reports/yusen-msa-billing-dispute-2026-08-05.md`.
+Yusen's own week-of-7/23 invoices bill $10 flat with no wrap — they appear to
+have adopted AF-9 already.
 
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
 | Invoice | What | Amount | Evidence |
 |---|---|---|---|
-| 754698 | NJ SP/LTL | $17,530.92 | **HOLD — MSA conflicts (Anthony, 2026-07-27):** validation fully passed (math exact, MSA-schedule rates, Stedi 3,773/3,773) but bills $582.50 stretchwrap + $94.76 pack-out, both disputed under AF-7/AF-9 of the 7.15 MSA markup ($10 all-in pallet; pack-out removed per Yusen 4/28) |
-| 754807 | Fontana SP/LTL | $57,858.38 | Stedi 8,965/8,966; **open judgment:** pallet $10.00+$4.317 (+63%) and ecom picks +11% vs old card need confirming against the signed 2026-04-06 rate sheet (Kent Nunez) |
-| 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317 (= new $10+$4.317 structure) |
+| 754698 | NJ SP/LTL | $17,530.92 | **HOLD — MSA conflicts (Anthony, 2026-07-27):** validation fully passed (math exact, MSA-schedule rates, Stedi 3,773/3,773); disputed $677.26 (wrap $582.50 + pack-out $94.76) — see dispute report |
+| 754807 | Fontana SP/LTL | $57,858.38 | Stedi 8,965/8,966; math exact; rates confirmed vs draft MSA (pick rate 0.506 = legit −8% from the 0.55 actually billed Mar–May; the old-card 0.455 was never billed). Disputed $4,134.32 (wrap component $1,925.38 + every-pick basis $2,208.94) — clean payable ≈ $53,724 |
+| 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317; wrap component $323.78 disputed under AF-9 |
 | FTI0006458 | NL June warehousing | €20,317.20 | reconciles to Yusen AR statement exactly |
 | 754864 | NJ storage | $20,580.28 | 4,742 pallets @ $4.34, worksheet exact |
 
