@@ -37,6 +37,15 @@ and a detailed per-invoice spec readable from both dashboards.*
    republish, or run it manually. Remember: republish MUST pass the stable
    artifact `url:` or a duplicate gets minted.
 4. **Skill v1.2.0 — the actual hook** (edit `~/.claude/skills/yusen-invoice-validator/scripts/validate_rate_card.py`):
+   - **VAS validation policy (Anthony, 2026-08-05):** comb the invoice PDF
+     itself. If it contains supporting documentation — work order, email
+     approval trail (e.g. John Nunez sign-off pages), count worksheets — and
+     the line math verifies, stamp **`valid`** directly; do NOT leave VAS
+     invoices parked at `needs_detail` just because they're VAS. Reserve
+     **`needs_detail`** for exactly two cases: (a) no supporting documentation
+     for the invoiced amount anywhere in the PDF, or (b) the validation
+     errored (unreadable/scanned-without-OCR PDF, unparseable lines). SC VAS
+     PDFs are scanned — OCR before concluding "no documentation".
    - **Write the detailed report at validation time**, not only on
      `--mark-paid`: the sweep already builds the per-invoice verdict; store it
      to `validation_report` (append-style with a dated tag) on every `--write`.
