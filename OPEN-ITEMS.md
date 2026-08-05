@@ -15,15 +15,6 @@ this file is the human decision queue. Update or prune as decisions land.*
 | FTI0006458 | NL June warehousing | €20,317.20 | reconciles to Yusen AR statement exactly |
 | 754864 | NJ storage | $20,580.28 | 4,742 pallets @ $4.34, worksheet exact |
 
-## Approved — needs local `--mark-paid` (cloud BigQuery credential is read-only)
-
-- **754855** ($2.52, SC VAS — P65 warning labels, WO 5001823, 6 @ $0.42) —
-  validated 2026-08-05 in a cloud session (math exact 6 × $0.42 = $2.52; SC has
-  no contracted label rate — immaterial; no Stedi gate for VAS). **Anthony
-  approved payment 2026-08-05.** The cloud write failed
-  (`bigquery.tables.updateData` denied), so from a local session run:
-  `python3 scripts/validate_rate_card.py 754855 --mark-paid`
-
 ## Pre-approved, waiting on data
 
 - **754375** ($4.20) — Anthony already confirmed paid; not yet in BigQuery.
