@@ -14,6 +14,7 @@ this file is the human decision queue. Update or prune as decisions land.*
 | 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317 (= new $10+$4.317 structure) |
 | FTI0006458 | NL June warehousing | €20,317.20 | reconciles to Yusen AR statement exactly |
 | 754864 | NJ storage | $20,580.28 | 4,742 pallets @ $4.34, worksheet exact |
+| 754889 | SC storage (wk end 7/05) | $7,859.10 | PDF exact: peak day 6/30, 2,346 pallets @ $3.35 (verified new SC rate; Notion card $5.09 is stale — not a dispute) |
 
 ## Pre-approved, waiting on data
 
