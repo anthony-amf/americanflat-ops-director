@@ -187,6 +187,11 @@ plain string replace will double-insert.
 
 ## Conventions
 
+- **Use plain language with Anthony** (standing preference, 2026-08-06). Skip
+  jargon like "DML", "ACL", "principal", "idempotent" — say "database write",
+  "permission list", "account", "safe to re-run". Explain what a command does
+  in normal words before showing it.
+
 - Local (Mac) commits go directly to `main`; cloud sessions push to their
   designated feature branch, with a PR when Anthony wants review (PR #1 set
   the pattern). Messages are imperative summaries with a body explaining the
