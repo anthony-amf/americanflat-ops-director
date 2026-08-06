@@ -34,16 +34,26 @@ have adopted AF-9 already.
 - **754375** ($4.20) — Anthony already confirmed paid; not yet in BigQuery.
   Validate + `--mark-paid` immediately when it lands.
 
-## Mac queue
+## Auto-validation rollout — CLOUD (Anthony's direction 2026-08-06)
 
-1. ~~`sql/backfill_postmay_revalidation_2026-08-06.sql`~~ — **RAN 2026-08-06,
-   verified: 30 valid / 9 needs_detail (SP-LTL Stedi gate) / 1 disputed.**
-2. **Install skill v1.2.0 + the daily validation sweep** — follow
-   `skill-updates/v1.2.0/INSTALL.md` (quarantine step → curl files → pip deps
-   → ADC drive scope → smoke test → launchctl load). After this, invoices
-   auto-validate ~3:30 PM daily, 30 min after ingestion.
-3. Local dashboard refresh command already provided (curl the refresher,
-   run it) — re-run any time; Artifact refreshes itself weekday 7:09 AM ET.
+Scheduled cloud sweep **`yusen-cloud-validation-sweep`** is LIVE
+(`trig_016vL18kChzAxpv7tfZjqzyS`, daily 21:30 UTC ≈ 3:30 PM MDT, follows
+`docs/CLOUD-SWEEP-RUNBOOK.md`, self-guarding until write access exists).
+Two one-time actions to make it fully effective:
+
+1. **Grant BigQuery write to the cloud service account** (run on the Mac):
+   `bq query --use_legacy_sql=false 'GRANT `` `roles/bigquery.dataEditor` `` ON TABLE `` `americanflat.finance.yusen_invoices` `` TO "serviceAccount:cluade-service-account@americanflat.iam.gserviceaccount.com"'`
+   — exact copy-paste block in VALIDATION-AUTOMATION.md. Until granted, each
+   run exits with "write grant not yet in place".
+2. **Attach the Google Drive connector to the Routine** — claude.ai →
+   Routines → `yusen-cloud-validation-sweep` → enable Google Drive. Without
+   it the sweep can't fetch invoice PDFs (BigQuery works regardless); rows
+   needing the PDF line pass stay header-level/needs_detail.
+
+Mac launchd sweep (`skill-updates/v1.2.0/INSTALL.md`) remains available as a
+fallback — safe to run alongside; unload it once the cloud sweep is confirmed.
+Local dashboard refresh: curl command provided in chat 2026-08-06; Artifact
+self-refreshes weekdays 7:09 AM ET.
 
 ## Standing follow-ups
 
