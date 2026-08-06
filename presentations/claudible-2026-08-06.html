@@ -199,7 +199,7 @@ p { margin: 0 0 0.8em; line-height: 1.5; }
 .agenda { display: flex; flex-direction: column; gap: 0; margin-top: 0.6em; }
 .agenda-row {
   display: grid;
-  grid-template-columns: 2.6em 1fr 9em;
+  grid-template-columns: 2.6em 1fr;
   gap: 1.6em;
   align-items: start;
   padding: 1.15em 0;
@@ -472,9 +472,7 @@ code {
     <h1>Where the skills registry got to, and what Frame OS is for.</h1>
   </div>
   <div class="meta" style="margin-top:auto">
-    <div><b>Presenter</b>Anthony Armstrong</div>
-    <div><b>Registry snapshot</b>30 July 2026</div>
-    <div><b>Running time</b>~20 minutes + discussion</div>
+    <div><b>Registry snapshot</b> 30 July 2026</div>
   </div>
 </section>
 
@@ -487,17 +485,15 @@ code {
       <div class="num">01</div>
       <div>
         <h3>The skills registry</h3>
-        <p class="note">Where we are, how fast we got here, who is actually building — and the two housekeeping problems that come with growing this fast.</p>
+        <p class="note">Where we are, how fast we got here, and who is actually building — every team is on the board now.</p>
       </div>
-      <div class="who">~8 min</div>
     </div>
     <div class="agenda-row">
       <div class="num">02</div>
       <div>
         <h3>Frame OS</h3>
-        <p class="note">What it is, where the idea came from, and how it plugs into what we have already built. Including the parts that are still an open question.</p>
+        <p class="note">What it is, how it plugs into what we have already built, and the parts that are still an open question.</p>
       </div>
-      <div class="who">~12 min</div>
     </div>
   </div>
   <div class="callout">
@@ -596,52 +592,21 @@ code {
       <p class="note small" style="margin-top:1.1em">Live skills by department.</p>
     </div>
     <div>
-      <h3 style="font-size:1.1em; margin-bottom:0.9em">What that actually looks like</h3>
+      <h3 style="font-size:1.1em; margin-bottom:0.7em">What that actually looks like</h3>
       <ul class="list">
-        <li><b>Ops</b> has the widest bench — 12 people own a live Ops skill.
-          <span class="sub">EDI 940s, late-order flagging, marketplace reconciliation, warehouse invoices</span></li>
-        <li><b>Sales</b> has the deepest stack — 60 skills across 9 owners.
-          <span class="sub">Bulk-ops optimisers for eight Amazon accounts, deals, keyword research</span></li>
-        <li><b>Finance</b> went from nothing to 12 skills in six weeks.
-          <span class="sub">VC clearing, payroll journals, EU VAT invoices, invoice-to-BigQuery</span></li>
-        <li><b>Exec</b> is on the list too — Giorgio owns two.
-          <span class="sub">GS&amp;R prep and the seasonal virtual background</span></li>
+        <li><b>Sales</b> — 60 skills, 9 owners. Bulk-ops for eight Amazon accounts, deals, keyword research.</li>
+        <li><b>Operations</b> — 40 skills, 12 owners, the widest bench. EDI 940s, late orders, reconciliation.</li>
+        <li><b>Finance</b> — 12 skills, 5 owners. VC clearing, payroll journals, EU VAT invoices.</li>
+        <li><b>Product Dev</b> — 10 skills, 3 owners. Container load plans, 943 flatfiles, case-pack audits.</li>
+        <li><b>Marketing</b> — 3 skills, 3 owners. FBA manifests, Shopify listing copy, LinkedIn drafts.</li>
+        <li><b>Exec</b> — 2 skills, 2 owners. GS&amp;R prep and the seasonal virtual background.</li>
       </ul>
     </div>
   </div>
   <div class="slide-tag">Who is building</div>
 </section>
 
-<!-- ============ 6. THE HOUSEKEEPING ============ -->
-<section class="slide">
-  <p class="eyebrow">01 <span class="mark">/</span> Skills registry</p>
-  <h2>Nothing syncs the registry automatically. That is the catch.</h2>
-  <div class="cols wide-left">
-    <div>
-      <p class="note">The skill repo and the registry entry are two different gates. Since 8 July you can commit straight to main on your own skill — but the registry stays Governor-gated. Bump a version without flagging it and the entry quietly goes stale.</p>
-      <p class="note">At 127 skills nobody can eyeball that. Two problems are already in the snapshot:</p>
-      <ul class="list" style="margin-top:1em">
-        <li><b>Three live skills still carry a sub-1.0 version.</b>
-          <span class="sub"><code>skill-log-notion</code> 0.0.1 · <code>skill-yusen-invoice-processor</code> 0.1.0 · <code>skill-casepack-xref</code> 0.2.0. In use, but the registry calls them pre-release — the version drifted from the tag.</span></li>
-        <li><b>Four entries were provisioned and never published.</b>
-          <span class="sub">Three have sat since early May. One is a smoke test whose own description says it is safe to delete.</span></li>
-      </ul>
-    </div>
-    <div style="display:flex; flex-direction:column">
-      <div class="callout" style="margin-top:0">
-        <p class="k">The ask</p>
-        <p>When you change a published skill, post it in <b>#ai-github-skills</b> and tag the Governors — version, and whether the description changed. It is two lines. It is the only thing keeping the registry honest.</p>
-      </div>
-      <div class="gap-note" style="margin-top:1.2em">
-        <p class="k">Worth deciding</p>
-        <p>Do we clear the four stale provisioned entries, and reconcile the three sub-1.0 versions against their tags? Both are small jobs now and annoying jobs at 250 skills.</p>
-      </div>
-    </div>
-  </div>
-  <div class="slide-tag">Housekeeping</div>
-</section>
-
-<!-- ============ 7. SECTION BREAK ============ -->
+<!-- ============ 6. SECTION BREAK ============ -->
 <section class="slide section-slide">
   <div class="rule-top"></div>
   <p class="eyebrow">02 <span class="mark">/</span></p>
@@ -650,18 +615,18 @@ code {
   <div class="slide-tag">Part two</div>
 </section>
 
-<!-- ============ 8. WHAT IT IS ============ -->
+<!-- ============ 7. WHAT IT IS ============ -->
 <section class="slide">
   <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
   <h2>An interface for agents, not another agent.</h2>
   <div class="cols">
     <div>
       <div class="quote">
-        <p>“FRAME.OS should be the interface / front-end where we can see and execute this, a lot of work pending on the backend to make this real.”</p>
+        <p>“FRAME.OS should be the interface / front-end where we can see and execute this...”</p>
         <cite>Iván Calderón · #operations-team-information-channel · 18 June</cite>
       </div>
       <div class="quote">
-        <p>“Our plan for the next 90 days in AI is focused on Frame.OS (Agentic AI) and automating our more complex processes — mostly the ones that deal with money.”</p>
+        <p>“Our plan in AI is focused on FRAME.OS (Agentic AI) and automating our more complex processes...”</p>
         <cite>Kent Nunez · #operations-team-information-channel · 18 June</cite>
       </div>
     </div>
@@ -679,35 +644,7 @@ code {
   <div class="slide-tag">Definition</div>
 </section>
 
-<!-- ============ 9. CAKE → AF CROSSWALK ============ -->
-<section class="slide">
-  <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
-  <h2>What the demo does, and what it would mean here.</h2>
-  <p class="note" style="max-width:54em">Cake runs a bakery on one app. Their assistant agent rebuilds a weekly report out of their ERP and posts it to a team channel — the same shape as our Data Analyst bot reading BigQuery and posting to Slack.</p>
-  <div class="xwalk">
-    <div class="xwalk-head"><span>In the Cake demo</span><span>At Americanflat</span></div>
-    <div class="xwalk-row">
-      <div><b>Read Only · Normal · Power</b><span>A permission switch on the agent</span></div>
-      <div><b>We already store this.</b><span>Every entry declares an action tier — T1 read-only, T2 writes, T3 unattended.</span></div>
-    </div>
-    <div class="xwalk-row">
-      <div><b>Every step is a named tool, timed</b><span>Slow steps are obvious</span></div>
-      <div><b>Our skills are already named and versioned.</b><span>Nothing records that a run happened, how long it took, or what it cost.</span></div>
-    </div>
-    <div class="xwalk-row">
-      <div><b>An approval card in plain English</b><span>Shown before the action fires</span></div>
-      <div><b>“Post to #ops-vendorcentral as the bot.”</b><span>Approve the sentence, not a function name. Matters most for the money processes.</span></div>
-    </div>
-    <div class="xwalk-row">
-      <div><b>The post failed, and the screen said so</b><span>The demo shipped with the error in it</span></div>
-      <div><b>Today a failed run is silent.</b><span>We find out when somebody notices the Slack post never arrived.</span></div>
-    </div>
-  </div>
-  <p class="note small" style="margin-top:0.35em; max-width:58em">Worth arguing about: their agent <b>wrote its own tool</b> mid-task. Ours are Governor-gated — theirs is faster, ours auditable.</p>
-  <div class="slide-tag">Cake → Americanflat</div>
-</section>
-
-<!-- ============ 10. ARCHITECTURE ============ -->
+<!-- ============ 8. ARCHITECTURE ============ -->
 <section class="slide">
   <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
   <h2>How it plugs into Americanflat.</h2>
@@ -772,88 +709,49 @@ code {
   <div class="slide-tag">Architecture</div>
 </section>
 
-<!-- ============ 11. STATUS ============ -->
+<!-- ============ 9. STATUS ============ -->
 <section class="slide">
   <p class="eyebrow">02 <span class="mark">/</span> Frame OS</p>
-  <h2>Honest status: one agent, foundations drafted, front end not built.</h2>
+  <h2>Honest status: one agent live, front end not built.</h2>
   <div class="cols">
     <div>
       <h3 style="font-size:1.15em; margin-bottom:0.8em">What is real</h3>
       <ul class="list">
-        <li><b>The pilot agent works.</b><span class="sub">The Data Analyst bot reaches every BigQuery table and has a knowledge base, so it can learn what it does not know.</span></li>
-        <li><b>Foundations are drafted.</b><span class="sub">Logged by Iván on 28 July, with the bot's fitness for the system.</span></li>
-        <li><b>The concept is published.</b><span class="sub">Frame OS has a page on the AF Claude hub.</span></li>
-        <li><b>It is on the 90-day list.</b><span class="sub">Alongside Canada, DF with ATS, closing SC, POD and Walmart 3P.</span></li>
+        <li><b>The pilot agent works.</b></li>
+        <li><b>The concept is published.</b></li>
       </ul>
     </div>
     <div>
       <h3 style="font-size:1.15em; margin-bottom:0.8em">What is not</h3>
       <ul class="list">
-        <li><b>No front end yet.</b><span class="sub">The interface Iván describes — see and execute — does not exist. The biggest piece of work.</span></li>
-        <li><b>No observability backend.</b><span class="sub">Nothing records what an agent did, whether it worked, or what it cost.</span></li>
-        <li><b>One agent is not a fleet.</b><span class="sub">Only worth building if several agents run unattended. Today: one bot and some routines.</span></li>
-        <li><b>Build-vs-adopt is unresolved.</b><span class="sub">Some of Frame OS may arrive off the shelf. Worth deciding deliberately, not by default.</span></li>
+        <li><b>No front end yet.</b></li>
+        <li><b>No observability backend.</b></li>
+        <li><b>One agent is not a fleet.</b></li>
+        <li><b>Build-vs-adopt is unresolved.</b></li>
       </ul>
     </div>
   </div>
   <div class="slide-tag">Status</div>
 </section>
 
-<!-- ============ 12. THE THREAD ============ -->
+<!-- ============ 10. THE THREAD ============ -->
 <section class="slide">
   <p class="eyebrow">Both halves</p>
   <h2>This is why last Claudible was about GitHub.</h2>
   <div class="cols wide-left">
     <div>
       <p class="lede">Frame OS can only see what is in the registry. A skill living on someone's laptop is invisible to it — it cannot be versioned, tiered, called by an agent, or watched.</p>
-      <p class="note" style="margin-top:1.2em">That is the whole argument for pushing to GitHub, and it is not an administrative preference. It is a prerequisite. Every skill that stays local is a capability the company does not actually own and a future agent cannot use.</p>
-      <p class="note">127 live skills is the asset. The registry is the inventory. Frame OS is the control room. They are one project, in that order.</p>
+      <p class="note" style="margin-top:1em">That is the whole argument for pushing to GitHub. Not an administrative preference — a prerequisite.</p>
+      <p class="note"><b>And it is not only skills.</b> Scripts are going up too — Apps Script projects, one-off automations — but into their own repos, outside the registry. Nothing versions them, tiers them or lists them. They are real capability the company owns and cannot see, and Frame OS would be blind to every one.</p>
     </div>
     <div style="display:flex; flex-direction:column; justify-content:center">
       <div class="callout" style="margin-top:0">
         <p class="k">Put another way</p>
-        <p>Every skill we publish makes Frame OS more worth building. Every skill we keep local makes it less.</p>
+        <p>Every skill we publish makes Frame OS more worth building. Everything we keep outside the registry — skill or script — makes it less.</p>
       </div>
     </div>
   </div>
   <div class="slide-tag">The connection</div>
-</section>
-
-<!-- ============ 13. ASKS ============ -->
-<section class="slide">
-  <p class="eyebrow">Close</p>
-  <h2>What I need from the room.</h2>
-  <div class="agenda asks" style="margin-top:0.2em">
-    <div class="agenda-row">
-      <div class="num">01</div>
-      <div>
-        <h3>Flag your registry changes</h3>
-        <p class="note">Bumped a version or changed a description? Two lines in #ai-github-skills tagging the Governors. Nothing syncs it for you.</p>
-      </div>
-      <div class="who">Everyone</div>
-    </div>
-    <div class="agenda-row">
-      <div class="num">02</div>
-      <div>
-        <h3>Test the Data Analyst bot</h3>
-        <p class="note">The pilot agent for Frame OS. Iván has asked for a thorough test — better to find gaps now than after it is wired into a control layer.</p>
-      </div>
-      <div class="who">Leaders</div>
-    </div>
-    <div class="agenda-row">
-      <div class="num">03</div>
-      <div>
-        <h3>Settle how much rope the agents get</h3>
-        <p class="note">Cake's agent writes its own tools mid-task. Ours only run reviewed, tiered skills. Agree where Frame OS sits between those two before we spend a quarter on a front end.</p>
-      </div>
-      <div class="who">Anthony, Kent, Iván</div>
-    </div>
-  </div>
-  <div class="callout">
-    <p class="k">Sources</p>
-    <p class="small" style="color:var(--ink-soft)">Registry as at 30 July 2026 — 131 entries, 127 live. Frame OS from Slack, June–July. Cake from the April demo recording.</p>
-  </div>
-  <div class="slide-tag">Asks</div>
 </section>
 
 </div>
@@ -863,7 +761,7 @@ code {
   <button id="fs" aria-label="Toggle full screen" title="Full screen (F)">&#9974;</button>
   <button id="prev" aria-label="Previous slide">&#8592;</button>
   <button id="next" aria-label="Next slide">&#8594;</button>
-  <span class="count"><span id="cur">1</span> / <span id="tot">13</span></span>
+  <span class="count"><span id="cur">1</span> / <span id="tot">10</span></span>
 </div>
 
 <script>
