@@ -34,16 +34,16 @@ have adopted AF-9 already.
 - **754375** ($4.20) — Anthony already confirmed paid; not yet in BigQuery.
   Validate + `--mark-paid` immediately when it lands.
 
-## Mac SQL queue (run once each, in order)
+## Mac queue
 
-1. `sql/backfill_postmay_revalidation_2026-08-06.sql` — post-May-31 MSA
-   revalidation stamps: 30 rows → `valid` (storage/receiving/admin/VAS incl.
-   754889, the stale-$5.09 example), 9 SP/LTL rows → MSA-header-pass note
-   (stay `needs_detail` pending Stedi), 756156 → `disputed` $22.08.
-   **Supersedes `sql/backfill_vas_validation_fixup_2026-08-05.sql`** — skip
-   the fixup if it has not run yet; if it already ran, this file no-ops on
-   those four rows.
-2. `python3 refresh_yusen_dashboard.py` afterward to surface the new chips.
+1. ~~`sql/backfill_postmay_revalidation_2026-08-06.sql`~~ — **RAN 2026-08-06,
+   verified: 30 valid / 9 needs_detail (SP-LTL Stedi gate) / 1 disputed.**
+2. **Install skill v1.2.0 + the daily validation sweep** — follow
+   `skill-updates/v1.2.0/INSTALL.md` (quarantine step → curl files → pip deps
+   → ADC drive scope → smoke test → launchctl load). After this, invoices
+   auto-validate ~3:30 PM daily, 30 min after ingestion.
+3. Local dashboard refresh command already provided (curl the refresher,
+   run it) — re-run any time; Artifact refreshes itself weekday 7:09 AM ET.
 
 ## Standing follow-ups
 

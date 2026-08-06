@@ -23,6 +23,23 @@ and a detailed per-invoice spec readable from both dashboards.*
    appended to `validation_report`) and annotates 3 clean ones.
    **Run it from the Mac** — the cloud BigQuery credential is read-only.
 
+## Status 2026-08-06: items 4–5 BUILT — awaiting Mac install
+
+Skill **v1.2.0** is written and staged in this repo (`skill-updates/v1.2.0/`,
+packaged `.skill` updated), and the launchd sweep agent is at
+`launchd/com.americanflat.yusen-validation-sweep.plist` (daily 3:30 PM, 30 min
+after ingestion). Regression-tested against the 113 cached post-May invoice
+PDFs — verdicts match the verified 2026-08-06 revalidation.
+**Install steps (NO-DELETE compliant): `skill-updates/v1.2.0/INSTALL.md`.**
+
+v1.2.0 delivers everything in item 4 below plus: truncated-rate matching
+(page-1 rates print truncated to 2dp; amounts use full precision), a PDF
+fetch chain (local cache → Drive API via ADC `drive.readonly` → public link),
+OCR fallback for scanned SC VAS, settled-row skipping (valid/disputed rows are
+never re-judged or re-downloaded), and an `[AUTO-SWEEP]` report section that
+replaces itself so daily runs don't bloat report cards. SP/LTL is never
+stamped valid by the sweep (Stedi gate); `paid_at` is never touched.
+
 ## Mac-side punch list (in order)
 
 1. **Run the backfill:**

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Yusen validate-on-ingest sweep: runs 30 min after the 3:00 PM daily
+         ingestion so freshly-inserted rows clear BigQuery's streaming buffer
+         (rows still buffered auto-defer to the next day's sweep).
+         Install:  cp into ~/Library/LaunchAgents/ then
+                   launchctl load ~/Library/LaunchAgents/com.americanflat.yusen-validation-sweep.plist
+         Logs:     ~/Library/Logs/yusen-validation-sweep.log -->
+    <key>Label</key>
+    <string>com.americanflat.yusen-validation-sweep</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>cd ~/.claude/skills/yusen-invoice-validator &amp;&amp; /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 scripts/validate_rate_card.py --list-all --limit 400 --write</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>15</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/aarmstrong/Library/Logs/yusen-validation-sweep.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/aarmstrong/Library/Logs/yusen-validation-sweep.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>
