@@ -116,7 +116,10 @@ header { padding: 48px 0 8px; text-align: center; }
 .btn.ghost { background: transparent; color: var(--text); }
 
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 36px 0 8px; }
-.kpi { border: 1px solid var(--border); border-radius: 8px; padding: 20px 22px; background: var(--surface); }
+.kpi { border: 1px solid var(--border); border-radius: 8px; padding: 20px 22px; background: var(--surface);
+  cursor: pointer; text-align: left; font-family: var(--font); color: var(--text); }
+.kpi:hover { border-color: var(--muted); }
+.kpi.active { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
 .kpi b { display: block; font-size: 2.2rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .kpi span { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .kpi.alert b { color: var(--alert); }
@@ -286,7 +289,7 @@ const PRIORITIES = ["Top", "Mid", "Low", "Ad Hoc"];
 const PRI_RANK = {"Top": 0, "Mid": 1, "Low": 2, "Ad Hoc": 3};
 const LS_KEY = "opsProjectsPending.v1";
 
-const state = { q: "", cat: "", owner: "", status: "", priority: "", sort: "stale" };
+const state = { q: "", cat: "", owner: "", status: "", priority: "", sort: "stale", kpi: "", stale: false, done45: false };
 let pending = { edits: {}, adds: [], deletes: [] };
 const discussedIds = new Set();
 let deck = [], deckTotal = 0, inRecap = false, focusMode = false;
@@ -338,20 +341,37 @@ function kpis() {
   const stale = act.filter(p => (p.days ?? 999) > STALE_DAYS);
   const wins = all.filter(p => p.status === "Completed" && (p.days ?? 999) <= 45);
   const items = [
-    ["In Progress", act.length, false],
-    ["Not Started", all.filter(p => p.status === "Not Started").length, false],
-    ["Needs Review", all.filter(p => p.status === "Needs Review").length, false],
-    ["Stale (>" + STALE_DAYS + "d)", stale.length, stale.length > 0],
-    ["Done · last 45d", wins.length, false],
+    ["In Progress", act.length, false, "inprog"],
+    ["Not Started", all.filter(p => p.status === "Not Started").length, false, "notstarted"],
+    ["Needs Review", all.filter(p => p.status === "Needs Review").length, false, "review"],
+    ["Stale (>" + STALE_DAYS + "d)", stale.length, stale.length > 0, "stale"],
+    ["Done · last 45d", wins.length, false, "done45"],
   ];
-  $("kpis").innerHTML = items.map(([l, n, a]) =>
-    `<div class="kpi${a ? " alert" : ""}"><b>${n}</b><span>${l}</span></div>`).join("");
+  $("kpis").innerHTML = items.map(([l, n, a, k]) =>
+    `<button class="kpi${a ? " alert" : ""}${state.kpi === k ? " active" : ""}" data-kpi="${k}" title="Filter the board to these projects"><b>${n}</b><span>${l}</span></button>`).join("");
+  document.querySelectorAll("[data-kpi]").forEach(b => b.addEventListener("click", () => kpiFilter(b.dataset.kpi)));
+}
+
+function kpiFilter(key) {
+  const clearing = state.kpi === key;
+  state.kpi = clearing ? "" : key;
+  state.stale = false; state.done45 = false;
+  if (clearing) state.status = "";
+  else if (key === "inprog") state.status = "In Progress";
+  else if (key === "notstarted") state.status = "Not Started";
+  else if (key === "review") state.status = "Needs Review";
+  else if (key === "stale") { state.status = "In Progress"; state.stale = true; }
+  else if (key === "done45") { state.status = "Completed"; state.done45 = true; }
+  $("statusF").value = state.status;
+  refresh();
 }
 
 function match(p) {
   if (state.cat && p.category !== state.cat) return false;
   if (state.owner && !(p.owners || []).includes(state.owner)) return false;
   if (state.status && p.status !== state.status) return false;
+  if (state.stale && !((p.days ?? 999) > STALE_DAYS)) return false;
+  if (state.done45 && (p.days ?? 999) > 45) return false;
   if (state.priority && p.priority !== state.priority) return false;
   if (state.q) {
     const hay = (p.name + " " + (p.notes || "") + " " + (p.update || "") + " " + (p.owners || []).join(" ")).toLowerCase();
@@ -444,7 +464,7 @@ function filters() {
   }));
   $("q").addEventListener("input", e => { state.q = e.target.value; render(); });
   $("cat").addEventListener("change", e => { state.cat = e.target.value; render(); });
-  $("statusF").addEventListener("change", e => { state.status = e.target.value; render(); });
+  $("statusF").addEventListener("change", e => { state.status = e.target.value; state.kpi = ""; state.stale = false; state.done45 = false; refresh(); });
   $("priF").addEventListener("change", e => { state.priority = e.target.value; render(); });
   $("sortF").addEventListener("change", e => { state.sort = e.target.value; render(); });
 }

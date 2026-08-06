@@ -3,6 +3,14 @@
 All notable changes to the Ops Projects tracker (Airtable base + dashboard).
 Dashboard URL: https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
 
+## v9 — 2026-08-06 · Clickable KPI tiles
+
+- The five summary tiles (In Progress, Not Started, Needs Review, Stale,
+  Done · last 45d) are now clickable filters: click one to show exactly those
+  projects on the board (Stale and Done · last 45d apply their date window
+  too), click again to clear. The active tile is outlined and the status
+  dropdown stays in sync.
+
 ## v8 — 2026-07-28 · Back navigation in meeting mode
 
 - **◂ Back** button (and ← key) steps backwards through the meeting deck to
