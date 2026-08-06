@@ -3,14 +3,15 @@
 *Mirror of the local memory note so cloud sessions see it. BigQuery
 (`finance.yusen_invoices`, `paid_at IS NULL`) is the authoritative ledger;
 this file is the human decision queue. Update or prune as decisions land.*
-*Last updated: 2026-08-05.*
+*Last updated: 2026-08-06.*
 
-## MSA billing dispute — consolidated (2026-08-05)
+## MSA billing dispute — consolidated (2026-08-05, updated 8/6)
 
 Full sweep of all US SP/LTL + SC VAS invoices against the 7.15 MSA markup
-(Anthony confirmed draft-MSA rates are final): **≈$9,011 disputed across 13
+(Anthony confirmed draft-MSA rates are final): **≈$9,034 disputed across 14
 invoices** — stretchwrap billed above the $10 all-in pallet (AF-9, $5,958.39),
-pack-out billed after the 4/28 removal (AF-7, $764.52), and Fontana charging
+pack-out billed after the 4/28 removal (AF-7, $786.60 — incl. **756156**,
+$22.08, found in the 8/6 post-May revalidation), and Fontana charging
 every ecom pick where the schedule line is "Per **Additional** Ecom Pick"
 (~$2,289). $1,347.34 of it already paid (754699, 754704) → credit-memo claims.
 Per-invoice detail + contract cites:
@@ -32,6 +33,17 @@ have adopted AF-9 already.
 
 - **754375** ($4.20) — Anthony already confirmed paid; not yet in BigQuery.
   Validate + `--mark-paid` immediately when it lands.
+
+## Mac SQL queue (run once each, in order)
+
+1. `sql/backfill_postmay_revalidation_2026-08-06.sql` — post-May-31 MSA
+   revalidation stamps: 30 rows → `valid` (storage/receiving/admin/VAS incl.
+   754889, the stale-$5.09 example), 9 SP/LTL rows → MSA-header-pass note
+   (stay `needs_detail` pending Stedi), 756156 → `disputed` $22.08.
+   **Supersedes `sql/backfill_vas_validation_fixup_2026-08-05.sql`** — skip
+   the fixup if it has not run yet; if it already ran, this file no-ops on
+   those four rows.
+2. `python3 refresh_yusen_dashboard.py` afterward to surface the new chips.
 
 ## Standing follow-ups
 

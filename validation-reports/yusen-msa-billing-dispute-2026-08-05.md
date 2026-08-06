@@ -46,11 +46,16 @@ MSA rates are final — only KPI and insurance language remains open.*
 | 754391 | SC VAS | no | 246.07 | — | — | **246.07** |
 | 754532 | SC VAS | no | 56.12 | — | — | **56.12** |
 | 754854 | SC VAS | no | 43.17 | — | — | **43.17** |
-| **Total** | | | **5,958.39** | **764.52** | **~2,289** | **≈9,011** |
+| 756156 | NJ | no | — | 22.08 | — | **22.08** *(added 8/6)* |
+| **Total** | | | **5,958.39** | **786.60** | **~2,289** | **≈9,034** |
 
 - NJ wrap figures are billed line items ("STRETCHWRAP STD @ 4.347"). Fontana
   and SC figures are the wrap component embedded in the billed 14.317 pallet
   rate (= 10.00 + 4.317 × pallet count).
+- **756156** (NJ SP/LTL, invoiced 7/31 — arrived after the 8/5 sweep) still
+  bills PACK CARTON 24 × 0.92 = $22.08 despite the 4/28 AF-7 removal; found in
+  the 8/6 post-May MSA revalidation. Note its pallets bill $10.00 flat, no wrap
+  — Yusen has adopted AF-9 but keeps billing the removed pack-out.
 - **Already paid: $1,347.34** (754699: 569.23; 754704: 778.11) → credit-memo
   claims. Everything else can be short-paid or held.
 - 754807 pick overcharge: billed 11,024 picks ($5,578.14); contract-compliant

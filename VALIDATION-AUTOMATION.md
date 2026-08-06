@@ -61,6 +61,15 @@ and a detailed per-invoice spec readable from both dashboards.*
    - **Never overwrite a `disputed` stamp back to `needs_detail`** on re-sweep;
      `disputed` clears only when the invoice is re-billed/credited or manually
      cleared.
+   - **Rate matching must handle truncated printing** (learned in the 8/6
+     post-May revalidation): Yusen page-1 lines print rates TRUNCATED to 2dp
+     (1.7871 → "1.78", 4.347 → "4.34", 0.7312 → "0.73") while line amounts use
+     the full-precision rate. Match a printed rate to the set of candidate
+     full-precision MSA rates whose 2dp truncation equals it, then pick the
+     candidate where qty × full ≈ amount — this also disambiguates collisions
+     (NJ storage 4.34 vs stretchwrap 4.347). Also on the schedule: Fontana
+     "STORAGE PER BIN" 0.7312. SP/LTL header passes alone never stamp `valid`
+     — Stedi gate still applies.
    - Ship via the usual flow: bump `skill.toml` to 1.2.0 + CHANGELOG, repackage
      `.skill`, commit here; publish after v1.1.0 finally lands in the org repo.
 5. **Chain the sweep after ingestion** so validation happens as invoices come
