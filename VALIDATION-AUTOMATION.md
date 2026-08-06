@@ -23,6 +23,31 @@ and a detailed per-invoice spec readable from both dashboards.*
    appended to `validation_report`) and annotates 3 clean ones.
    **Run it from the Mac** — the cloud BigQuery credential is read-only.
 
+## Cloud rollout (2026-08-06, Anthony's direction: run in cloud, not the Mac)
+
+The sweep is moving to a **daily scheduled cloud session** (21:30 UTC = 3:30
+PM MDT) following `docs/CLOUD-SWEEP-RUNBOOK.md`. One prerequisite — the cloud
+BigQuery credential is read-only; grant it write on the one table, from the
+Mac (Anthony's account provisioned the table, so it can grant):
+
+```bash
+bq query --use_legacy_sql=false 'GRANT `roles/bigquery.dataEditor` ON TABLE `americanflat.finance.yusen_invoices` TO "serviceAccount:cluade-service-account@americanflat.iam.gserviceaccount.com"'
+```
+
+(Table-level grant = least privilege: write to `yusen_invoices` only, nothing
+else in `finance`. The service-account name really is spelled "cluade".
+Confirmed missing permission: `bigquery.tables.updateData`. If the GRANT
+errors with a permission denial, whoever owns the GCP project must run it.)
+
+The scheduled session self-guards: until the grant lands it probes, reports
+"grant not yet in place", and exits without changes — so it is safe to have
+scheduled before granting. The Mac launchd sweep (below) remains valid as a
+fallback/alternative; the two can coexist safely (both skip settled rows and
+never downgrade), but once the cloud sweep is confirmed working, unload the
+Mac job: `launchctl unload ~/Library/LaunchAgents/com.americanflat.yusen-validation-sweep.plist`.
+Ingestion itself (3 PM launchd) still runs on the Mac — moving it is a
+separate project.
+
 ## Status 2026-08-06: items 4–5 BUILT — awaiting Mac install
 
 Skill **v1.2.0** is written and staged in this repo (`skill-updates/v1.2.0/`,
