@@ -26,18 +26,27 @@ and a detailed per-invoice spec readable from both dashboards.*
 ## Cloud rollout (2026-08-06, Anthony's direction: run in cloud, not the Mac)
 
 The sweep runs as **scheduled cloud sessions** following
-`docs/CLOUD-SWEEP-RUNBOOK.md` — three passes a day (Anthony, 2026-08-06):
+`docs/CLOUD-SWEEP-RUNBOOK.md` — three passes a day, times in **Eastern**
+(Anthony, 2026-08-06):
 
-| Routine | Cron (UTC) | Local (MDT) | Trigger id |
+| Routine | Cron (UTC) | Local (ET) | Trigger id |
 |---|---|---|---|
-| `yusen-cloud-validation-sweep` | `30 21 * * *` | 3:30 PM | `trig_016vL18kChzAxpv7tfZjqzyS` |
-| `yusen-cloud-validation-sweep-midday` | `0 16,19 * * *` | 10:00 AM + 1:00 PM | `trig_01GQSfBrEkUVPJj6MqbkSn5D` |
+| `yusen-cloud-validation-sweep` | `30 19 * * *` | 3:30 PM | `trig_016vL18kChzAxpv7tfZjqzyS` |
+| `yusen-cloud-validation-sweep-midday` | `0 14,17 * * *` | 10:00 AM + 1:00 PM | `trig_01GQSfBrEkUVPJj6MqbkSn5D` |
 
-The 3:30 pass is the one that matters most (ingestion lands ~3 PM); the 10 AM
-and 1 PM passes catch rows that were stuck in BigQuery's streaming buffer at
-3:30 the day before, plus anything uploaded manually during the day. On a
-quiet day they find nothing and exit in one line. Running several times a day
-is safe: settled rows (valid/disputed) are skipped and never downgraded.
+**Timing caveat worth knowing:** ingestion still runs 3 PM **Mountain** =
+5 PM ET, which is *after* all three passes. So invoices ingested today are
+validated by tomorrow's 10 AM ET pass, not the same afternoon. If same-day
+validation matters, move the last pass to 5:30 PM ET (`30 21 * * *` — which
+is 3:30 PM MT, 30 min after ingestion, where it started).
+
+Running several times a day is safe: settled rows (valid/disputed) are
+skipped and never downgraded. On a quiet day a pass finds nothing and exits
+in one line.
+
+**DST note:** cron is fixed UTC, so these hold while ET is UTC-4. When DST
+ends (2026-11-01) they shift an hour earlier in local terms (9 AM / noon /
+2:30 PM ET) until the crons are moved forward an hour.
 
 **Write access:** granted 2026-08-06 by Iván Calderón (owner on the `finance`
 dataset — Anthony can write data but not change permissions, so this needed
@@ -50,8 +59,9 @@ run still probes write access first and exits quietly if it ever disappears.
 **Connectors:** each Routine needs the **Google Drive** connector attached
 via the claude.ai Routines UI (the trigger API cannot store connectors for
 this org). Without it a run still validates invoice totals but cannot open
-the PDFs, so line-level checks degrade to header-level. Drive is attached on
-the 3:30 Routine; attach it on the midday Routine too.
+the PDFs, so line-level checks degrade to header-level. Both Routines show
+Drive attached as of 2026-08-06 — the midday one picked it up on update;
+re-check in the UI if a run reports PDFs unavailable.
 
 The Mac launchd sweep (below) is now an optional fallback, not the plan — the
 two can coexist safely, but there is no need to install it. If it was

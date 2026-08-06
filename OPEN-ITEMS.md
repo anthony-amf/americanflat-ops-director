@@ -37,9 +37,9 @@ have adopted AF-9 already.
 ## Auto-validation rollout — CLOUD (Anthony's direction 2026-08-06)
 
 Cloud sweeps are LIVE, three passes a day (see VALIDATION-AUTOMATION.md for
-the table): `yusen-cloud-validation-sweep` at 3:30 PM MDT
+the table): `yusen-cloud-validation-sweep` at 3:30 PM ET
 (`trig_016vL18kChzAxpv7tfZjqzyS`) and `yusen-cloud-validation-sweep-midday`
-at 10 AM + 1 PM (`trig_01GQSfBrEkUVPJj6MqbkSn5D`). Both follow
+at 10 AM + 1 PM ET (`trig_01GQSfBrEkUVPJj6MqbkSn5D`). Both follow
 `docs/CLOUD-SWEEP-RUNBOOK.md`. Remaining setup:
 
 1. ~~**Grant BigQuery write to the cloud service account**~~ — **DONE
