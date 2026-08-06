@@ -36,20 +36,22 @@ have adopted AF-9 already.
 
 ## Auto-validation rollout — CLOUD (Anthony's direction 2026-08-06)
 
-Scheduled cloud sweep **`yusen-cloud-validation-sweep`** is LIVE
-(`trig_016vL18kChzAxpv7tfZjqzyS`, daily 21:30 UTC ≈ 3:30 PM MDT, follows
-`docs/CLOUD-SWEEP-RUNBOOK.md`, self-guarding until write access exists).
-Two one-time actions to make it fully effective:
+Cloud sweeps are LIVE, three passes a day (see VALIDATION-AUTOMATION.md for
+the table): `yusen-cloud-validation-sweep` at 3:30 PM MDT
+(`trig_016vL18kChzAxpv7tfZjqzyS`) and `yusen-cloud-validation-sweep-midday`
+at 10 AM + 1 PM (`trig_01GQSfBrEkUVPJj6MqbkSn5D`). Both follow
+`docs/CLOUD-SWEEP-RUNBOOK.md`. Remaining setup:
 
 1. ~~**Grant BigQuery write to the cloud service account**~~ — **DONE
    2026-08-06** by Iván Calderón (dataset owner; Anthony can write data but
    not change permissions). `cluade-service-account@americanflat.iam.gserviceaccount.com`
    now has write on TABLE `finance.yusen_invoices`; verified from a cloud
    session with a zero-row UPDATE probe.
-2. **Attach the Google Drive connector to the Routine** — claude.ai →
-   Routines → `yusen-cloud-validation-sweep` → enable Google Drive. Without
-   it the sweep can't fetch invoice PDFs (BigQuery works regardless); rows
-   needing the PDF line pass stay header-level/needs_detail.
+2. **Attach the Google Drive connector to each Routine** — claude.ai →
+   Routines → enable Google Drive. Done on the 3:30 Routine 2026-08-06;
+   **still needed on `-midday`** (the trigger API can't store connectors for
+   this org). Without it a run validates totals but can't open the PDFs, so
+   line-level checks degrade to header-level.
 
 Mac launchd sweep (`skill-updates/v1.2.0/INSTALL.md`) remains available as a
 fallback — safe to run alongside; unload it once the cloud sweep is confirmed.

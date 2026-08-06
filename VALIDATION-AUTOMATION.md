@@ -25,26 +25,38 @@ and a detailed per-invoice spec readable from both dashboards.*
 
 ## Cloud rollout (2026-08-06, Anthony's direction: run in cloud, not the Mac)
 
-The sweep is moving to a **daily scheduled cloud session** (21:30 UTC = 3:30
-PM MDT) following `docs/CLOUD-SWEEP-RUNBOOK.md`. One prerequisite — the cloud
-BigQuery credential is read-only; grant it write on the one table, from the
-Mac (Anthony's account provisioned the table, so it can grant):
+The sweep runs as **scheduled cloud sessions** following
+`docs/CLOUD-SWEEP-RUNBOOK.md` — three passes a day (Anthony, 2026-08-06):
 
-```bash
-bq query --use_legacy_sql=false 'GRANT `roles/bigquery.dataEditor` ON TABLE `americanflat.finance.yusen_invoices` TO "serviceAccount:cluade-service-account@americanflat.iam.gserviceaccount.com"'
-```
+| Routine | Cron (UTC) | Local (MDT) | Trigger id |
+|---|---|---|---|
+| `yusen-cloud-validation-sweep` | `30 21 * * *` | 3:30 PM | `trig_016vL18kChzAxpv7tfZjqzyS` |
+| `yusen-cloud-validation-sweep-midday` | `0 16,19 * * *` | 10:00 AM + 1:00 PM | `trig_01GQSfBrEkUVPJj6MqbkSn5D` |
 
-(Table-level grant = least privilege: write to `yusen_invoices` only, nothing
-else in `finance`. The service-account name really is spelled "cluade".
-Confirmed missing permission: `bigquery.tables.updateData`. If the GRANT
-errors with a permission denial, whoever owns the GCP project must run it.)
+The 3:30 pass is the one that matters most (ingestion lands ~3 PM); the 10 AM
+and 1 PM passes catch rows that were stuck in BigQuery's streaming buffer at
+3:30 the day before, plus anything uploaded manually during the day. On a
+quiet day they find nothing and exit in one line. Running several times a day
+is safe: settled rows (valid/disputed) are skipped and never downgraded.
 
-The scheduled session self-guards: until the grant lands it probes, reports
-"grant not yet in place", and exits without changes — so it is safe to have
-scheduled before granting. The Mac launchd sweep (below) remains valid as a
-fallback/alternative; the two can coexist safely (both skip settled rows and
-never downgrade), but once the cloud sweep is confirmed working, unload the
-Mac job: `launchctl unload ~/Library/LaunchAgents/com.americanflat.yusen-validation-sweep.plist`.
+**Write access:** granted 2026-08-06 by Iván Calderón (owner on the `finance`
+dataset — Anthony can write data but not change permissions, so this needed
+him). `cluade-service-account@americanflat.iam.gserviceaccount.com` now holds
+`roles/bigquery.dataEditor` on TABLE `finance.yusen_invoices` — table-level,
+so nothing else in `finance` is exposed; same pattern `invoice-writer@…` has
+for the upload job. Note the account name really is spelled "cluade". Each
+run still probes write access first and exits quietly if it ever disappears.
+
+**Connectors:** each Routine needs the **Google Drive** connector attached
+via the claude.ai Routines UI (the trigger API cannot store connectors for
+this org). Without it a run still validates invoice totals but cannot open
+the PDFs, so line-level checks degrade to header-level. Drive is attached on
+the 3:30 Routine; attach it on the midday Routine too.
+
+The Mac launchd sweep (below) is now an optional fallback, not the plan — the
+two can coexist safely, but there is no need to install it. If it was
+installed, unload it once the cloud runs are confirmed:
+`launchctl unload ~/Library/LaunchAgents/com.americanflat.yusen-validation-sweep.plist`.
 Ingestion itself (3 PM launchd) still runs on the Mac — moving it is a
 separate project.
 
