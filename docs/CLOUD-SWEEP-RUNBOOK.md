@@ -37,18 +37,37 @@ Set maxResults ≥ 500 (the bq 100-row truncation trap applies to the CLI, but
 be explicit anyway). Rows already `valid`/`disputed`/`paid` are settled — the
 WHERE clause excludes them; never re-judge them.
 
-## 2. Get the validator (line-level engine, skill v1.2.0+)
+## 2. Get the validator — MUST be v1.2.0 or newer, verify it
+
+The clone's default branch may still carry **v1.1.0**, which has no status
+guards and no line-level pass. Running v1.1.0 unattended is exactly the
+failure seen on the first run (2026-08-06): it swept the wrong rows and did
+no useful work. So fetch explicitly and **check the version, then abort if it
+is wrong** — do not proceed with an older script:
 
 ```bash
-cd /tmp && unzip -o ~/americanflat-ops-director/yusen-invoice-validator.skill -d /tmp/skill
-# If the repo clone is on a branch without the v1.2.0 package (check
-# CHANGELOG.md inside for "1.2.0"), fetch it from main-07xt41:
-#   git -C ~/americanflat-ops-director fetch origin main-07xt41 &&
-#   git -C ~/americanflat-ops-director show origin/main-07xt41:yusen-invoice-validator.skill > /tmp/skill.zip &&
-#   unzip -o /tmp/skill.zip -d /tmp/skill
+cd ~/americanflat-ops-director && git fetch origin main-07xt41 && \
+  git show origin/main-07xt41:yusen-invoice-validator.skill > /tmp/skill.zip && \
+  unzip -qo /tmp/skill.zip -d /tmp/skill && \
+  grep -q 'version = "1.2' /tmp/skill/yusen-invoice-validator/skill.toml && \
+  grep -q 'apply_line_pass' /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py && \
+  echo VALIDATOR_OK
+```
+
+If `VALIDATOR_OK` does not print, **STOP**: report "validator v1.2.0 not
+available — sweep skipped" and change nothing. (Once `main-07xt41` is merged
+to the default branch, the local `.skill` will be current and this becomes a
+formality — still verify.)
+
+```bash
 pip install pypdf cryptography cffi 2>/dev/null   # container pypdf is broken without these
 apt-get install -y tesseract-ocr poppler-utils 2>/dev/null || true   # scanned SC VAS
 ```
+
+**Never run `validate_rate_card.py --list-all --write`.** That path writes
+with the script's own label and sweeps by invoice number descending, which
+puts the excluded NL (`FTI…`) rows first and burns the run on them. Import
+the functions and write via step 5 instead.
 
 ## 3. Download the PDFs (Drive MCP — drive.google.com is not proxy-reachable)
 
@@ -94,6 +113,11 @@ exactly — see `V._merge_report` for the report merge:
   intl `notes` components.
 - Rows ingested <~90 min ago may reject UPDATE (streaming buffer) — skip on
   that error; tomorrow's sweep catches them.
+
+Every write must carry `validated_by = 'yusen-cloud-sweep'` and an
+`[AUTO-SWEEP <date>]` section in the report. That is how a later session tells
+this sweep's work from a human's or the Mac's — if a run finishes and neither
+signature appears in the table, the run did not actually do its job.
 
 ## 6. Summarize
 

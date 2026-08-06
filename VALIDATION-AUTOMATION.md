@@ -50,6 +50,22 @@ ends (2026-11-01) they shift an hour earlier in local terms (9 AM / noon /
 Mac's local clock and shifts with DST, so the 30-minute gap after ingestion
 survives the change — but re-check it then.
 
+**First-run finding (2026-08-06) — both Routines currently PAUSED.** The
+first run swept only the Netherlands (`FTI…`) rows, which the runbook excludes,
+and never reached the 61 US rows that needed checking. Verified via BigQuery
+time travel: net data effect was 4 rows going from unstamped to `needs_detail`
+(FTI0006502) — nothing downgraded, no report text lost, no payment flags
+touched. Confirmed cause: the **default branch still carries validator
+v1.1.0**, so a fresh cloud session unzips the old script (no status guards, no
+line pass, and its `--list-all` sweep orders invoice numbers descending, which
+puts `FTI…` first). The runbook now verifies the validator version and aborts
+if it is not v1.2.0+, and forbids the `--list-all --write` path.
+
+**Before re-enabling the Routines:** merge `main-07xt41` into the default
+branch so fresh sessions get v1.2.0 by default (Anthony's call — cloud
+sessions push to the feature branch by convention). Then re-enable both
+Routines and watch one run.
+
 **Write access:** granted 2026-08-06 by Iván Calderón (owner on the `finance`
 dataset — Anthony can write data but not change permissions, so this needed
 him). `cluade-service-account@americanflat.iam.gserviceaccount.com` now holds
