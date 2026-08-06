@@ -31,14 +31,14 @@ The sweep runs as **scheduled cloud sessions** following
 
 | Routine | Cron (UTC) | Local (ET) | Trigger id |
 |---|---|---|---|
-| `yusen-cloud-validation-sweep` | `30 19 * * *` | 3:30 PM | `trig_016vL18kChzAxpv7tfZjqzyS` |
+| `yusen-cloud-validation-sweep` | `30 21 * * *` | 5:30 PM | `trig_016vL18kChzAxpv7tfZjqzyS` |
 | `yusen-cloud-validation-sweep-midday` | `0 14,17 * * *` | 10:00 AM + 1:00 PM | `trig_01GQSfBrEkUVPJj6MqbkSn5D` |
 
-**Timing caveat worth knowing:** ingestion still runs 3 PM **Mountain** =
-5 PM ET, which is *after* all three passes. So invoices ingested today are
-validated by tomorrow's 10 AM ET pass, not the same afternoon. If same-day
-validation matters, move the last pass to 5:30 PM ET (`30 21 * * *` — which
-is 3:30 PM MT, 30 min after ingestion, where it started).
+The last pass is deliberately **5:30 PM ET = 3:30 PM Mountain, 30 minutes
+after ingestion** — that is what makes same-day validation work. Keep that
+relationship if either schedule moves. The 10 AM and 1 PM passes mop up rows
+that were locked in BigQuery's streaming buffer the previous evening plus
+anything uploaded by hand during the day.
 
 Running several times a day is safe: settled rows (valid/disputed) are
 skipped and never downgraded. On a quiet day a pass finds nothing and exits
@@ -46,7 +46,9 @@ in one line.
 
 **DST note:** cron is fixed UTC, so these hold while ET is UTC-4. When DST
 ends (2026-11-01) they shift an hour earlier in local terms (9 AM / noon /
-2:30 PM ET) until the crons are moved forward an hour.
+4:30 PM ET) until the crons are moved forward an hour. Ingestion is on the
+Mac's local clock and shifts with DST, so the 30-minute gap after ingestion
+survives the change — but re-check it then.
 
 **Write access:** granted 2026-08-06 by Iván Calderón (owner on the `finance`
 dataset — Anthony can write data but not change permissions, so this needed

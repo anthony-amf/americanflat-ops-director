@@ -37,7 +37,7 @@ have adopted AF-9 already.
 ## Auto-validation rollout — CLOUD (Anthony's direction 2026-08-06)
 
 Cloud sweeps are LIVE, three passes a day (see VALIDATION-AUTOMATION.md for
-the table): `yusen-cloud-validation-sweep` at 3:30 PM ET
+the table): `yusen-cloud-validation-sweep` at 5:30 PM ET (30 min after ingestion)
 (`trig_016vL18kChzAxpv7tfZjqzyS`) and `yusen-cloud-validation-sweep-midday`
 at 10 AM + 1 PM ET (`trig_01GQSfBrEkUVPJj6MqbkSn5D`). Both follow
 `docs/CLOUD-SWEEP-RUNBOOK.md`. Remaining setup:
