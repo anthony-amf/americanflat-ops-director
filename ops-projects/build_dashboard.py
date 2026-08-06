@@ -722,9 +722,11 @@ function showCard() {
     $("fullEditBtn").addEventListener("click", () => { const id = deck[0]; saveMeetNote(); exitMeeting(); openEditor(id); });
   } else {
     $("meetActs").innerHTML = `
+      <button class="btn ghost" id="backBtn">◂ Back</button>
       <button class="btn ghost" id="skipBtn">Skip ▸</button>
       <button class="btn" id="nextBtn">Discussed — next ▸</button>
-      <span class="meet-hint">Space / → = discussed · S = skip · discussed cards fall to the back of the deck</span>`;
+      <span class="meet-hint">Space / → = discussed · S = skip · ← = back · discussed cards fall to the back of the deck</span>`;
+    $("backBtn").addEventListener("click", prevCard);
     $("skipBtn").addEventListener("click", () => nextCard(false));
     $("nextBtn").addEventListener("click", () => nextCard(true));
   }
@@ -739,6 +741,12 @@ function saveMeetNote() {
   if (!base) { const a = pending.adds.find(x => x.id === id); if (a && v) a.notes = (a.notes ? a.notes + "\\n" : "") + ""; }
   if (!Object.keys(e).length) delete pending.edits[id];
   savePending(); updateTray();
+}
+function prevCard() {
+  if (focusMode || deck.length < 2) return;
+  saveMeetNote();
+  deck.unshift(deck.pop());
+  showCard();
 }
 function nextCard(markDiscussed) {
   if (!deck.length) return;
@@ -803,6 +811,7 @@ document.addEventListener("keydown", e => {
   if (!$("meet").classList.contains("on") || inRecap) return;
   if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
   if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); nextCard(true); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); prevCard(); }
   if (e.key === "s" || e.key === "S") { e.preventDefault(); nextCard(false); }
 });
 </script>

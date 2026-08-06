@@ -3,6 +3,12 @@
 All notable changes to the Ops Projects tracker (Airtable base + dashboard).
 Dashboard URL: https://claude.ai/code/artifact/02c51fe9-37a1-4920-a941-7e0cb3390b61
 
+## v8 — 2026-07-28 · Back navigation in meeting mode
+
+- **◂ Back** button (and ← key) steps backwards through the meeting deck to
+  revisit earlier cards. Going back never marks a card discussed; notes in
+  progress are saved before moving.
+
 ## v7 — 2026-07-23 · Rank the 90 Day Focus
 
 - ▲▼ controls on starred cards reorder the 90 Day Focus section; the order
