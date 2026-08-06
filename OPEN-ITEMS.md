@@ -41,10 +41,17 @@ Scheduled cloud sweep **`yusen-cloud-validation-sweep`** is LIVE
 `docs/CLOUD-SWEEP-RUNBOOK.md`, self-guarding until write access exists).
 Two one-time actions to make it fully effective:
 
-1. **Grant BigQuery write to the cloud service account** (run on the Mac):
-   `bq query --use_legacy_sql=false 'GRANT `` `roles/bigquery.dataEditor` `` ON TABLE `` `americanflat.finance.yusen_invoices` `` TO "serviceAccount:cluade-service-account@americanflat.iam.gserviceaccount.com"'`
-   — exact copy-paste block in VALIDATION-AUTOMATION.md. Until granted, each
-   run exits with "write grant not yet in place".
+1. **Grant BigQuery write to the cloud service account — BLOCKED ON IVAN.**
+   Checked 2026-08-06: Anthony's account can write data but cannot change
+   permissions (no `setIamPolicy` on the table, and no project-level
+   `getIamPolicy`). The `finance` dataset access list shows
+   **ivan@americanflat.com as OWNER** — he can grant it; nobody else on the
+   Mac can. Email draft prepared in Anthony's Gmail drafts 2026-08-06
+   ("Quick BigQuery access request — Yusen invoice validation"), asking for
+   `roles/bigquery.dataEditor` on TABLE `finance.yusen_invoices` for
+   `cluade-service-account@americanflat.iam.gserviceaccount.com` — the same
+   pattern `invoice-writer@…` already has. Until granted, each cloud run
+   exits with "write grant not yet in place".
 2. **Attach the Google Drive connector to the Routine** — claude.ai →
    Routines → `yusen-cloud-validation-sweep` → enable Google Drive. Without
    it the sweep can't fetch invoice PDFs (BigQuery works regardless); rows
