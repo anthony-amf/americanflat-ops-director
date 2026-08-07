@@ -1,7 +1,7 @@
 # Cloud validation sweep — runbook
 
-*Executed by the daily scheduled cloud session (`yusen-cloud-validation-sweep`,
-21:30 UTC = 3:30 PM MDT, 30 min after ingestion). A fresh session follows this
+*Executed by the scheduled cloud sessions — 10:00 AM, 1:00 PM and 5:30 PM ET
+(the last is 30 min after the 3 PM MT ingestion). A fresh session follows this
 file top to bottom. Written 2026-08-06; owner anthony@americanflat.com.*
 
 ## Guard first: probe write access
@@ -99,13 +99,19 @@ When `r["_settled"]` is set, the row was already settled — skip it, do not wri
 ## 5. Write the stamps (REST, one multi-statement script)
 
 Generate one UPDATE per changed row, mirroring `write_result` semantics
-exactly — see `V._merge_report` for the report merge:
+exactly — build the report with `V.merge_report(prior_report, V.compose_report(r))`,
+which replaces only its own previous `[AUTO <date>]` block and leaves payment
+cards, `[MSA DISPUTE …]` specs and human notes alone.
 
 - SET `validated_at = CURRENT_TIMESTAMP()`, `validation_status`,
   `validation_variance` (disputed $ for disputed rows, else the result's
-  variance), `validated_by = 'yusen-cloud-sweep'`, and `validation_report` =
-  the merged report (prior text with any old `[AUTO-SWEEP ...]` block
-  replaced by the fresh dated one).
+  variance), `validated_by = V.AUTO_WRITER`, and `validation_report` = the
+  merged report.
+- **`validated_by` MUST be `V.AUTO_WRITER` (`yusen-invoice-validator`), never a
+  cloud-specific label.** v1.4.0 treats any other value as a *human* stamp and
+  makes it sticky — labelling cloud writes separately would freeze every row
+  the sweep touches against all future automated updates. Provenance belongs in
+  the report text (the `[AUTO <date>]` block), not in `validated_by`.
 - WHERE `invoice_number = '<inv>' AND IFNULL(validation_status,'') NOT IN
   ('disputed', 'valid')` — never downgrade disputed or valid. (A `discrepancy`
   result may overwrite `valid`: drop `'valid'` from the guard for those rows
@@ -117,10 +123,10 @@ exactly — see `V._merge_report` for the report merge:
 - Rows ingested <~90 min ago may reject UPDATE (streaming buffer) — skip on
   that error; tomorrow's sweep catches them.
 
-Every write must carry `validated_by = 'yusen-cloud-sweep'` and an
-`[AUTO-SWEEP <date>]` section in the report. That is how a later session tells
-this sweep's work from a human's or the Mac's — if a run finishes and neither
-signature appears in the table, the run did not actually do its job.
+Every write carries a fresh `[AUTO <date>]` block in `validation_report`. That
+is the signature to check: if a run finishes and no row shows today's `[AUTO]`
+block, the run did not actually do its job — say so in the summary rather than
+reporting success.
 
 ## 6. Summarize
 
