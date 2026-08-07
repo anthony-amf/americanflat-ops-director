@@ -55,10 +55,24 @@ at 10 AM + 1 PM ET (`trig_01GQSfBrEkUVPJj6MqbkSn5D`). Both follow
    this org). Without it a run validates totals but can't open the PDFs, so
    line-level checks degrade to header-level.
 
-Mac launchd sweep (`skill-updates/v1.2.0/INSTALL.md`) remains available as a
-fallback — safe to run alongside; unload it once the cloud sweep is confirmed.
-Local dashboard refresh: curl command provided in chat 2026-08-06; Artifact
-self-refreshes weekdays 7:09 AM ET.
+Mac launchd sweep: **unloaded 2026-08-06** (it was installed as
+`com.americanflat.yusen-validator-sweep`, not the never-installed
+`yusen-validation-sweep` plist in `launchd/`) — the cloud Routines own this now.
+Dashboard: Artifact self-refreshes weekdays 8:30 AM / noon / 3:30 PM / 6 PM ET.
+
+## Nightly EDI (Stedi) check — scheduled, waiting on the key
+
+`yusen-stedi-nightly` (`trig_019Drs2eEgyRt9G3DPu8rwJS`), **2:00 AM ET daily**,
+follows `docs/STEDI-NIGHTLY-RUNBOOK.md`. Closes the shipping axis on SP/LTL
+invoices so they stop parking at `needs_detail`, and recomputes the e-com pick
+charge on the contract's additional-only basis (the AF-9/pick dispute basis).
+
+**Blocked, by design, until `STEDI_API_KEY` is added to the cloud environment**
+(Anthony, 2026-08-07: "I'll add the key to the cloud later"). Every night until
+then it checks for the key, reports one line, and touches nothing — a clean
+no-op, not a failure. Once the key lands the first run works through the 9 SP/LTL
+invoices currently at `needs_detail` (~$62K, the largest unresolved block).
+It never marks anything paid.
 
 ## Standing follow-ups
 
