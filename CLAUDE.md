@@ -141,6 +141,20 @@ supporting-doc links in BigQuery — deliberately not backfilled, the generators
 rewrite them to `drive.google.com/file/d/<id>/view` at render time (any
 non-dashboard consumer of `supporting_doc_url` needs the same rewrite).
 
+**The cloud refresher's template is a SNAPSHOT and goes stale.** The gated
+refresher on branch `claude/website-auto-refresh-efficiency-9x474j`
+(`refresh_artifact_dashboard.py` + `dashboard_template.html`) renders from a
+copy of the published page with the `const DATA` / `const KPI` literals swapped
+for `/*DATA*/` / `/*KPI*/`. When the artifact's design changes anywhere else
+(e.g. the Mac generators adding the validation UI), that snapshot silently
+falls behind and republishing it **downgrades the live page**. Caught 2026-08-07:
+the snapshot predated the Validated column entirely, and its query projected 13
+columns with no validation fields — `normalize()` also whitelists fields, so
+both the SELECT *and* the whitelist need the new columns. Fix procedure: WebFetch
+the live artifact, extract from `<title>` to the last `</script>`, restore the
+two placeholders, and confirm every `r.<field>` the template reads is emitted by
+`normalize()`. Do this whenever the page design changes.
+
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's
 `refresh_yusen_dashboard.py`. Other processes re-export it from a base template,
