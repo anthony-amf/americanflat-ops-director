@@ -1,7 +1,7 @@
 [skill]
 name = "skill-shorts-processing"
-version = "1.2.0"
-description = "Process daily AMF warehouse short orders into a routed Short Report, Slack post, and warehouse action emails. Covers DTC redirects and substitutions, Amazon VC and Walmart 1P full-carton down-confirms, ad-hoc warehouse cancel requests, and marketplace pricing-error recalls."
+version = "1.2.1"
+description = "Process daily AMF warehouse short orders into a routed Short Report, Slack post, and warehouse action emails. Covers DTC redirects and substitutions, Amazon VC and Walmart 1P full-carton down-confirms, ad-hoc warehouse cancel requests, and marketplace pricing-error recalls. Fontana and NJ shorts arrive as portal CSV exports; South Carolina shorts come in by email, usually from Bryan at SC."
 owner = "John Nunez <jnunez@americanflat.com>"
 tier = 1
 department = "ops"

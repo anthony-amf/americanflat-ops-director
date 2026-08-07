@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1] — 2026-08-07
+
+Description-only change: records how South Carolina shorts actually reach us.
+
+- **SC shorts come by email, not the portal export.** Fontana (`AMF*`) and NJ (`AME*`) shorts arrive as `Client_Short_Report` CSVs downloaded from the portal, but South Carolina's are emailed in, usually by Bryan at SC. The description now says so, so the skill triggers on a forwarded or pasted SC short list rather than waiting for a CSV that never comes. Also worth knowing when the CSVs do arrive: the portal names every export `Client_Short_Report.csv`, so the browser disambiguates with `_1`, `_2` suffixes — the filename never identifies the warehouse, only the `Order#` prefix does.
+
+
 ## [1.2.0] — 2026-08-06
 
 Hardens the routing rules against three failure modes that cost real shipments in production, adds Walmart 1P and pricing-error recalls as first-class cases, and fixes the output formatting the ops team kept having to correct by hand.
