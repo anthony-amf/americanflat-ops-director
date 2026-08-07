@@ -103,9 +103,15 @@ not billable. From the worksheet:
 - overcharge = (billed picks − compliant picks) × the site pick rate
   (0.506 NJ/CA, 0.5796 SC).
 
-Convention that must be applied or the numbers come out doubled: **the invoice
-bills exactly half the worksheet pick-column sum** in both rate eras — the
-worksheet counts pick+pack events. Halve before comparing.
+**Do not assume the halving convention — verify it per invoice.** The
+"invoice bills half the worksheet pick-column sum" rule holds on some
+worksheets (754807) but NOT on others: on 756521 the pick column sums to
+exactly the billed count (1,883 = 1,883), so halving would have understated
+the compliant basis and produced a nonsense result. Procedure: sum the pick
+column, compare to the billed pick count, and only halve if the sum is ~2x
+billed. Also restrict the comparison to rows that actually carry a pick charge
+— 756521 had 75 of 1,214 rows with no pick charge (LTL lines), and including
+them distorts the basis.
 
 Any overcharge over $1 is an AF-9/pick-basis dispute item — see
 `validation-reports/yusen-msa-billing-dispute-2026-08-05.md` for how 754807
