@@ -37,27 +37,25 @@ Set maxResults ≥ 500 (the bq 100-row truncation trap applies to the CLI, but
 be explicit anyway). Rows already `valid`/`disputed`/`paid` are settled — the
 WHERE clause excludes them; never re-judge them.
 
-## 2. Get the validator — MUST be v1.2.0 or newer, verify it
+## 2. Get the validator — MUST be v1.4.0 or newer, verify it
 
-The clone's default branch may still carry **v1.1.0**, which has no status
-guards and no line-level pass. Running v1.1.0 unattended is exactly the
-failure seen on the first run (2026-08-06): it swept the wrong rows and did
-no useful work. So fetch explicitly and **check the version, then abort if it
-is wrong** — do not proceed with an older script:
+v1.4.0 (on the default branch since 2026-08-06) is the first release with both
+halves: the stickiness rules (a disputed stamp, a paid-valid stamp, and any
+human-set stamp survive an automated re-sweep) **and** the PDF line-level pass.
+Unzip the committed package and check before doing anything:
 
 ```bash
-cd ~/americanflat-ops-director && git fetch origin main-07xt41 && \
-  git show origin/main-07xt41:yusen-invoice-validator.skill > /tmp/skill.zip && \
-  unzip -qo /tmp/skill.zip -d /tmp/skill && \
-  grep -q 'version = "1.2' /tmp/skill/yusen-invoice-validator/skill.toml && \
+cd ~/americanflat-ops-director && git fetch origin && git pull --ff-only 2>/dev/null; \
+  unzip -qo yusen-invoice-validator.skill -d /tmp/skill && \
+  grep -qE 'version = "1\.([4-9]|[1-9][0-9])' /tmp/skill/yusen-invoice-validator/skill.toml && \
   grep -q 'apply_line_pass' /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py && \
+  grep -q 'AUTO_WRITER' /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py && \
   echo VALIDATOR_OK
 ```
 
-If `VALIDATOR_OK` does not print, **STOP**: report "validator v1.2.0 not
-available — sweep skipped" and change nothing. (Once `main-07xt41` is merged
-to the default branch, the local `.skill` will be current and this becomes a
-formality — still verify.)
+If `VALIDATOR_OK` does not print, **STOP**: report "validator v1.4.0+ not
+available — sweep skipped" and change nothing. Never fall back to an older
+script; the older ones lack either the line pass or the stamp protections.
 
 ```bash
 pip install pypdf cryptography cffi 2>/dev/null   # container pypdf is broken without these
@@ -87,9 +85,14 @@ import validate_rate_card as V
 from pathlib import Path
 import json
 rates = json.load(open('/tmp/skill/yusen-invoice-validator/references/rate-card-snapshot.json'))
-r = V.validate(row_dict, rates)                      # header pass
-V.apply_line_pass(row_dict, r, Path('/tmp/pdf-cache'))  # PDF line pass (cache hit)
+r = V.validate(row_dict, rates)                          # header pass
+V.apply_msa_conflicts(row_dict, r)                       # notes-based dispute check
+V._line_pass_keeping_disputes(row_dict, r, Path('/tmp/pdf-cache'))   # PDF line pass
 ```
+
+Run all three in that order. `_line_pass_keeping_disputes` is the wrapper that
+stops the PDF pass from demoting a dispute the notes-based check already found.
+When `r["_settled"]` is set, the row was already settled — skip it, do not write.
 
 `row_dict` is the BigQuery row as a dict (keys as in the SELECT above).
 
