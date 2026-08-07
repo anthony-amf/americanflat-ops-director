@@ -83,7 +83,16 @@ SELECT
   paid_marked_by,
   notes,
   pdf_url,
-  supporting_doc_url
+  supporting_doc_url,
+  -- Validation columns: the finance-visible status the validator writes, plus
+  -- the stored per-invoice report the table renders as the chip tooltip. These
+  -- ride in the fingerprint too, so a status change (not just a new invoice)
+  -- correctly triggers a republish.
+  validation_status,
+  CAST(validation_variance AS FLOAT64) AS validation_variance,
+  validation_report,
+  validated_by,
+  FORMAT_TIMESTAMP('%Y-%m-%d', validated_at) AS validated_at
 FROM `{TABLE}`
 ORDER BY date DESC, invoice_number DESC
 """
@@ -218,6 +227,16 @@ def normalize(rows: list) -> list:
             "notes": notes,
             "pdf_url": r.get("pdf_url") or "",
             "supporting_doc_url": drive_url(r.get("supporting_doc_url") or ""),
+            # Validation axis. Empty status renders as an em-dash ("not checked
+            # yet"), so a row is never implied to have passed. variance stays
+            # None rather than 0.0 — the chip only shows a figure when there
+            # genuinely is one (the disputed dollars).
+            "validation_status": r.get("validation_status") or "",
+            "validation_variance": (float(r["validation_variance"])
+                                    if r.get("validation_variance") not in (None, "") else None),
+            "validation_report": r.get("validation_report") or "",
+            "validated_by": r.get("validated_by") or "",
+            "validated_at": r.get("validated_at") or "",
         })
     return clean
 

@@ -91,7 +91,7 @@
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
   }
-  .yid-wrap { max-width: 1280px; margin: 0 auto; padding: 28px 24px 64px; }
+  .yid-wrap { max-width: 1800px; margin: 0 auto; padding: 28px 20px 64px; }
 
   .yid-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
   .yid-head h1 { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
@@ -128,22 +128,45 @@
   .yid-count { color: var(--muted); font-size: 13px; margin-left: auto; font-variant-numeric: tabular-nums; }
 
   .yid-tablewrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); overflow-x: auto; }
-  .yid-table { border-collapse: collapse; width: 100%; min-width: 1120px; }
+  .yid-table { border-collapse: collapse; width: 100%; min-width: 720px; }
   .yid-table thead th {
     position: sticky; top: 0; background: var(--thead); z-index: 1;
     text-align: left; font-size: 11.5px; font-weight: 650; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.04em; padding: 11px 14px;
+    text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 10px;
     border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; white-space: nowrap;
   }
   .yid-table thead th.num { text-align: right; }
   .yid-table thead th .arrow { opacity: 0.4; font-size: 10px; margin-left: 3px; }
   .yid-table thead th.sorted .arrow { opacity: 1; color: var(--accent); }
-  .yid-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .yid-table tbody td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
   .yid-table tbody tr:hover { background: var(--thead); }
   .yid-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .yid-table td.inv { font-variant-numeric: tabular-nums; font-weight: 600; }
-  .yid-table td.notes { color: var(--muted); max-width: 300px; }
+  .yid-table td.notes { color: var(--muted); max-width: 260px; overflow-wrap: anywhere; }
   .cur { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .valbtn { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .valbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 999px; }
+  .vcaret { color: var(--muted); font-size: 9px; transition: transform .12s ease; }
+  .valbtn[aria-expanded="true"] .vcaret { transform: rotate(90deg); }
+  tr.vdetail > td { background: var(--thead, #f1f4f6); padding: 12px 16px 14px; }
+  .vhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .copybtn { font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    color: var(--accent); background: var(--accent-soft, transparent); border: 1px solid var(--line);
+    border-radius: 7px; padding: 3px 10px; }
+  .copybtn:hover { text-decoration: underline; }
+  .copybtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .copybtn.copied { color: var(--ok); border-color: var(--ok); text-decoration: none; }
+  .vmeta { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 7px; }
+  ul.vreport { margin: 0; padding-left: 17px; }
+  ul.vreport li { margin: 3px 0; line-height: 1.55; color: var(--ink); }
+  ul.vreport li .vlabel { font-weight: 700; }
+  ul.vreport ul { margin: 4px 0 2px; padding-left: 14px; list-style: none; }
+  ul.vreport ul li { color: var(--muted); font-variant-numeric: tabular-nums; margin: 1px 0; }
+  ul.vreport ul li::before { content: "– "; opacity: .6; }
+  .vgroup { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin: 10px 0 4px; }
+  .vgroup:first-child { margin-top: 0; }
+  .vnone { color: var(--muted); font-style: italic; }
   .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
   a.link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; }
   a.link:hover { text-decoration: underline; }
@@ -175,6 +198,7 @@
     <select id="f-wh" aria-label="Filter by warehouse"><option value="">All warehouses</option></select>
     <select id="f-cur" aria-label="Filter by currency"><option value="">All currencies</option></select>
     <select id="f-paid" aria-label="Filter by payment"><option value="">Paid + unpaid</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
+    <select id="f-val" aria-label="Filter by validation"><option value="">All validation</option><option value="valid">Valid</option><option value="needs_detail">Needs detail</option><option value="disputed">Disputed</option><option value="none">Not validated</option><option value="variance">Has variance</option></select>
     <span class="yid-count" id="count"></span>
   </div>
 
@@ -187,6 +211,7 @@
         <th data-k="warehouse" tabindex="0">Warehouse<span class="arrow">▼</span></th>
         <th data-k="bill_period" tabindex="0">Bill period<span class="arrow">▼</span></th>
         <th data-k="amount" class="num" tabindex="0">Amount<span class="arrow">▼</span></th>
+        <th data-k="validation_status" tabindex="0">Validated<span class="arrow">▼</span></th>
         <th data-k="paid" tabindex="0">Paid<span class="arrow">▼</span></th>
         <th data-k="notes" tabindex="0">Notes<span class="arrow">▼</span></th>
         <th>PDF</th>
@@ -270,7 +295,7 @@ function chart(elId, hintId, key, rows) {
 const uniq = key => [...new Set(DATA.map(r => r[key]).filter(Boolean))].sort();
 const fType = document.getElementById("f-type"), fWh = document.getElementById("f-wh"),
       fMonth = document.getElementById("f-month"), fCur = document.getElementById("f-cur"),
-      fPaid = document.getElementById("f-paid");
+      fPaid = document.getElementById("f-paid"), fVal = document.getElementById("f-val");
 uniq("type_of_invoice").forEach(t => fType.add(new Option(t, t)));
 uniq("warehouse").forEach(w => fWh.add(new Option(w, w)));
 uniq("currency").forEach(c => fCur.add(new Option(c, c)));
@@ -282,7 +307,8 @@ const q = document.getElementById("q");
 
 function filtered() {
   const term = q.value.trim().toLowerCase();
-  const ft = fType.value, fw = fWh.value, fm = fMonth.value, fc = fCur.value, fp = fPaid.value;
+  const ft = fType.value, fw = fWh.value, fm = fMonth.value, fc = fCur.value, fp = fPaid.value,
+        fv = fVal.value;
   let rows = DATA.filter(r => {
     if (ft && r.type_of_invoice !== ft) return false;
     if (fw && r.warehouse !== fw) return false;
@@ -290,6 +316,9 @@ function filtered() {
     if (fc && r.currency !== fc) return false;
     if (fp === "paid" && !r.paid) return false;
     if (fp === "unpaid" && r.paid) return false;
+    if (fv === "none" && r.validation_status) return false;
+    if (fv === "variance" && !hasVariance(r)) return false;
+    if (fv && fv !== "none" && fv !== "variance" && r.validation_status !== fv) return false;
     if (term) {
       const hay = (r.invoice_number + " " + r.notes + " " + r.bill_period + " " + r.date + " " + fmtDate(r.date)).toLowerCase();
       if (!hay.includes(term)) return false;
@@ -300,9 +329,52 @@ function filtered() {
     let x = a[sortKey], y = b[sortKey];
     if (sortKey === "paid") return ((a.paid ? 1 : 0) - (b.paid ? 1 : 0)) * sortDir;
     if (sortKey === "amount") return (x - y) * sortDir;
+    // Worst-first when descending: variance > never-validated > needs detail > valid.
+    if (sortKey === "validation_status") return (valRank(a) - valRank(b)) * sortDir;
     return String(x).localeCompare(String(y)) * sortDir;
   });
   return rows;
+}
+
+// A variance is only real above half a cent — floats leave dust at 1e-9.
+function hasVariance(r) {
+  return r.validation_variance != null && Math.abs(r.validation_variance) > 0.005;
+}
+
+function valRank(r) {
+  if (r.validation_status === "disputed") return 4;
+  if (r.validation_status === "valid") return 0;
+  if (hasVariance(r)) return 3;
+  if (!r.validation_status) return 2;
+  return r.validation_status === "valid" ? 0 : 1;
+}
+
+function valChip(r) {
+  const who = (r.validated_at ? "Validated " + r.validated_at : "") +
+              (r.validated_by ? " by " + r.validated_by : "");
+  // The stored per-invoice spec is the richest tooltip we have; fall back to who/when.
+  const rpt = r.validation_report || "";
+  // Disputed must be checked before hasVariance(): disputed rows carry the
+  // disputed dollar total in validation_variance, and the variance branch
+  // would otherwise shadow this one.
+  if (r.validation_status === "disputed") {
+    const amt = hasVariance(r) ? " " + money(r.validation_variance, r.currency) : "";
+    return `<span class="chip" title="${esc(rpt || who + " — flagged as disputed; not cleared for payment")}" style="background:color-mix(in srgb, var(--bad, #d33) 18%, transparent);color:var(--bad, #d33)">⚑ Disputed${amt}</span>`;
+  }
+  // An explicit "valid" wins over a stored variance: a human may accept a row the
+  // validator flagged. The variance number is kept and shown in the tooltip so the
+  // figure is never silently lost.
+  if (r.validation_status === "valid") {
+    const note = hasVariance(r) ? " — accepted despite recorded variance " + money(r.validation_variance, r.currency) : "";
+    return `<span class="chip" title="${esc((rpt || who) + note)}" style="background:color-mix(in srgb, var(--ok) 15%, transparent);color:var(--ok)">✓ Valid</span>`;
+  }
+  if (hasVariance(r)) {
+    return `<span class="chip" title="${esc(rpt || who)}" style="background:color-mix(in srgb, var(--bad, #d33) 15%, transparent);color:var(--bad, #d33)">⚠ ${money(r.validation_variance, r.currency)}</span>`;
+  }
+  if (!r.validation_status) {
+    return `<span class="chip" title="The validator has not run on this invoice" style="background:color-mix(in srgb, currentColor 8%, transparent);opacity:.75">Not validated</span>`;
+  }
+  return `<span class="chip" title="${esc(rpt || who + " — invoice math recorded, but the rate-card check needs supporting detail")}" style="background:color-mix(in srgb, var(--warn) 15%, transparent);color:var(--warn)">Needs detail</span>`;
 }
 
 function render() {
@@ -311,7 +383,7 @@ function render() {
   chart("chart-type", "hint-type", "type_of_invoice", rows);
   chart("chart-wh", "hint-wh", "warehouse", rows);
   const tbody = document.getElementById("rows");
-  tbody.innerHTML = rows.map(r => {
+  tbody.innerHTML = rows.map((r, i) => {
     const chip = `<span class="chip" style="background:color-mix(in srgb, var(${typeVar(r.type_of_invoice)}) 15%, transparent);color:var(${typeVar(r.type_of_invoice)})">${esc(r.type_of_invoice)}</span>`;
     const pdf = r.pdf_url ? `<a class="link" href="${esc(r.pdf_url)}" target="_blank" rel="noopener">View PDF ↗</a>` : `<span class="dash">—</span>`;
     const doc = r.supporting_doc_url ? `<a class="link" href="${esc(r.supporting_doc_url)}" target="_blank" rel="noopener">View doc ↗</a>` : `<span class="dash">—</span>`;
@@ -322,13 +394,19 @@ function render() {
       <td>${esc(r.warehouse)}</td>
       <td>${esc(r.bill_period)}</td>
       <td class="num">${money(r.amount, r.currency)} <span class="cur">${esc(r.currency)}</span></td>
+      <td><button class="valbtn" data-vd="${i}" aria-expanded="false" title="Click for the full validation report">${valChip(r)}<span class="vcaret">▸</span></button></td>
       <td>${r.paid
         ? `<span class="chip" title="Paid ${esc(r.paid_at)}${r.paid_marked_by ? " by " + esc(r.paid_marked_by) : ""}" style="background:color-mix(in srgb, var(--ok) 15%, transparent);color:var(--ok)">✓ Paid</span>`
         : `<span class="chip" style="background:color-mix(in srgb, var(--warn) 15%, transparent);color:var(--warn)">Unpaid</span>`}</td>
       <td class="notes" title="${esc(r.notes)}">${esc(r.notes)}</td>
       <td>${pdf}</td>
       <td>${doc}</td>
-    </tr>`;
+    </tr>
+    <tr class="vdetail" id="vd-${i}" hidden><td colspan="11">
+      <div class="vhead"><div class="vmeta">${esc(r.validation_status || "not validated")}${r.validated_at ? " &middot; " + esc(r.validated_at) : ""}${r.validated_by ? " &middot; " + esc(r.validated_by) : ""}${hasVariance(r) ? " &middot; variance " + money(r.validation_variance, r.currency) : ""}</div>
+        <button class="copybtn" type="button" title="Copy this report to the clipboard for pasting into bill.com">Copy</button></div>
+      ${reportBullets(r.validation_report)}<pre class="vraw" hidden>${esc(r.validation_report || "")}</pre>
+    </td></tr>`;
   }).join("");
   const byCur = {};
   for (const r of rows) byCur[r.currency] = (byCur[r.currency] || 0) + r.amount;
@@ -353,7 +431,129 @@ document.querySelectorAll(".yid-table thead th[data-k]").forEach(th => {
   th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleSort(th.dataset.k); } });
 });
 q.addEventListener("input", render);
-[fType, fWh, fMonth, fCur, fPaid].forEach(el => el.addEventListener("change", render));
+[fType, fWh, fMonth, fCur, fPaid, fVal].forEach(el => el.addEventListener("change", render));
+
+// Rendering the stored report. Two formats exist in the table: older ones are one point
+// per line, newer MSA passes arrive as a single 1,600-character paragraph with no
+// newlines at all. Normalising first means both render the same way — otherwise the
+// paragraph form collapses into one unreadable bullet, which is exactly what it did.
+const VLABELS = "(?:Invoice math|Rate card|Stedi|Verdict|Line detail|Paid|Invoice total|Notes)";
+
+function normalizeReport(text) {
+  let s = String(text).replace(/\r\n/g, "\n").trim();
+  s = s.replace(/\s*(\[[^\]\n]{1,60}\])\s*/g, "\n\n$1 ");            // [TAG] opens a group
+  s = s.replace(new RegExp("\\s+(?=" + VLABELS + "\\s*:)", "g"), "\n");  // labels open a line
+  return s.trim();
+}
+
+// "3,415 x 1.8887 ship carton CA = $6,449.91; 1,154 x 2.2264 ecom order = $2,569.27; …"
+// is a rate breakdown, not prose — each charge deserves its own line.
+function rateItems(line) {
+  const parts = line.split(/;\s+/);
+  const isRate = p => /\d\s*x\s*[\d.]+.*=\s*\$/.test(p);
+  if (parts.length < 3 || parts.filter(isRate).length < parts.length - 1) return null;
+  let lead = "";
+  const k = parts[0].lastIndexOf(": ");
+  if (k > -1 && isRate(parts[0].slice(k + 2))) {
+    lead = parts[0].slice(0, k + 1);
+    parts[0] = parts[0].slice(k + 2);
+  }
+  const items = [];
+  for (const p of parts) {
+    // a closing sentence often rides on the last charge ("… = $70.50. Stedi pass pending")
+    const m = p.match(/^(.*?=\s*\$[\d,.]+)\.\s+(\S.*)$/);
+    if (m) { items.push(m[1]); items.push(m[2]); } else { items.push(p); }
+  }
+  return { lead, items };
+}
+
+function reportBullets(text) {
+  if (!text || !text.trim()) {
+    return `<div class="vnone">No validation report stored for this invoice.</div>`;
+  }
+  const labelRe = new RegExp("^(" + VLABELS + "):\\s*(.+)$");
+  const out = [];
+  for (const block of normalizeReport(text).split(/\n\s*\n/)) {
+    const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    const tag = lines[0].match(/^\[([^\]]+)\]\s*(.*)$/);
+    if (tag) {
+      out.push(`<div class="vgroup">${esc(tag[1])}</div>`);
+      lines[0] = tag[2];
+      if (!lines[0]) lines.shift();
+    }
+    if (!lines.length) continue;
+    out.push("<ul class=\"vreport\">" + lines.map(line => {
+      const rates = rateItems(line);
+      if (rates) {
+        const sub = "<ul>" + rates.items.map(i => `<li>${esc(i)}</li>`).join("") + "</ul>";
+        return `<li>${rates.lead ? esc(rates.lead) : "Line detail"}${sub}</li>`;
+      }
+      const kv = line.match(labelRe);
+      return kv ? `<li><span class="vlabel">${esc(kv[1])}:</span> ${esc(kv[2])}</li>`
+                : `<li>${esc(line)}</li>`;
+    }).join("") + "</ul>");
+  }
+  return out.join("");
+}
+
+// bill.com entry is manual, so the report needs to be one click from the paste buffer.
+// This page runs in a sandboxed iframe where navigator.clipboard is often blocked, so
+// fall back to a throwaway textarea + execCommand (allowed on a user gesture), and if
+// even that fails, select the text in place so ⌘C still works rather than failing silently.
+function copyReport(btn) {
+  // Copy from the hidden raw text, not the rendered bullets, so the clipboard
+  // keeps the report's own line structure rather than list markup.
+  const pre = btn.closest("tr").querySelector("pre.vraw");
+  if (!pre) return;
+  // Section markers like [AUTO 2026-08-05] are internal tagging, not something to
+  // paste into bill.com. Line-anchored so any inline brackets in prose survive.
+  const text = pre.textContent.replace(/^\[[^\]]*\]\s*/gm, "").trim();
+  const flash = (label, ok) => {
+    const original = "Copy";
+    btn.textContent = label;
+    btn.classList.toggle("copied", !!ok);
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 1800);
+  };
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) { flash("Copied \u2713", true); return; }
+    const range = document.createRange();
+    range.selectNodeContents(pre);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    flash("Selected \u2014 press \u2318C", false);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => flash("Copied \u2713", true), fallback);
+  } else {
+    fallback();
+  }
+}
+
+// Expand/collapse the stored validation report. Delegated, because render() replaces
+// the whole tbody on any filter or sort change.
+document.getElementById("rows").addEventListener("click", e => {
+  const cp = e.target.closest(".copybtn");
+  if (cp) { copyReport(cp); return; }
+  const btn = e.target.closest(".valbtn");
+  if (!btn) return;
+  const row = document.getElementById("vd-" + btn.dataset.vd);
+  if (!row) return;
+  const open = row.hasAttribute("hidden");
+  row.toggleAttribute("hidden", !open);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+});
 
 document.getElementById("foot").textContent =
   "Snapshot generated " + KPI.generated + " · source: americanflat.finance.yusen_invoices · ask Claude to redeploy for fresh data";
