@@ -127,8 +127,14 @@ instead of the sequential script.
 `https://claude.ai/code/artifact/23dd148b-1fb0-4219-80e1-53ca8d9d3d97`) — people
 search invoices there, not in raw BigQuery. Built by `~/build_artifact_dashboard.py`
 (imports `~/generate_yusen_dashboard.py`; both live in `~`, outside this repo),
-auto-refreshed weekdays ~7:09 AM ET by the `refresh-yusen-dashboard-artifact`
-scheduled task; ingestion itself runs daily 3 PM MT via launchd. Two traps:
+auto-refreshed **weekdays at 8:30 AM, 12:00 PM, 3:30 PM and 6:00 PM ET**
+(Anthony, 2026-08-06) by two Routines — `refresh-yusen-artifact-830am-330pm`
+(`trig_01YG7tbcgDnpBRKkxo1KDHok`) and `refresh-yusen-artifact-noon-6pm`
+(`trig_01PrPh79KQSXtmK2fK9MBBVr`). Both are **gated**: the script compares a
+fingerprint of the BigQuery rows and prints `NO_CHANGE`, in which case nothing
+is republished. (Prior schedule was Mon/Thu 7:09 AM only — the older note
+saying "weekdays 7:09 AM" was wrong.) Ingestion itself runs daily 3 PM MT via
+launchd. Two traps:
 republishing MUST pass `url:` with the stable artifact URL or a duplicate
 artifact gets minted; and pre-2026-07-13 rows hold legacy `docs.google.com`
 supporting-doc links in BigQuery — deliberately not backfilled, the generators
