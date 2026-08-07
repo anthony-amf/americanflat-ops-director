@@ -8,10 +8,12 @@ this file is the human decision queue. Update or prune as decisions land.*
 ## MSA billing dispute — consolidated (2026-08-05, updated 8/6)
 
 Full sweep of all US SP/LTL + SC VAS invoices against the 7.15 MSA markup
-(Anthony confirmed draft-MSA rates are final): **≈$9,034 disputed across 14
-invoices** — stretchwrap billed above the $10 all-in pallet (AF-9, $5,958.39),
-pack-out billed after the 4/28 removal (AF-7, $786.60 — incl. **756156**,
-$22.08, found in the 8/6 post-May revalidation), and Fontana charging
+(Anthony confirmed draft-MSA rates are final): **≈$9,207 disputed across 15
+invoices** — stretchwrap billed above the $10 all-in pallet (AF-9, $6,131.07 —
+incl. **755266**, $172.68, a 7/14 SC VAS work order billing the combined
+$14.317 pallet rate, caught by the validator's line pass 8/6), pack-out billed
+after the 4/28 removal (AF-7, $786.60 — incl. **756156**, $22.08, found in the
+8/6 post-May revalidation), and Fontana charging
 every ecom pick where the schedule line is "Per **Additional** Ecom Pick"
 (~$2,289). $1,347.34 of it already paid (754699, 754704) → credit-memo claims.
 Per-invoice detail + contract cites:

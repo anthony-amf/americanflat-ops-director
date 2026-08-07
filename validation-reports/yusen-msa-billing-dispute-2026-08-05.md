@@ -46,12 +46,20 @@ MSA rates are final — only KPI and insurance language remains open.*
 | 754391 | SC VAS | no | 246.07 | — | — | **246.07** |
 | 754532 | SC VAS | no | 56.12 | — | — | **56.12** |
 | 754854 | SC VAS | no | 43.17 | — | — | **43.17** |
+| 755266 | SC VAS | no | 172.68 | — | — | **172.68** *(added 8/6)* |
 | 756156 | NJ | no | — | 22.08 | — | **22.08** *(added 8/6)* |
-| **Total** | | | **5,958.39** | **786.60** | **~2,289** | **≈9,034** |
+| **Total** | | | **6,131.07** | **786.60** | **~2,289** | **≈9,207** |
 
 - NJ wrap figures are billed line items ("STRETCHWRAP STD @ 4.347"). Fontana
   and SC figures are the wrap component embedded in the billed 14.317 pallet
   rate (= 10.00 + 4.317 × pallet count).
+- **755266** (SC VAS work order, invoiced 7/14) bills 40 pallets at the
+  combined **$14.317** rate = $572.68, of which the wrap component
+  40 × $4.317 = **$172.68** is disputed under AF-9; the $400.00 pallet portion
+  (40 × $10.00) is payable. Found by the validator's PDF line pass on 8/6 — it
+  was never checked in the 8/5 sweep because SC VAS work orders were reviewed
+  by document type, and this one carries the combined rate rather than a
+  separate wrap line.
 - **756156** (NJ SP/LTL, invoiced 7/31 — arrived after the 8/5 sweep) still
   bills PACK CARTON 24 × 0.92 = $22.08 despite the 4/28 AF-7 removal; found in
   the 8/6 post-May MSA revalidation. Note its pallets bill $10.00 flat, no wrap
