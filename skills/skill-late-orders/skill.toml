@@ -1,0 +1,18 @@
+[skill]
+name = "skill-late-orders"
+version = "1.1.0"
+description = "Analyze an AMF warehouse Open Order Report and flag every order that is late, must ship by EOD, or is awaiting warehouse acknowledgement. Produces a color-coded flagged-orders xlsx and a warehouse action email per warehouse."
+owner = "John Nunez <jnunez@americanflat.com>"
+tier = 1
+department = "ops"
+language = "python"
+
+[environment]
+requires_network = false
+requires_secrets = false
+stdlib_only = false
+python = "3.11"
+
+[compatibility]
+platforms = ["macos", "windows", "linux"]
+providers = ["claude"]
