@@ -1,0 +1,16 @@
+[skill]
+name = "skill-shorts-processing"
+version = "1.2.0"
+description = "Process daily AMF warehouse short orders into a routed Short Report, Slack post, and warehouse action emails. Covers DTC redirects and substitutions, Amazon VC and Walmart 1P full-carton down-confirms, ad-hoc warehouse cancel requests, and marketplace pricing-error recalls."
+owner = "John Nunez <jnunez@americanflat.com>"
+tier = 1
+department = "ops"
+
+[environment]
+requires_network = true
+requires_secrets = false
+stdlib_only = true
+
+[compatibility]
+platforms = ["macos", "windows", "linux"]
+providers = ["claude"]
