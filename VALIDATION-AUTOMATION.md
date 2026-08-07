@@ -55,16 +55,23 @@ first run swept only the Netherlands (`FTI…`) rows, which the runbook excludes
 and never reached the 61 US rows that needed checking. Verified via BigQuery
 time travel: net data effect was 4 rows going from unstamped to `needs_detail`
 (FTI0006502) — nothing downgraded, no report text lost, no payment flags
-touched. Confirmed cause: the **default branch still carries validator
-v1.1.0**, so a fresh cloud session unzips the old script (no status guards, no
-line pass, and its `--list-all` sweep orders invoice numbers descending, which
-puts `FTI…` first). The runbook now verifies the validator version and aborts
-if it is not v1.2.0+, and forbids the `--list-all --write` path.
+touched. Two `--list-all` sweeps can produce that pattern and both were live at
+21:30 UTC: the cloud Routine, and the Mac LaunchAgent
+`com.americanflat.yusen-validator-sweep` at 15:30 MT. Either way the mechanism
+is the same and worth fixing: `--list-all` orders invoice numbers **descending**,
+so `FTI…` sorts above every numeric invoice and a limited sweep spends itself on
+the excluded NL rows before reaching the US backlog. (An earlier note here
+blamed "v1.1.0 on the default branch" — that was read from a stale
+`origin/main`; main actually carried v1.3.0, whose human-stamp preservation is
+exactly why the 23 human-marked NL rows came through untouched.)
 
-**Before re-enabling the Routines:** merge `main-07xt41` into the default
-branch so fresh sessions get v1.2.0 by default (Anthony's call — cloud
-sessions push to the feature branch by convention). Then re-enable both
-Routines and watch one run.
+The runbook now verifies the validator version, aborts if it is older than the
+line-pass release, and forbids the `--list-all --write` path outright.
+
+**Two sweeps, one job.** The Mac LaunchAgent and the cloud Routines do the same
+work. Keep one: `launchctl unload ~/Library/LaunchAgents/com.americanflat.yusen-validator-sweep.plist`
+(note the name — `yusen-validator-sweep`, not `yusen-validation-sweep`, which is
+the never-installed plist under `launchd/` in this repo).
 
 **Write access:** granted 2026-08-06 by Iván Calderón (owner on the `finance`
 dataset — Anthony can write data but not change permissions, so this needed
@@ -107,18 +114,32 @@ stamped valid by the sweep (Stedi gate); `paid_at` is never touched.
 
 ## Mac-side punch list (in order)
 
+*Status 2026-08-05 (afternoon): ALL FIVE DONE. Backfill ran once (13 disputed
++ 3 notes verified); both dashboards refreshed/republished with disputed chips
+and report tooltips; skill at v1.2.0 (repackaged + committed); sweep
+LaunchAgent `com.americanflat.yusen-validator-sweep` loaded at 15:30 MT.
+Two incidents found and fixed along the way: (a) `refresh_yusen_dashboard.py`
+passed the DATA JSON as a regex replacement string, so `\n` escapes became raw
+newlines and broke the embedded JS — now a lambda replacement; (b) a concurrent
+invoice-processor session's "mark valid on payment" replay overwrote the fresh
+disputed stamps on paid 754699/754704 — restored, and v1.2.0 makes both
+disputed and paid-valid stamps sticky against re-sweeps.*
+
 1. **Run the backfill:**
    `bq query --use_legacy_sql=false < sql/backfill_validation_2026-08-05.sql`
-   (Run ONCE — the report append is not idempotent.)
+   (Run ONCE — the report append is not idempotent.) **DONE 2026-08-05.**
 2. **Refresh the local dashboard:** `python3 refresh_yusen_dashboard.py`
-   (picks up the disputed chips + notes automatically).
+   (picks up the disputed chips + notes automatically). **DONE.**
 3. **Artifact dashboard:** add the same two `valChip` additions to
    `~/generate_yusen_dashboard.py` / `~/build_artifact_dashboard.py`
    (`.v-disputed` CSS + the `disputed` label branch — copy from
    `refresh_yusen_dashboard.py`), then let the 7:09 AM scheduled refresh
    republish, or run it manually. Remember: republish MUST pass the stable
-   artifact `url:` or a duplicate gets minted.
-4. **Skill v1.2.0 — the actual hook** (edit `~/.claude/skills/yusen-invoice-validator/scripts/validate_rate_card.py`):
+   artifact `url:` or a duplicate gets minted. **DONE** — also: disputed chip
+   checked *before* the hasVariance branch (disputed rows carry the disputed $
+   in `validation_variance`, which otherwise shadows the chip), chip shows the
+   amount, and `validation_report` now rides along as the hover tooltip.
+4. **Skill v1.2.0 — the actual hook** (edit `~/.claude/skills/yusen-invoice-validator/scripts/validate_rate_card.py`): **DONE — shipped as v1.2.0.**
    - **VAS validation policy (Anthony, 2026-08-05):** comb the invoice PDF
      itself. If it contains supporting documentation — work order, email
      approval trail (e.g. John Nunez sign-off pages), count worksheets — and
@@ -159,7 +180,10 @@ stamped valid by the sweep (Stedi gate); `paid_at` is never touched.
    later, giving the streaming buffer time to clear):
    `cd ~/.claude/skills/yusen-invoice-validator && export STEDI_API_KEY=... && python3 scripts/validate_rate_card.py --list-all --limit 400 --write`
    Rows still in the streaming buffer auto-defer; the next day's sweep catches
-   them (existing behavior).
+   them (existing behavior). **DONE** —
+   `~/Library/LaunchAgents/com.americanflat.yusen-validator-sweep.plist`,
+   daily 15:30 Mountain (ingestion + 30 min), sources `~/.yusen/yusen.env`,
+   logs to `~/Library/Logs/yusen-validator-sweep.log`.
 
 ## Status vocabulary (for finance)
 

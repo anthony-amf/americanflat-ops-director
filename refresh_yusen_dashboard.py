@@ -134,8 +134,11 @@ def patch_html(html: str, rows: list) -> tuple[str, list]:
 
     # 5. Refresh DATA array (always)
     data_json = json.dumps(rows, ensure_ascii=False, separators=(", ", ": "))
+    # lambda replacement: a plain string here would have re reprocess the
+    # JSON's \n / \" escapes into raw control chars, corrupting the JS
     html, n = re.subn(r"const DATA = \[.*?\];",
-                      "const DATA = " + data_json + ";", html, count=1, flags=re.S)
+                      lambda _: "const DATA = " + data_json + ";",
+                      html, count=1, flags=re.S)
     if n:
         changes.append(f"refreshed DATA ({len(rows)} rows)")
     else:

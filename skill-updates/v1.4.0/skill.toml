@@ -1,0 +1,18 @@
+[skill]
+name = "skill-yusen-invoice-validator"
+version = "1.4.0"
+description = "Audit a Yusen / Taylored Service 3PL freight invoice: check billed amounts against the contracted rate card (live from Notion) and confirm orders shipped per Stedi EDI 945/940. Covers Admin, Storage, VAS, Small Parcel/LTL across Fontana, NJ, SC, Canada, and NL (EUR+VAT). Reads BigQuery finance.yusen_invoices."
+owner = "Anthony Armstrong <anthony@americanflat.com>"
+tier = 2
+department = "ops"
+language = "python"
+
+[environment]
+requires_network = true
+requires_secrets = true
+stdlib_only = false
+python = "3.11"
+
+[compatibility]
+platforms = ["macos", "linux"]
+providers = ["claude"]
