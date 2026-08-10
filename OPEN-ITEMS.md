@@ -15,7 +15,7 @@ $14.317 pallet rate, caught by the validator's line pass 8/6), pack-out billed
 after the 4/28 removal (AF-7, $786.60 — incl. **756156**, $22.08, found in the
 8/6 post-May revalidation), and Fontana charging
 every ecom pick where the schedule line is "Per **Additional** Ecom Pick"
-(~$2,289). $1,347.34 of it already paid (754699, 754704) → credit-memo claims.
+(~$2,289). $1,520.02 of it already paid (754699, 754704, 755266) → credit-memo claims.
 Per-invoice detail + contract cites:
 `validation-reports/yusen-msa-billing-dispute-2026-08-05.md`.
 Yusen's own week-of-7/23 invoices bill $10 flat with no wrap — they appear to

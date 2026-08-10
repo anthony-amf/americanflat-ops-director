@@ -46,7 +46,7 @@ MSA rates are final — only KPI and insurance language remains open.*
 | 754391 | SC VAS | no | 246.07 | — | — | **246.07** |
 | 754532 | SC VAS | no | 56.12 | — | — | **56.12** |
 | 754854 | SC VAS | no | 43.17 | — | — | **43.17** |
-| 755266 | SC VAS | no | 172.68 | — | — | **172.68** *(added 8/6)* |
+| 755266 | SC VAS | **PAID 8/7** | 172.68 | — | — | **172.68** *(added 8/6)* |
 | 756156 | NJ | no | — | 22.08 | — | **22.08** *(added 8/6)* |
 | **Total** | | | **6,131.07** | **786.60** | **~2,289** | **≈9,207** |
 
@@ -64,8 +64,10 @@ MSA rates are final — only KPI and insurance language remains open.*
   bills PACK CARTON 24 × 0.92 = $22.08 despite the 4/28 AF-7 removal; found in
   the 8/6 post-May MSA revalidation. Note its pallets bill $10.00 flat, no wrap
   — Yusen has adopted AF-9 but keeps billing the removed pack-out.
-- **Already paid: $1,347.34** (754699: 569.23; 754704: 778.11) → credit-memo
-  claims. Everything else can be short-paid or held.
+- **Already paid: $1,520.02** (754699: 569.23; 754704: 778.11; 755266: 172.68 —
+  paid in full 8/7 on Anthony's instruction) → credit-memo claims. Everything
+  else can still be short-paid or held. Paying in full does not waive the claim;
+  it changes the remedy from a short-pay to a credit request.
 - 754807 pick overcharge: billed 11,024 picks ($5,578.14); contract-compliant
   additional-only ≈ 6,659 picks ($3,369.20); overcharge $2,208.94. Conservative
   floor (single-unit orders only, indisputably non-additional): $1,778.59.
