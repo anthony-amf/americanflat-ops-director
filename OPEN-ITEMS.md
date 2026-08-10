@@ -29,7 +29,10 @@ have adopted AF-9 already.
 | 754807 | Fontana SP/LTL | $57,858.38 | Stedi 8,965/8,966; math exact; rates confirmed vs draft MSA (pick rate 0.506 = legit −8% from the 0.55 actually billed Mar–May; the old-card 0.455 was never billed). Disputed $4,134.32 (wrap component $1,925.38 + every-pick basis $2,208.94) — clean payable ≈ $53,724 |
 | 754386 | SC VAS work order | $1,073.78 | 75 pallets w/shrinkwrap @ $14.317; wrap component $323.78 disputed under AF-9 |
 | FTI0006458 | NL June warehousing | €20,317.20 | reconciles to Yusen AR statement exactly |
-| 754864 | NJ storage | $20,580.28 | 4,742 pallets @ $4.34, worksheet exact |
+
+*Cleared: **754864** (NJ storage, $20,580.28) — marked **PAID 2026-08-07** on
+Anthony's confirmation; 4,742 pallets x $4.34 exact, no MSA-conflict lines,
+payment report card stored on the row.*
 
 ## Pre-approved, waiting on data
 
