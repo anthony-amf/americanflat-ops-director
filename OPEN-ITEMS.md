@@ -73,6 +73,44 @@ the five validation fields added to both the query and the field whitelist
 (`claude/website-auto-refresh-efficiency-9x474j`, `ffa3b8e`); both Routines
 switched back on 2026-08-11.
 
+## Ingestion moving to the cloud — phase 0 of the 2 AM MT run
+
+Anthony's direction 2026-08-11: move ingestion off the Mac, and run it
+**fully unattended** rather than keeping the loader's human sign-off. The
+safeguard that replaces the operator is a hard money gate — an invoice whose
+stated total does not equal the sum of its line items is **parked, never loaded**.
+Procedure: `docs/INGESTION-RUNBOOK.md`.
+
+Findings from the investigation, since they correct the record:
+
+- **`skill-invoice-to-bigquery` is not what loads this table.** It writes to
+  `finance.freight_invoices` (drayage/carrier bills) via gcloud impersonation.
+  Whatever populates `yusen_invoices` is a separate Mac-side process, still
+  unidentified.
+- **Ingestion is not running daily at 3 PM MT.** Actual `ingested_at` history:
+  8/10 one row at 2:00 PM MT, 8/7 five rows at 9:35 AM, 8/6 nine at 2:54 PM,
+  8/5 twenty-nine at 3:02 PM, 7/28 five at 3:00 PM — irregular days (a week's gap
+  7/28→8/5) at varying times, one batch each. It is a manual process, not a cron.
+- **Drive is currently the *output* of ingestion, not its input.** 756711.pdf was
+  created in Drive at 20:00:21 UTC and the row written at 20:00:30 — nine seconds
+  apart, one flow. The PDFs live in **administrator@americanflat.com**'s Drive.
+- **Email attachments are unreachable from the cloud.** The Gmail connector can
+  read attachment names but has no tool to download attachment bytes. Drive
+  downloads work. This is structural, not a permission.
+
+**BLOCKING prerequisite: a Drive drop folder.** Something must put each invoice PDF
+into one folder before 2 AM — best a Gmail filter + Apps Script saving attachments
+from the Yusen sender; better still, Yusen sending somewhere that lands in Drive
+directly. Then set `DROP_FOLDER_ID` in the runbook. Until it is set, phase 0
+no-ops in one line by design.
+
+Two smaller items: phase 0 is written but **not yet added to the Routine prompt**
+(the trigger API was briefly unavailable) — the Routine currently runs phases 1-2,
+which is correct and safe meanwhile. And phase 0 deliberately inserts via **DML
+`INSERT`, not the streaming API**, so tonight's invoices are updatable
+immediately — that removes the long-standing problem of fresh rows having their
+validation stamps deferred a day by the ~90-minute streaming buffer.
+
 ## EDI (Stedi) check — now phase 2 of the 2 AM MT run
 
 Follows `docs/STEDI-NIGHTLY-RUNBOOK.md`. Closes the shipping axis on SP/LTL
