@@ -209,6 +209,73 @@ invoices tonight. This is the whole reason ingestion runs first in the same sess
 One statement per invoice, parameterised. After inserting, re-read each invoice
 number back and confirm exactly one row exists.
 
+## 6b. Parking: where it goes, and how it comes back
+
+Parking an invoice is only useful if somebody finds out. A parked invoice that
+nobody hears about is worse than the old manual process, because at least a person
+running the loader by hand *saw* the failure. Three layers, deliberately redundant:
+
+**1. A folder you can see.** Move the parked PDF from the drop folder into
+`Parked — needs a look` (a subfolder of the drop folder, `PARKED_FOLDER_ID` below).
+The folder itself becomes the worklist: if it has three files in it, three invoices
+need a human. This is the layer that survives an unread notification, and the reason
+it is a *move* rather than a flag is that a count is visible at a glance in Drive
+without opening anything.
+
+```
+PARKED_FOLDER_ID = <not configured>
+```
+
+**2. A notification that leaves the session.** The nightly summary lands inside a
+cloud session, which nobody opens unprompted — so the Routine has push and email
+notifications enabled, and every parked invoice appears in that summary with its
+number, the stated total, and the summed total. If the notification channels are
+ever switched off, this whole design degrades to "a file appears in a folder nobody
+is watching."
+
+**3. Alongside a parked file, write a plain-text sibling** —
+`<invoice>-PARKED.txt` in the same folder — saying what failed, in one paragraph, in
+plain language: which number was expected, which was found, and what a person should
+check. Anyone opening the folder in six weeks then knows what they are looking at
+without reconstructing it.
+
+**Do not report the same parked invoice every night.** Report it the night it parks,
+then **once a week** while it stays parked. Nightly repetition of a known problem
+trains people to skip the summary, which costs more than the reminder gains. The
+weekly nudge is enough to stop something sitting there for a month.
+
+**Count parked invoices in the staleness check** (step A). An invoice that parked is
+*not* an invoice that loaded — if everything arriving is parking, `days_since_ingest`
+keeps climbing and the run should say so. Otherwise "3 parked" reads as progress when
+it is actually a stall.
+
+### Unparking — three routes, all requiring a person
+
+The unattended job **never** unparks anything and never overrides the money gate.
+That is the whole point of the gate. Unparking is a human act, by one of these:
+
+1. **The input was bad — fix it and put it back.** A truncated download, a scan that
+   OCR'd badly, the wrong attachment. Drop a good PDF into the drop folder (moving
+   the parked one back also works) and the next run picks it up normally. Nothing to
+   configure; the job cannot tell it apart from a new arrival.
+
+2. **The extraction was wrong — ask Claude to redo it.** Say "load the parked
+   invoice 756xxx." Claude re-reads the PDF, shows you the stated total against the
+   summed lines, and loads it once you confirm the number. This is the human sign-off
+   from Option A, applied only to the exceptions rather than to everything — which is
+   the arrangement that makes unattended ingestion defensible.
+
+3. **The invoice really is inconsistent — accept it on the record.** Yusen's own
+   arithmetic occasionally does not add up. Load it with the mismatch recorded in
+   `notes` — `HUMAN-ACCEPTED MISMATCH 2026-08-11: stated 1,234.56 vs summed 1,200.00,
+   confirmed against the PDF by Anthony` — so the ledger carries *why* a row that
+   fails its own sum check is present. Never load a mismatch silently; a future
+   validation pass will flag it as a discrepancy and somebody will spend an hour
+   rediscovering what was already known.
+
+Once loaded by any route, move the PDF out of the parked folder so the count reflects
+reality, and delete nothing.
+
 ## 7. Report
 
 Per invoice: loaded (with number, type, amount) or parked (with the reason and the

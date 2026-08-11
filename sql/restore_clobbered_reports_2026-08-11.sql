@@ -13,9 +13,14 @@
 -- go back verbatim; the header-level [AUTO] block is rewritten so it no longer
 -- contradicts the deep pass; a [PAID] block is appended.
 --
--- Additive: only validation_report changes, and only on a row still holding the
--- short clobbered version (LENGTH < 500). Safe to re-run — the guard makes a
--- second run a no-op.
+-- Additive: only validation_report changes, and only on a row that does not
+-- already carry its [DEEP PASS] block. Safe to re-run — once restored, the row
+-- has the block and the guard makes a second run a no-op.
+--
+-- (The guard was originally LENGTH(validation_report) < 500, matching the 386-char
+-- clobbered state. A header-level Mac sweep later appended an [AUTO] block to both
+-- rows, taking them to 764 chars, so that guard silently stopped matching and the
+-- script became a no-op. Keying on the missing block instead is immune to that.)
 --
 -- Run once from the Mac. Fix for the underlying bug: skill v1.5.0
 -- (skill-updates/v1.5.0/, mark_paid now merges instead of replacing).
@@ -35,7 +40,7 @@ Verdict: OK to pay.
 
 [PAID 2026-08-11] Payment confirmed by Anthony. Basis: the [DEEP PASS 2026-08-10] review above (invoice math exact, rates match the card, MSA screen clean, Stedi order match 106/106). Verdict at approval: OK to pay.'''
 WHERE invoice_number = '754891'
-  AND LENGTH(validation_report) < 500;
+  AND validation_report NOT LIKE '%[DEEP PASS%';
 
 -- 755265: restores [MSA REVAL, DEEP PASS]
 UPDATE `americanflat.finance.yusen_invoices`
@@ -52,7 +57,7 @@ Verdict: OK to pay.
 
 [PAID 2026-08-11] Payment confirmed by Anthony. Basis: the [DEEP PASS 2026-08-10] review above (invoice math exact, rates match the card, MSA screen clean, Stedi order match 289/289). Verdict at approval: OK to pay.'''
 WHERE invoice_number = '755265'
-  AND LENGTH(validation_report) < 500;
+  AND validation_report NOT LIKE '%[DEEP PASS%';
 
 -- Verify afterwards:
 -- SELECT invoice_number, LENGTH(validation_report) len,
