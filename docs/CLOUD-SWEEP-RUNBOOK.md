@@ -1,8 +1,14 @@
 # Cloud validation sweep — runbook
 
-*Executed by the scheduled cloud sessions — 10:00 AM, 1:00 PM and 5:30 PM ET
-(the last is 30 min after the 3 PM MT ingestion). A fresh session follows this
-file top to bottom. Written 2026-08-06; owner anthony@americanflat.com.*
+*Phase 1 of the single nightly run `yusen-nightly-validation-2am-mt`, **2:00 AM MT
+daily** (Anthony, 2026-08-11), about 11 hours after the 3 PM MT ingestion so nothing
+is still in BigQuery's streaming buffer. Phase 2 is `STEDI-NIGHTLY-RUNBOOK.md`, run
+straight after this one in the same session. A fresh session follows this file top
+to bottom. Written 2026-08-06; owner anthony@americanflat.com.*
+
+*Replaces the former three-a-day schedule (10 AM / 1 PM / 5:30 PM ET). There is no
+second pass: whatever this run leaves unfinished waits a full day, so prefer
+finishing an invoice properly over finishing the list quickly.*
 
 ## Guard first: probe write access
 

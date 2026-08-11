@@ -25,24 +25,41 @@ and a detailed per-invoice spec readable from both dashboards.*
 
 ## Cloud rollout (2026-08-06, Anthony's direction: run in cloud, not the Mac)
 
-The sweep runs as **scheduled cloud sessions** following
-`docs/CLOUD-SWEEP-RUNBOOK.md` — three passes a day, times in **Eastern**
-(Anthony, 2026-08-06):
+Validation runs as **one scheduled cloud session per day at 2:00 AM Mountain**
+(Anthony, 2026-08-11), doing both axes in sequence:
 
-| Routine | Cron (UTC) | Local (ET) | Trigger id |
-|---|---|---|---|
-| `yusen-cloud-validation-sweep` | `30 21 * * *` | 5:30 PM | `trig_016vL18kChzAxpv7tfZjqzyS` |
-| `yusen-cloud-validation-sweep-midday` | `0 14,17 * * *` | 10:00 AM + 1:00 PM | `trig_01GQSfBrEkUVPJj6MqbkSn5D` |
+| Routine | Cron (UTC) | Local | Trigger id | State |
+|---|---|---|---|---|
+| `yusen-nightly-validation-2am-mt` | `0 8 * * *` | 2:00 AM MT | `trig_016vL18kChzAxpv7tfZjqzyS` | **active** |
+| `yusen-cloud-validation-sweep-midday` | `0 14,17 * * *` | 10 AM + 1 PM ET | `trig_01GQSfBrEkUVPJj6MqbkSn5D` | disabled 2026-08-11 |
+| `yusen-stedi-nightly` | `0 6 * * *` | 2:00 AM ET | `trig_019Drs2eEgyRt9G3DPu8rwJS` | disabled 2026-08-11 |
 
-The last pass is deliberately **5:30 PM ET = 3:30 PM Mountain, 30 minutes
-after ingestion** — that is what makes same-day validation work. Keep that
-relationship if either schedule moves. The 10 AM and 1 PM passes mop up rows
-that were locked in BigQuery's streaming buffer the previous evening plus
-anything uploaded by hand during the day.
+The one run does **phase 1** (`docs/CLOUD-SWEEP-RUNBOOK.md` — rate card, invoice
+math, MSA conflicts) then **phase 2** (`docs/STEDI-NIGHTLY-RUNBOOK.md` — EDI
+shipping evidence), in that order. The order is load-bearing: phase 2 may only
+stamp an invoice `valid` when the contract check is already on the row, so running
+the contract pass first lets an invoice that clears both axes get its stamp the
+same night instead of waiting a day.
 
-Running several times a day is safe: settled rows (valid/disputed) are
-skipped and never downgraded. On a quiet day a pass finds nothing and exits
-in one line.
+2:00 AM MT sits **11 hours after the 3 PM MT ingestion**, so every invoice loaded
+that day is well clear of BigQuery's streaming buffer (~90 min) and writable. That
+was the weakness of the old 5:30 PM ET pass, which ran 30 minutes after ingestion
+and routinely deferred fresh rows to the next day.
+
+The two disabled Routines are kept, not deleted, so their prompts and history
+remain available if the schedule is ever revisited.
+
+**Consequence of running once: there is no second pass.** Whatever a run leaves
+unfinished waits a full day, so the run should prefer finishing an invoice properly
+over finishing the list quickly. It is still safe to re-run by hand — settled rows
+are skipped and never downgraded, and on a quiet night the run finds nothing and
+exits in one line.
+
+**DST caveat:** the scheduler takes cron in UTC only, with no timezone field, so
+`0 8 * * *` is 2:00 AM Mountain **only during MDT**. When Mountain goes back to
+standard time (2026-11-01), this fires at 1:00 AM MT until the cron is changed to
+`0 9 * * *`. Same applies in reverse each spring. Every other Routine in this
+account has the same exposure.
 
 **DST note:** cron is fixed UTC, so these hold while ET is UTC-4. When DST
 ends (2026-11-01) they shift an hour earlier in local terms (9 AM / noon /

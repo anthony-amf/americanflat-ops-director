@@ -41,11 +41,15 @@ payment report card stored on the row.*
 
 ## Auto-validation rollout — CLOUD (Anthony's direction 2026-08-06)
 
-Cloud sweeps are LIVE, three passes a day (see VALIDATION-AUTOMATION.md for
-the table): `yusen-cloud-validation-sweep` at 5:30 PM ET (30 min after ingestion)
-(`trig_016vL18kChzAxpv7tfZjqzyS`) and `yusen-cloud-validation-sweep-midday`
-at 10 AM + 1 PM ET (`trig_01GQSfBrEkUVPJj6MqbkSn5D`). Both follow
-`docs/CLOUD-SWEEP-RUNBOOK.md`. Remaining setup:
+**Consolidated to ONE run a day, 2:00 AM MT** (Anthony, 2026-08-11):
+`yusen-nightly-validation-2am-mt` (`trig_016vL18kChzAxpv7tfZjqzyS`, cron
+`0 8 * * *`) does phase 1 `docs/CLOUD-SWEEP-RUNBOOK.md` (rate card, math, MSA)
+then phase 2 `docs/STEDI-NIGHTLY-RUNBOOK.md` (EDI shipping) in one session, in
+that order. The former midday sweep and the standalone `yusen-stedi-nightly` are
+disabled but retained. 2 AM MT is 11 hours after ingestion, so nothing is stuck in
+the streaming buffer — the old 5:30 PM ET pass ran 30 min after ingestion and kept
+deferring fresh rows. See VALIDATION-AUTOMATION.md for the table and the DST
+caveat (cron is UTC-only; needs `0 9 * * *` after 2026-11-01). Remaining setup:
 
 1. ~~**Grant BigQuery write to the cloud service account**~~ — **DONE
    2026-08-06** by Iván Calderón (dataset owner; Anthony can write data but
@@ -69,12 +73,21 @@ the five validation fields added to both the query and the field whitelist
 (`claude/website-auto-refresh-efficiency-9x474j`, `ffa3b8e`); both Routines
 switched back on 2026-08-11.
 
-## Nightly EDI (Stedi) check — scheduled, waiting on the key
+## EDI (Stedi) check — now phase 2 of the 2 AM MT run
 
-`yusen-stedi-nightly` (`trig_019Drs2eEgyRt9G3DPu8rwJS`), **2:00 AM ET daily**,
-follows `docs/STEDI-NIGHTLY-RUNBOOK.md`. Closes the shipping axis on SP/LTL
+Follows `docs/STEDI-NIGHTLY-RUNBOOK.md`. Closes the shipping axis on SP/LTL
 invoices so they stop parking at `needs_detail`, and recomputes the e-com pick
 charge on the contract's additional-only basis (the AF-9/pick dispute basis).
+No longer a separate Routine — the standalone `yusen-stedi-nightly` is disabled.
+
+**Cost discipline (Anthony, 2026-08-11): every order lookup is a metered API call,
+and we are not asking Stedi about pricing — they won't help.** So the runbook's
+Guard 0 is the standing design, not a placeholder: never query an order twice, a
+retry queries only the previously-unmatched IDs (stored parseably on the row for
+exactly that purpose), results cache to disk so an interrupted run resumes, the
+total order count is estimated before any call and the run stops above 20,000, and
+any 429/5xx means back off and stop rather than push through. Scope is floored at
+2026-01-01 and excludes paid and `valid` rows — 10 invoices rather than 61.
 
 **Unblocked 2026-08-11.** Anthony added the key to the cloud environment and had
 `core.us.stedi.com` allowed through the proxy. Verified the same day from a fresh

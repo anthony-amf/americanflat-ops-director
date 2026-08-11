@@ -1,9 +1,16 @@
 # Nightly Stedi (EDI) order check — runbook
 
-*Executed by the scheduled cloud session `yusen-stedi-nightly`, 2:00 AM ET
-daily. Purpose: close the shipping axis on Small Parcel / LTL invoices so they
-stop parking at `needs_detail`. Written 2026-08-07; owner
-anthony@americanflat.com.*
+*Phase 2 of the single nightly run `yusen-nightly-validation-2am-mt`, **2:00 AM MT
+daily** (Anthony, 2026-08-11), executed immediately after phase 1
+(`CLOUD-SWEEP-RUNBOOK.md`) in the same session. Purpose: close the shipping axis on
+Small Parcel / LTL invoices so they stop parking at `needs_detail`. Written
+2026-08-07; owner anthony@americanflat.com.*
+
+*Phase order is load-bearing: this phase may only stamp an invoice `valid` when the
+contract check is already on the row, so the contract pass runs first and an invoice
+clearing both axes gets its stamp the same night. The old standalone
+`yusen-stedi-nightly` Routine (2:00 AM ET) is retained but disabled — its work is
+folded in here.*
 
 ## What this does, in one line
 
@@ -38,11 +45,17 @@ Standing rules, in priority order:
    date-range or multi-id lookup is available, a week of orders should cost a few
    paginated calls, not one call per order.
 
-**Pending as of 2026-08-11:** Anthony asked Stedi to confirm the per-call cost,
-the rate limits, and whether a bulk/date-range lookup exists that would replace
-per-order polling entirely. **Until that answer comes back, do not run a full
-sweep.** A single invoice for a spot check is fine. This gate is deliberate —
-the point is to learn the cost before spending it, not after.
+**We are not asking Stedi about pricing** (Anthony, 2026-08-11 — they won't help).
+So the budget rules above are not provisional and there is no answer coming that
+relaxes them. They are the standing design, and they hold regardless of what a
+call costs: not re-asking a question you already know the answer to is correct
+engineering at any price.
+
+Practical consequence: the per-order lookup is the only retrieval method we can
+count on, so the way to keep this cheap is to query as few orders as possible —
+which is exactly what the work-list filters, the unmatched-only retry and the
+on-disk cache are for. If a bulk or date-range lookup turns out to exist, adopting
+it is a straight improvement; nobody is waiting on permission to look.
 
 ## Guard 1: is the API key present?
 
