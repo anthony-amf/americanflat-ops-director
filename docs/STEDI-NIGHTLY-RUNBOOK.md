@@ -12,6 +12,38 @@ billed order actually shipped (EDI 945, falling back to 940 = in warehouse),
 recompute the e-com pick charge on the contract's **additional-only** basis,
 and record both findings on the invoice row. It never marks anything paid.
 
+## Guard 0: the API-call budget (read this before anything else)
+
+**Every order lookup is a metered API call. Treat calls as money, not as a free
+resource.** This job can generate tens of thousands of them if written carelessly,
+and on 2026-08-11 an early version was about to: 61 invoices, one of them
+(754807) carrying 8,966 orders, including invoices settled in 2025 and NL rows
+whose orders are not in the US feed at all.
+
+Standing rules, in priority order:
+
+1. **Never query an order twice.** A matched order is matched forever — shipment
+   history does not change retroactively. Cache every result and consult the cache
+   before calling out.
+2. **A retry queries only what was unmatched.** The 5-day retry exists for orders
+   whose EDI record arrived late. Re-running the whole invoice to re-confirm
+   thousands of already-matched orders is pure waste. Step 4 explains how to store
+   the unmatched IDs so a retry costs a handful of calls instead of thousands.
+3. **Estimate before executing.** Sum the order count across the whole work list
+   first and print it. If the total exceeds **20,000 orders**, STOP and report the
+   estimate — do not start. That is a human decision, not an automated one.
+4. **On rate limiting or any 429/5xx, back off and stop.** Report which invoices
+   completed. Never retry in a tight loop, and never "push through" a limit.
+5. **Prefer one bulk query to many single ones** wherever the API supports it. If a
+   date-range or multi-id lookup is available, a week of orders should cost a few
+   paginated calls, not one call per order.
+
+**Pending as of 2026-08-11:** Anthony asked Stedi to confirm the per-call cost,
+the rate limits, and whether a bulk/date-range lookup exists that would replace
+per-order polling entirely. **Until that answer comes back, do not run a full
+sweep.** A single invoice for a spot check is fine. This gate is deliberate —
+the point is to learn the cost before spending it, not after.
+
 ## Guard 1: is the API key present?
 
 ```bash
@@ -59,6 +91,9 @@ WHERE type_of_invoice LIKE 'SML%'
   -- nothing. `disputed` IS included — the shipping evidence supports the claim.
   AND paid_at IS NULL
   AND IFNULL(validation_status,'') IN ('', 'needs_detail', 'error', 'disputed')
+  -- Anthony, 2026-08-11: nothing before 2026. The 2025 invoices are closed
+  -- business and are not worth a single API call.
+  AND date >= '2026-01-01'
   AND supporting_doc_url IS NOT NULL
   AND (
         -- never checked
@@ -164,6 +199,28 @@ unmatched IDs (cap the stored list at ~20 with a count). **When any order is
 unmatched, the stored block must contain the literal word `UNMATCHED`** — the
 5-day retry query in step 1 keys off it. A fully matched check must NOT contain
 that word, or it will be re-queried needlessly.
+
+**Store the unmatched IDs machine-readably, because the retry reads them back.**
+Put them on their own line inside the block, exactly:
+
+```
+UNMATCHED IDS: 6719203862_1, 6719204011, 6719204250 (3 of 289)
+```
+
+**A retry queries only those IDs — never the whole invoice again.** Parse that line
+out of the most recent `[STEDI]` block, look up only those orders, and write a
+fresh block with the outcome. If the stored list was truncated ("20 of 47 shown"),
+query the 20 you have and say so plainly in the new block, so the remainder is a
+known unknown rather than a silent one — then raise the cap for that invoice.
+
+This is where the money is. Re-checking 754807 costs ~8,966 calls; retrying its
+actual gaps costs as many calls as there are gaps. Same information, three orders
+of magnitude cheaper.
+
+**Cache to disk as you go**, `/tmp/stedi/cache-<invoice>.json`, one entry per order
+with its result. Consult the cache before every call. If a run dies partway — rate
+limit, timeout, interrupt — the next attempt resumes instead of starting over. Two
+runs were interrupted on 2026-08-11; with no cache, both started from zero.
 
 ## 5. Recompute the e-com pick charge (the money question)
 
