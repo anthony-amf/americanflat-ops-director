@@ -45,14 +45,40 @@ FROM `americanflat.finance.yusen_invoices`
 WHERE type_of_invoice LIKE 'SML%'
   AND NOT STARTS_WITH(invoice_number, 'CA262')      -- NL transport: separate validator
   AND supporting_doc_url IS NOT NULL
-  AND validation_report NOT LIKE '%[STEDI %'        -- no Stedi block yet
+  AND (
+        -- never checked
+        validation_report NOT LIKE '%[STEDI %'
+        -- or checked, came back with gaps, and is still inside the 5-day retry window
+        OR (validation_report LIKE '%[STEDI %'
+            AND validation_report LIKE '%UNMATCHED%'
+            AND REGEXP_EXTRACT(validation_report, r'\[STEDI (\d{4}-\d{2}-\d{2})[^\]]*\](?!.*\[STEDI )')
+                >= FORMAT_DATE('%Y-%m-%d', DATE_SUB(CURRENT_DATE(), INTERVAL 5 DAY)))
+      )
 ORDER BY date DESC
 ```
 
-The `[STEDI <date>]` report block is the marker for "already checked" — an
-invoice is processed once and then left alone. Rows whose status is already
-`disputed` still get checked (the shipping evidence is useful either way) but
-their status is never changed by this job.
+**The `[STEDI <date>]` block is the "already checked" marker — with one
+exception: a check that found unmatched orders is retried for 5 days.**
+
+A clean result is final: checked once, then left alone forever. But EDI
+shipment data lags — an order billed today may not appear in Stedi for a day or
+two, so a same-week check can report a gap that is really just timing. Those
+get retried each night for **5 days from the last check**, then stop.
+
+Five days is deliberate (Anthony, 2026-08-07): unmatched orders already trigger
+manual lookups on the ops side, so anything real will have surfaced by then. A
+gap still open after 5 days is a genuine finding — Yusen billed an order with
+no shipping evidence — and should stay flagged rather than be re-queried
+forever.
+
+Write the retry so it is visible: each retry appends a fresh `[STEDI <date>]`
+block, so the row's history shows the gap was re-checked and when. If a retry
+clears the gap, apply the normal status rules (100% matched, no pick overcharge
+-> `valid`). If day 5 passes with the gap open, say so in the summary once so a
+human picks it up — do not keep raising it nightly after that.
+
+Rows whose status is already `disputed` still get checked (the shipping
+evidence is useful either way) but their status is never changed by this job.
 
 ## 2. Get the supporting worksheet
 
@@ -91,7 +117,10 @@ workers) against `https://core.us.stedi.com/2023-08-01/transactions`, 945
 first then 940 for anything not found. Fontana invoices run 1,000–9,000 orders.
 
 Record: orders checked, matched via 945, matched via 940, and the specific
-unmatched IDs (cap the stored list at ~20 with a count).
+unmatched IDs (cap the stored list at ~20 with a count). **When any order is
+unmatched, the stored block must contain the literal word `UNMATCHED`** — the
+5-day retry query in step 1 keys off it. A fully matched check must NOT contain
+that word, or it will be re-queried needlessly.
 
 ## 5. Recompute the e-com pick charge (the money question)
 
