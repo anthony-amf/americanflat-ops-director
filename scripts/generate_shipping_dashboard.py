@@ -46,8 +46,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bq_read  # noqa: E402
+from safe_write import safe_write_text  # noqa: E402
 
 TABLE = "americanflat.finance.shipping_orders"
+
+# Present in every page this script generates. A write to an existing file that
+# does not contain it is refused, so a mistyped --out cannot destroy anything.
+PAGE_MARKER = "<title>Cost Per SKU — Shipping · Americanflat</title>"
+FINGERPRINT_MARKER = "# shipping dashboard fingerprint"
 
 # Fixed slot order — a marketplace keeps its hue no matter which ones are on
 # screen. Volume order, largest first.
@@ -124,7 +130,9 @@ def from_bigquery(limit: int) -> tuple[list, list, dict, bool]:
 
 def from_json(path: Path, limit: int) -> tuple[list, list, dict]:
     """Build the same shapes from load_shipping_orders_to_bq.py --out-json."""
-    raw = json.loads(path.read_text())
+    loaded = json.loads(path.read_text())
+    # The loader wraps its rows in an envelope; a bare list is also accepted.
+    raw = loaded["rows"] if isinstance(loaded, dict) else loaded
 
     buckets: dict[tuple, dict] = {}
     for r in raw:
@@ -218,15 +226,15 @@ def main():
     fp = fingerprint(agg, meta)
     fp_path = Path(args.fingerprint_file).expanduser() if args.fingerprint_file else None
     if fp_path and fp_path.exists() and not args.force:
-        if fp_path.read_text().strip() == fp:
+        if fp in fp_path.read_text():
             print("NO_CHANGE")
             return
 
     html = render(agg, rows, meta, args.banner, source, needs_table=missing)
     out = Path(args.out).expanduser()
-    out.write_text(html)
+    safe_write_text(out, html, PAGE_MARKER, "dashboard page")
     if fp_path:
-        fp_path.write_text(fp)
+        safe_write_text(fp_path, f"{FINGERPRINT_MARKER}\n{fp}\n", FINGERPRINT_MARKER, "fingerprint")
 
     units = sum(r["u"] for r in agg)
     cost = sum(r["c"] for r in agg if r["s"] == "matched")

@@ -46,6 +46,13 @@ import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from safe_write import safe_write_text  # noqa: E402
+
+# Present in every JSON dump this script writes, so a write to an existing file
+# that lacks it is refused rather than clobbering something real.
+JSON_MARKER = '"_written_by": "load_shipping_orders_to_bq.py"'
+
 PROJECT = "americanflat"
 DATASET = "finance"
 TABLE = "shipping_orders"
@@ -504,8 +511,8 @@ def finish(rows: list, args):
 
     if args.out_json:
         out = Path(args.out_json).expanduser()
-        with open(out, "w") as f:
-            json.dump(rows, f, indent=2)
+        payload = {"_written_by": "load_shipping_orders_to_bq.py", "rows": rows}
+        safe_write_text(out, json.dumps(payload, indent=2), JSON_MARKER, "rows file")
         print(f"\nRows written to {out}")
 
     if not args.dry_run and rows:

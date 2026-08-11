@@ -97,6 +97,26 @@ row matching a package it is about to write. So when a FedEx invoice arrives lat
 and shows up in a later week's file, that package flips from unmatched to matched
 in place instead of appearing twice.
 
+## What these scripts can and cannot destroy
+
+Per the standing no-delete rule, neither script removes a file, and neither can
+overwrite one it did not write.
+
+Every file they generate carries a marker near the top — the dashboard's
+`<title>`, a comment line in the fingerprint file, a `_written_by` key in the
+rows JSON. Before writing to a path that already exists, the marker has to be
+there. Rebuilding the dashboard over last week's copy works, because that copy is
+its own output; a mistyped `--out` that lands on a real file stops with
+"Refusing to overwrite" and changes nothing. The guard lives in
+`scripts/safe_write.py`.
+
+The one thing that genuinely deletes is **rows inside the BigQuery table**, and
+only the loader, and only in the narrow way described above: the week being
+reloaded, plus any row matching a package about to be rewritten. That is what
+makes re-running a week safe instead of duplicating. It never touches a row for
+any other week or any other package, and there is deliberately no "wipe the
+table" option — a full rebuild is just loading every week again.
+
 ## Reading the numbers
 
 - **Cost per unit is invoiced freight ÷ matched units.** Packages still waiting on
