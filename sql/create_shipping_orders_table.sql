@@ -6,11 +6,17 @@
 -- Run ONCE, from the Mac (gcloud ADC) or the BigQuery web console:
 --   bq query --use_legacy_sql=false --max_rows=100 < sql/create_shipping_orders_table.sql
 --
--- If the account is refused with "Permission bigquery.tables.create denied",
--- paste this file into the BigQuery console query editor and run it there, or
--- ask whoever owns the project to grant BigQuery Data Editor on the
--- `finance` dataset. Everything after table creation only needs the write
--- permission the account already has.
+-- CONFIRMED 2026-08-11: Anthony's account is refused here —
+--   "Access Denied: Dataset americanflat:finance: Permission
+--    bigquery.tables.create denied on dataset americanflat:finance"
+-- The BigQuery web console does NOT get around this; it signs in as the same
+-- account and fails the same way. Creating the table needs someone with
+-- BigQuery Data Editor (or Owner) on the `finance` dataset — Iván Calderón owns
+-- it and made the comparable grant on 2026-08-06 for the cloud service account.
+-- Either ask for that role, or send him this file to run once.
+--
+-- Everything after table creation works on the write permission the account
+-- already has: the weekly loader only inserts and deletes rows.
 --
 -- Safe to re-run: CREATE TABLE IF NOT EXISTS never touches existing rows.
 

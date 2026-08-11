@@ -62,12 +62,22 @@ TABLE = "shipping_orders"
 # dropped: the marketplace covers shipping there, so it has no place here.
 COVERED_MARKETPLACES = {"Target", "Michaels", "Shopify", "Macy's"}
 
-# Where the shipping-cost-report skill might live, most-specific first.
+# Where the shipping-cost-report skill might live, most-specific first. Entries
+# may contain * — plugin-managed skills land under a generated folder name, so
+# the exact path differs per machine and install.
 SKILL_LIB_CANDIDATES = [
     "~/.claude/skills/shipping-cost-report/scripts",
     "~/.claude/skills/synced/shipping-cost-report/scripts",
     "/root/.claude/skills/synced/shipping-cost-report/scripts",
+    "~/.claude/plugins/*/skills/shipping-cost-report/scripts",
+    "~/.claude/plugins/*/*/skills/shipping-cost-report/scripts",
+    "~/Library/Application Support/Claude/*/skills-plugin/*/*/skills/shipping-cost-report/scripts",
+    "~/Library/Application Support/Claude/*/*/*/skills/shipping-cost-report/scripts",
 ]
+
+# Last resort: sweep the home folder for the file itself. Read-only, and skipped
+# unless every candidate path above came up empty.
+SKILL_LIB_SWEEP_ROOTS = ["~/.claude", "~/Library/Application Support/Claude"]
 
 WEEK_DIR_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})$")
 
@@ -108,30 +118,55 @@ BQ_SCHEMA_FIELDS = [
 # ── the shipping-cost-report skill's matching code ─────────────────────────
 
 
+def _expand(candidate: str) -> list[Path]:
+    """Turn one candidate into concrete paths to process_shipments.py."""
+    raw = str(Path(candidate).expanduser())
+    hits = sorted(glob.glob(raw)) if "*" in raw else [raw]
+    out = []
+    for hit in hits:
+        path = Path(hit)
+        out.append(path / "process_shipments.py" if path.is_dir() else path)
+    return out
+
+
 def load_shipping_lib(explicit: str | None = None):
     """Import process_shipments.py from the shipping-cost-report skill."""
     candidates = [explicit] if explicit else []
     candidates += [os.environ.get("SHIPPING_COST_REPORT_SCRIPTS", "")]
     candidates += SKILL_LIB_CANDIDATES
+
     for cand in candidates:
         if not cand:
             continue
-        path = Path(cand).expanduser()
-        if path.is_dir():
-            path = path / "process_shipments.py"
-        if not path.is_file():
+        for path in _expand(cand):
+            if path.is_file():
+                return _import_lib(path)
+
+    # Nothing matched a known layout — go looking for it.
+    for root in SKILL_LIB_SWEEP_ROOTS:
+        base = Path(root).expanduser()
+        if not base.is_dir():
             continue
-        spec = importlib.util.spec_from_file_location("process_shipments", path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        print(f"Matching logic: {path}")
-        return module
+        for path in sorted(base.rglob("shipping-cost-report/scripts/process_shipments.py")):
+            return _import_lib(path)
+
     sys.exit(
         "Could not find the shipping-cost-report skill's process_shipments.py.\n"
         "Looked in:\n  "
         + "\n  ".join(str(Path(c).expanduser()) for c in candidates if c)
-        + "\nPass --shipping-lib <path to the skill's scripts dir> to point at it."
+        + "\nand swept "
+        + ", ".join(str(Path(r).expanduser()) for r in SKILL_LIB_SWEEP_ROOTS)
+        + ".\nFind it with:  find ~ -name process_shipments.py 2>/dev/null\n"
+        "then pass --shipping-lib <the folder it is in>."
     )
+
+
+def _import_lib(path: Path):
+    spec = importlib.util.spec_from_file_location("process_shipments", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    print(f"Matching logic: {path}")
+    return module
 
 
 # ── file discovery ────────────────────────────────────────────────────────

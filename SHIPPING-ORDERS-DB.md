@@ -30,6 +30,16 @@ The matching itself is **not** reimplemented here. The loader imports
 report and this database always agree about which invoice paid for which package.
 If that skill's matching changes, this picks it up with no edit.
 
+Where that file lives differs by machine — a plugin-managed skill sits under a
+generated folder name. The loader checks the usual spots, then sweeps `~/.claude`
+and `~/Library/Application Support/Claude` for it. If it still comes up empty:
+
+```bash
+find ~ -name process_shipments.py 2>/dev/null
+# then pass the folder it is in
+python3 scripts/load_shipping_orders_to_bq.py --shipping-lib <that folder> --week-dir ...
+```
+
 ## First-time setup
 
 **1. Make the table** (once):
@@ -38,9 +48,23 @@ If that skill's matching changes, this picks it up with no edit.
 bq query --use_legacy_sql=false --max_rows=100 < sql/create_shipping_orders_table.sql
 ```
 
-If that comes back saying permission to create tables is denied, paste the same
-file into the BigQuery web console query editor and run it there. Everything
-after this step only needs the write access the account already has.
+**This step is currently blocked** (tried 2026-08-11):
+
+```
+Access Denied: Dataset americanflat:finance: Permission
+bigquery.tables.create denied on dataset americanflat:finance
+```
+
+Anthony's account can add and change rows in `finance` but cannot create a table
+there. The BigQuery web console is not a way around it — it signs in as the same
+account. This needs BigQuery Data Editor on the `finance` dataset, which **Iván
+Calderón** can grant (he owns the dataset and made the equivalent grant on
+2026-08-06 so the cloud service account could write to `finance.yusen_invoices`).
+Either get that role, or send Iván
+`sql/create_shipping_orders_table.sql` to run once.
+
+Nothing after this step needs any new permission — the loader only inserts and
+deletes rows, which the account can already do.
 
 **2. Load the history.** Two ways in, depending on where the files are.
 
