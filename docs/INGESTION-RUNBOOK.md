@@ -44,6 +44,47 @@ process seconds before it writes the row (756711.pdf: file created 20:00:21 UTC,
 row written 20:00:30). Drive is presently the *output* of ingestion, not its input.
 That is exactly what this changes.
 
+## Step A — the staleness check (ALWAYS run this, even when phase 0 no-ops)
+
+**Run this before the guards, every single night, whether or not the drop folder is
+configured.** It is the one part of phase 0 that works today.
+
+```sql
+SELECT DATE_DIFF(CURRENT_DATE(), DATE(MAX(ingested_at)), DAY) AS days_since_ingest,
+       DATE_DIFF(CURRENT_DATE(), MAX(date), DAY)              AS days_since_newest_invoice
+FROM `americanflat.finance.yusen_invoices`
+```
+
+Report against these thresholds, which come from the real cadence (median gap
+**1 day**; normal runs land 1–3 days apart):
+
+| `days_since_ingest` | Say |
+|---|---|
+| 0–3 | nothing — this is normal, don't mention it |
+| 4–6 | "no invoices ingested in N days — worth a glance" |
+| 7 or more | **"INGESTION STALE: nothing loaded in N days."** Treat as a probable fault |
+
+Same for `days_since_newest_invoice`: past **14 days** say
+**"no invoice newer than <date> — we may be missing billing weeks."** That one
+catches a different failure: the pipe works but Yusen stopped sending.
+
+**Why this earns its place.** Ingestion has gone quiet for 9 days (Jul 13→22),
+8 days (Jul 28→Aug 5) and 5 days (Jul 22→27) — every one because it depended on a
+person being available to trigger it (Anthony, 2026-08-11: "I was OOO and couldn't
+trigger it — hence the move to automation"). Nobody was told; the invoices simply
+weren't there.
+
+Automating the load does not by itself fix that. It relocates it. If the email →
+Drive step breaks, or the folder id goes stale, or Yusen changes the sending
+address, this job reports "nothing to ingest" every night — **which reads exactly
+like "no invoices arrived."** A silent gap is the failure mode that already cost
+two weeks this summer, and an automated job is better at producing silence than a
+person is.
+
+So the rule is: **quiet is only ever reported as quiet for up to three days.**
+Beyond that, say something. A false alarm during a genuinely slow week costs one
+line in a summary that nobody minds reading. A missed month costs a month.
+
 ## Guard 1: BigQuery write access
 
 ```
