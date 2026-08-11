@@ -20,9 +20,14 @@ and record both findings on the invoice row. It never marks anything paid.
 
 `KEY_MISSING` → **STOP**. Report one line: "STEDI_API_KEY not set in this
 environment — nightly EDI check skipped, no rows touched." Do not attempt
-workarounds, do not guess match rates, change nothing. (As of 2026-08-07 the
-key is not yet in the cloud environment; Anthony is adding it. Until then this
-job is expected to no-op every night, which is fine.)
+workarounds, do not guess match rates, change nothing.
+
+The key and the network route both landed **2026-08-11**: `STEDI_API_KEY` is in the
+environment (id `rmyNws8`) and `core.us.stedi.com` is allowed through the proxy —
+verified with an authenticated call returning HTTP 200. So `KEY_MISSING` is no
+longer the expected outcome; if it happens, the environment setting was removed or
+the session did not pick it up, and that is worth reporting as a fault rather than
+a routine skip.
 
 ## Guard 2: BigQuery write access
 
@@ -90,6 +95,16 @@ Drive connector (`download_file_content`), base64-decode to
 
 No supporting doc, or download fails → record nothing for that invoice, list it
 in the summary as "worksheet unavailable", move on.
+
+**Guard 3: is the Google Drive connector attached to this session?** Without it
+there is no way to fetch a worksheet, so every invoice degrades to "worksheet
+unavailable" and the whole run does nothing. If Drive is unavailable, STOP after
+the work list and report one line naming the count of invoices that were skipped
+for this reason — do not walk the list writing "unavailable" onto each row.
+The connector cannot be set through the trigger API for this org; it is attached
+per-Routine in the claude.ai Routines UI. As of 2026-08-11 it is attached to
+`yusen-cloud-validation-sweep` only — **not** to `yusen-stedi-nightly` and not to
+`yusen-cloud-validation-sweep-midday`.
 
 ## 3. Parse the order numbers
 
@@ -164,10 +179,40 @@ Status rules — narrow on purpose:
 
 | Finding | Status | Variance |
 |---|---|---|
-| 100% of orders matched, no pick overcharge | `valid` | unchanged |
+| 100% matched, no pick overcharge, **and the contract check has run** | `valid` | unchanged |
+| 100% matched, no pick overcharge, contract check has NOT run | leave as-is (`needs_detail`) | unchanged |
 | 100% matched, pick overcharge > $1 | `disputed` | overcharge $ (add to any existing disputed $) |
 | Any order unmatched | leave as-is (`needs_detail`) | unchanged |
 | Row already `disputed` | leave status; add the `[STEDI]` block | add overcharge to existing variance only if it is a NEW finding |
+
+**A clean shipping check alone must never promote a row to `valid`.** This job
+verifies one axis — that the billed orders shipped — plus the one contract
+question it can answer from the worksheet (the pick basis). It does not check the
+rate card, the $10 all-in pallet rule (AF-9), the removed pack-out (AF-7), or the
+invoice math. Those belong to the daytime sweeps.
+
+Stamping `valid` drops the row out of the daytime work list **permanently**, so
+promoting on shipping evidence alone can close the file on an invoice whose rates
+were never checked. That is a live risk, not a hypothetical: the daytime sweep is
+explicitly allowed to fall back to a header-level result when it cannot fetch the
+PDF, and the Google Drive connector is still not attached to the `-midday` Routine.
+An invoice could take a header-only pass at 10 AM and be sealed `valid` at 2 AM
+with its wrap or pack-out lines never examined — the two findings that make up most
+of the ~$9,207 dispute position.
+
+So before writing `valid`, confirm the contract side is actually done. It is done
+when the row's `validation_report` carries any of:
+
+- a `[DEEP PASS …]` block (in-conversation itemized review), or
+- an `[MSA REVAL …]` block, or
+- an `[AUTO …]` block reporting a line-level result — it names the parsed lines
+  ("at MSA-schedule rates") or carries a `Line detail:` line.
+
+If none of those is present, write the `[STEDI]` block with the clean shipping
+result, **leave the status at `needs_detail`**, and list the invoice in the summary
+as "shipping clear, waiting on the line-level check" so the next daytime sweep
+finishes it. Nothing is lost — the shipping result is recorded and the invoice
+gets its `valid` stamp on the next pass that can read the PDF.
 
 - `validated_by` MUST be `yusen-invoice-validator` (the standard automated
   writer). Any other value is treated as a human stamp downstream and freezes

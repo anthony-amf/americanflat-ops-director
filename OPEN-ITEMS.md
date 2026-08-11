@@ -76,12 +76,26 @@ follows `docs/STEDI-NIGHTLY-RUNBOOK.md`. Closes the shipping axis on SP/LTL
 invoices so they stop parking at `needs_detail`, and recomputes the e-com pick
 charge on the contract's additional-only basis (the AF-9/pick dispute basis).
 
-**Blocked, by design, until `STEDI_API_KEY` is added to the cloud environment**
-(Anthony, 2026-08-07: "I'll add the key to the cloud later"). Every night until
-then it checks for the key, reports one line, and touches nothing — a clean
-no-op, not a failure. Once the key lands the first run works through the 9 SP/LTL
-invoices currently at `needs_detail` (~$62K, the largest unresolved block).
-It never marks anything paid.
+**Unblocked 2026-08-11.** Anthony added the key to the cloud environment and had
+`core.us.stedi.com` allowed through the proxy. Verified the same day from a fresh
+cloud session: `STEDI_API_KEY` present (id `rmyNws8`), authenticated call to Stedi
+returned HTTP 200. The job's first real run works through the 9 SP/LTL invoices at
+`needs_detail` (~$62K, the largest unresolved block). It never marks anything paid.
+
+**One setup step still missing: attach the Google Drive connector to
+`yusen-stedi-nightly`** (claude.ai → Routines → the Routine → enable Google Drive;
+the trigger API cannot store connectors for this org). The job reads each invoice's
+supporting worksheet from Drive to get the order numbers — with no Drive it can
+reach Stedi but has nothing to look up, so the run does nothing. Same gap still
+open on `yusen-cloud-validation-sweep-midday`.
+
+Two defects in the job were corrected 2026-08-11 before its first real run:
+its instructions carried the old "always halve the worksheet pick column" rule
+(false on 756521 — would have doubled the pick overcharge), and a clean shipping
+check alone could stamp a row `valid`, which drops it out of the daytime sweeps
+permanently and could seal an invoice whose rates were never checked. The key
+rotation note stands: the installed key was pasted in a chat transcript, and the
+older `22R7W4M…` key is still live in the public repo and needs revoking.
 
 **Re-check rule (Anthony, 2026-08-07):** an invoice whose shipping check comes
 back clean is done — checked once, never looked at again. An invoice that comes
