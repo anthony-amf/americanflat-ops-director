@@ -127,7 +127,15 @@ already paid and marked valid, so no future sweep would have rebuilt them. Caugh
 because the leftover note on 755265 claimed the Stedi check still needed doing —
 directly under the block recording that it had been done.
 
-Two things to run on the Mac, in either order:
+A header-level sweep run from the Mac the same day (~10:30-10:58 AM MT, v1.4.0,
+335 rows) then re-created the *display* half of the problem on 16 more rows: their
+`[AUTO 2026-08-11]` block says "provide itemized counts" and "order-level Stedi
+check available" directly beneath a `[DEEP PASS]`/`[MSA REVAL]` block recording that
+the work was done. Nothing was lost on those 16 — verified: zero status changes,
+zero deleted blocks — but every one is settled, so no future sweep will ever tidy
+them. Affected: 755550, 755725, 755896, 756028, 756355, 756472 and 10 NL rows.
+
+Three things to run on the Mac, in this order:
 
 1. **Put the text back** — `sql/restore_clobbered_reports_2026-08-11.sql`, once.
    The wording was recovered from BigQuery's 7-day history before it expires
@@ -140,6 +148,14 @@ Two things to run on the Mac, in either order:
    deeper review. Nothing about how invoices are judged changes. Details:
    `skill-updates/v1.5.0/CHANGELOG.md`; checks:
    `python3 skill-updates/v1.5.0/test_report_merge.py`.
+   **Until this is installed, any Mac sweep re-creates the problem** — that is how
+   the 16 rows above happened.
+3. **Tidy the 16 stale blocks** —
+   `python3 scripts/fix_stale_auto_blocks_2026-08-11.py` (dry run), then `--write`.
+   Replaces only the misleading `[AUTO]` block with the v1.5.0 deferral wording and
+   leaves every other block untouched. Run it after step 1 so 754891 and 755265
+   have their history back and qualify too. Safe to re-run — it only matches rows
+   still carrying the stale text.
 
 Both cloud runbooks were updated the same day, so the scheduled sweeps already
 follow the new rules without waiting on the repackage.
