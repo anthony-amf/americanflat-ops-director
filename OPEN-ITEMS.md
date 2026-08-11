@@ -3,7 +3,26 @@
 *Mirror of the local memory note so cloud sessions see it. BigQuery
 (`finance.yusen_invoices`, `paid_at IS NULL`) is the authoritative ledger;
 this file is the human decision queue. Update or prune as decisions land.*
-*Last updated: 2026-08-06.*
+*Last updated: 2026-08-11.*
+
+## Cost Per SKU shipping database — waiting on two commands from the Mac (2026-08-11)
+
+The shipped-orders database and its artifact are built and pushed
+(`SHIPPING-ORDERS-DB.md`), but nothing can run from a cloud session because
+BigQuery writes need the Mac. Waiting on Anthony to, on the Mac:
+
+1. Create the table — `bq query --use_legacy_sql=false --max_rows=100 <
+   sql/create_shipping_orders_table.sql`. If it refuses because the account can't
+   create tables, run the same file in the BigQuery web console instead.
+2. Backfill — `python3 scripts/load_shipping_orders_to_bq.py --backfill-root
+   "~/Documents/Claude/Projects/Weekly Shipping Reports"`, plus the Drive
+   consolidated sheets (Feb–Apr) via `--files` if that history is wanted.
+3. Rebuild + republish the artifact
+   (`f4b62a70-d920-4448-a66b-efea639a93e8`) to fill the page in.
+
+Open decisions: whether to fold the loader into the Thursday
+`weekly-shipping-reports` job, and whether the four Drive dashboard CSVs should
+start being generated from this table so there is one set of numbers, not two.
 
 ## MSA billing dispute — consolidated (2026-08-05, updated 8/6)
 

@@ -155,6 +155,19 @@ the live artifact, extract from `<title>` to the last `</script>`, restore the
 two placeholders, and confirm every `r.<field>` the template reads is emitted by
 `normalize()`. Do this whenever the page design changes.
 
+**The Cost Per SKU shipping artifact is a second, separate dashboard** (stable URL
+`https://claude.ai/code/artifact/f4b62a70-d920-4448-a66b-efea639a93e8`), backed by
+`americanflat.finance.shipping_orders` — one row per shipped package for the four
+marketplaces where AF pays the freight (Target, Michaels, Shopify, Macy's). Built
+by `scripts/generate_shipping_dashboard.py`, loaded by
+`scripts/load_shipping_orders_to_bq.py` (Mac only — it writes). Full runbook:
+`SHIPPING-ORDERS-DB.md`. Same republish trap: pass `url:`. Its template is *inside*
+the generator script rather than a separate snapshot file, specifically to avoid the
+staleness trap above. Two things that bite: blended cost per unit is always
+`SUM(cost)/SUM(units)` and never an average of the `cost_per_unit` column, and rows
+flagged `is_additional_package` carry freight with `units = 0` (extra boxes on one
+order) so unit counts stay right.
+
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's
 `refresh_yusen_dashboard.py`. Other processes re-export it from a base template,
