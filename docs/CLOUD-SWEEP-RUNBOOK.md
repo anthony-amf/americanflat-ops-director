@@ -103,6 +103,30 @@ exactly — build the report with `V.merge_report(prior_report, V.compose_report
 which replaces only its own previous `[AUTO <date>]` block and leaves payment
 cards, `[MSA DISPUTE …]` specs and human notes alone.
 
+**Never assign `validation_report` directly.** Always go through `merge_report`.
+Each pass owns exactly one tagged block and must leave every other block byte-for-byte
+intact — the row's history (`[MSA REVAL …]`, `[DEEP PASS …]`, `[STEDI …]`,
+`[PAID …]`) is the audit trail, and on a settled row nothing will ever rebuild it.
+Writing the field wholesale is what wiped the itemized math and Stedi results off
+754891 and 755265 on 2026-08-11.
+
+**Do not let a header-level result talk over a deeper one.** Before composing,
+check the prior report for a `[DEEP PASS …]`, `[STEDI …]`, `[MSA DISPUTE …]` or
+`[MSA REVAL …]` block. If one is present and this pass came back `needs_detail`,
+write a single line instead of the full card:
+
+```
+Invoice <inv> — header-level re-check only, no new findings. Itemized detail is
+already on file above (<tags>); this pass does not supersede it. Header total
+$<amount>, unchanged.
+```
+
+The `[AUTO]` block is written last, so it reads as the current verdict on the
+dashboards. Appending "provide itemized counts / no order-level Stedi result" under
+a completed deep pass makes a finished invoice look unfinished — exactly what
+happened on 755265. Validator v1.5.0+ does this automatically
+(`V._deferral_block(r, prior_report)`); on v1.4.0 the sweep must do it by hand.
+
 - SET `validated_at = CURRENT_TIMESTAMP()`, `validation_status`,
   `validation_variance` (disputed $ for disputed rows, else the result's
   variance), `validated_by = V.AUTO_WRITER`, and `validation_report` = the

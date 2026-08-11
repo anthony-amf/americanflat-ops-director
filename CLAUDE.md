@@ -112,6 +112,23 @@ instead of the sequential script.
   **embedded EMF image** in the docx — extract text from
   `word/media/image2.emf` (EMR_EXTTEXTOUTW records); pandoc/text alone misses
   it. Below-card billing is a stale-card flag, not a dispute.
+- **`validation_report` is an append-only stack of dated blocks**, and each pass
+  owns exactly one tag: `[AUTO …]` (header sweep), `[MSA REVAL …]`,
+  `[DEEP PASS …]` (in-conversation itemized review), `[STEDI …]`, `[MSA DISPUTE …]`,
+  `[PAID …]`. **Never assign the field directly — always splice via
+  `merge_report(prior, block, tag=…)`.** Through v1.4.0 `--mark-paid` wrote
+  `validation_report = COALESCE(@report, validation_report)`, a full replace, so
+  every payment mark silently discarded the row's history; on 2026-08-11 it wiped
+  the itemized math and the 106/106 and 289/289 Stedi results off 754891 and
+  755265 (1,741/1,644 chars → 386), recoverable only from BigQuery's 7-day table
+  history. A settled row is never re-swept, so nothing rebuilds it. Fixed in
+  v1.5.0; restore SQL in `sql/restore_clobbered_reports_2026-08-11.sql`.
+  Related rule: a **header-level pass must not talk over a deeper one** — when a
+  `[DEEP PASS]`/`[STEDI]`/`[MSA DISPUTE]`/`[MSA REVAL]` block is already on the row,
+  a `needs_detail` result writes a one-line "no new findings, see above" instead of
+  its usual "provide itemized counts / no Stedi result" card, which otherwise reads
+  as the current verdict (the AUTO block is written last) and makes a finished
+  invoice look unfinished.
 - **`validation_status` vocabulary:** `valid` / `needs_detail` / `discrepancy`
   / **`disputed`** (MSA-conflict charges present — wrap beside a $10 pallet,
   0.92/0.966 pack-out, Fontana every-pick billing; disputed $ goes in

@@ -90,6 +90,33 @@ days**, then left alone, because shipment data can lag a day or two and those
 gaps already trigger manual lookups on the ops side. A gap still open on day 5
 is treated as a real finding and reported once, not raised nightly.
 
+## Needs a Mac run — report-history bug (found 2026-08-11)
+
+Marking an invoice paid was **erasing the row's validation history**. `--mark-paid`
+replaced the whole `validation_report` field with its payment card instead of adding
+to it, so 754891 and 755265 lost their itemized line math and their 106/106 and
+289/289 Stedi order matches (1,741 and 1,644 characters down to 386). Both are
+already paid and marked valid, so no future sweep would have rebuilt them. Caught
+because the leftover note on 755265 claimed the Stedi check still needed doing —
+directly under the block recording that it had been done.
+
+Two things to run on the Mac, in either order:
+
+1. **Put the text back** — `sql/restore_clobbered_reports_2026-08-11.sql`, once.
+   The wording was recovered from BigQuery's 7-day history before it expires
+   (deadline **2026-08-18**). Safe to re-run; only touches a row still holding the
+   short clobbered version.
+2. **Install the fix** — copy `skill-updates/v1.5.0/validate_rate_card.py`,
+   `skill.toml` and `SKILL.md` over `~/.claude/skills/yusen-invoice-validator/`,
+   repackage, commit the `.skill`. Payment cards now merge in as their own
+   `[PAID …]` block, and a header-level re-check no longer writes over a completed
+   deeper review. Nothing about how invoices are judged changes. Details:
+   `skill-updates/v1.5.0/CHANGELOG.md`; checks:
+   `python3 skill-updates/v1.5.0/test_report_merge.py`.
+
+Both cloud runbooks were updated the same day, so the scheduled sweeps already
+follow the new rules without waiting on the repackage.
+
 ## Standing follow-ups
 
 - ~~Publish v1.1.0 of `skill-yusen-invoice-validator`~~ **DONE 2026-08-05**:

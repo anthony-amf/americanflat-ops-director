@@ -154,6 +154,12 @@ One UPDATE per invoice. Append a `[STEDI <date>]` block to
 …]`, payment cards), containing the match counts, the unmatched IDs, and the
 pick recompute.
 
+**Never assign `validation_report` wholesale** — read the current value, splice
+your block in, write the whole merged text back (`V.merge_report(prior, block,
+tag="STEDI")` in validator v1.5.0+). This job owns the `[STEDI]` tag and nothing
+else. Overwriting the field is what destroyed the itemized math and prior Stedi
+results on 754891 and 755265 on 2026-08-11; on a settled row nothing rebuilds it.
+
 Status rules — narrow on purpose:
 
 | Finding | Status | Variance |
