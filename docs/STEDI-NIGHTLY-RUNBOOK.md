@@ -48,7 +48,17 @@ SELECT invoice_number, warehouse, amount, CAST(date AS STRING) d,
        validation_report
 FROM `americanflat.finance.yusen_invoices`
 WHERE type_of_invoice LIKE 'SML%'
-  AND NOT STARTS_WITH(invoice_number, 'CA262')      -- NL transport: separate validator
+  -- US warehouses only. Stedi indexes the US EDI feed; NL and Canada orders are
+  -- simply absent from it, so checking them yields false "unmatched" findings.
+  AND NOT STARTS_WITH(invoice_number, 'CA262')      -- NL transport
+  AND NOT STARTS_WITH(invoice_number, 'CA252')      -- NL
+  AND NOT STARTS_WITH(invoice_number, 'CA2WFS')     -- Canada
+  AND NOT STARTS_WITH(invoice_number, 'FTI')        -- NL warehousing
+  -- Unsettled only. A paid row, or one already stamped valid, is closed: the
+  -- shipping question was answered before payment and re-asking it changes
+  -- nothing. `disputed` IS included — the shipping evidence supports the claim.
+  AND paid_at IS NULL
+  AND IFNULL(validation_status,'') IN ('', 'needs_detail', 'error', 'disputed')
   AND supporting_doc_url IS NOT NULL
   AND (
         -- never checked
@@ -84,6 +94,24 @@ human picks it up — do not keep raising it nightly after that.
 
 Rows whose status is already `disputed` still get checked (the shipping
 evidence is useful either way) but their status is never changed by this job.
+
+**Scope matters — check the count before you start.** The first version of this
+query had no status filter and no non-US exclusions, so it selected **61 invoices
+worth $552K** including invoices paid and closed as far back as October 2025, plus
+12 NL/Canada rows whose orders are not in the US Stedi feed at all. Caught
+2026-08-11 on the first manual run, before it wrote anything. Two consequences,
+both bad: the NL rows would have collected false `UNMATCHED` findings — which then
+re-query for five nights and read like "Yusen billed an order that never shipped" —
+and 754807 alone carries 8,966 orders, so re-checking dozens of settled invoices
+means tens of thousands of needless API calls and a real chance of hitting a rate
+limit partway through a run.
+
+With the filters above the list should be roughly **10 US invoices** (as of
+2026-08-11: 756521, 756156, 756028, 755721, 755725, 755486, 755131, 754807,
+754702, 754698 — about $174K, mostly `disputed` rows awaiting the shipping axis).
+If the count comes back far outside that range, stop and say so rather than
+working through it — the query or the data has changed and it is worth a human
+look first.
 
 ## 2. Get the supporting worksheet
 
