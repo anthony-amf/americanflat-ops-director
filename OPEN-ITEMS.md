@@ -62,6 +62,12 @@ Mac launchd sweep: **unloaded 2026-08-06** (it was installed as
 `com.americanflat.yusen-validator-sweep`, not the never-installed
 `yusen-validation-sweep` plist in `launchd/`) — the cloud Routines own this now.
 Dashboard: Artifact self-refreshes weekdays 8:30 AM / noon / 3:30 PM / 6 PM ET.
+Both refresh Routines were paused 2026-08-07 because their page template was an
+old snapshot missing the Validated column — republishing would have stripped the
+validation chips off the live page. Template re-taken from the live artifact and
+the five validation fields added to both the query and the field whitelist
+(`claude/website-auto-refresh-efficiency-9x474j`, `ffa3b8e`); both Routines
+switched back on 2026-08-11.
 
 ## Nightly EDI (Stedi) check — scheduled, waiting on the key
 
@@ -76,6 +82,13 @@ then it checks for the key, reports one line, and touches nothing — a clean
 no-op, not a failure. Once the key lands the first run works through the 9 SP/LTL
 invoices currently at `needs_detail` (~$62K, the largest unresolved block).
 It never marks anything paid.
+
+**Re-check rule (Anthony, 2026-08-07):** an invoice whose shipping check comes
+back clean is done — checked once, never looked at again. An invoice that comes
+back with orders missing from the EDI feed is re-checked each night for **5
+days**, then left alone, because shipment data can lag a day or two and those
+gaps already trigger manual lookups on the ops side. A gap still open on day 5
+is treated as a real finding and reported once, not raised nightly.
 
 ## Standing follow-ups
 
