@@ -62,9 +62,23 @@ caveat (cron is UTC-only; needs `0 9 * * *` after 2026-11-01). Remaining setup:
    this org). Without it a run validates totals but can't open the PDFs, so
    line-level checks degrade to header-level.
 
-Mac launchd sweep: **unloaded 2026-08-06** (it was installed as
-`com.americanflat.yusen-validator-sweep`, not the never-installed
-`yusen-validation-sweep` plist in `launchd/`) — the cloud Routines own this now.
+Mac launchd sweep: **still loaded and still running — the 2026-08-06 "unloaded"
+note was wrong.** `launchctl list` on 2026-08-12 shows
+`com.americanflat.yusen-validator-sweep` loaded with last exit 0, and time travel
+shows it sweeping all ~335 rows repeatedly (8/10 20:30 UTC, 8/12 12:30, 8/12 16:30).
+It runs **v1.4.0**, so every pass rewrites `[AUTO]` cards in the old format — which
+is what re-created the 28 stale blocks cleaned up on 8/12, and what will undo that
+cleanup again on its next pass. It also duplicates the cloud Routine's work.
+**Unload it (or install v1.5.0 locally) — until then validation has not actually
+moved to the cloud.**
+
+`com.americanflat.yusen-invoice-processor` is also loaded, with **last exit 1 —
+it is failing.** That is the Yusen ingestion job (own org repo,
+`skill-yusen-invoice-processor`, pushed at v1.2.0 on 8/12) — the loader that
+`skill-invoice-to-bigquery` was wrongly credited with. Its failures are a second,
+independent reason invoices stop arriving, on top of the OOO gaps. Read its log
+before moving ingestion to the cloud: whatever breaks it locally will likely break
+the cloud port too.
 Dashboard: Artifact self-refreshes weekdays 8:30 AM / noon / 3:30 PM / 6 PM ET.
 Both refresh Routines were paused 2026-08-07 because their page template was an
 old snapshot missing the Validated column — republishing would have stripped the

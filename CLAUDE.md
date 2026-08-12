@@ -182,6 +182,15 @@ plain string replace will double-insert.
 
 ## Other directories
 
+- **Two launchd jobs are live on the Mac** (verified `launchctl list`, 2026-08-12) —
+  `com.americanflat.yusen-validator-sweep` (last exit 0; sweeps all ~335 rows
+  several times a day on **v1.4.0**, so it keeps rewriting `[AUTO]` blocks in the
+  superseded format) and `com.americanflat.yusen-invoice-processor` (last exit
+  **1 — failing**; this is the Yusen ingestion job, own org repo
+  `skill-yusen-invoice-processor`, *not* `skill-invoice-to-bigquery`, which targets
+  `finance.freight_invoices`). Earlier notes claiming the sweep was unloaded on
+  2026-08-06 were wrong. Check `launchctl list | grep -i yusen` before concluding
+  anything about what writes to the ledger.
 - `extraction/`, `schema/`, `samples/`, the root guides
   (`README.md`, `IMPLEMENTATION_GUIDE.md`, `STEDI_*.md`) — the original design
   docs and scaffolding for the extraction→BigQuery pipeline. Extraction itself
