@@ -10,6 +10,48 @@ gate in step 5: an invoice whose stated total does not equal the sum of its part
 **parked, never loaded**. Nothing reaches the ledger unless its arithmetic is
 internally consistent.*
 
+## What the Mac job actually is (confirmed 2026-08-12)
+
+`~/invoice_processor.py --auto`, run by launchd
+(`com.americanflat.yusen-invoice-processor`) at **6:00, 10:00 and 14:00 MT**. Its log
+identifies it as the **GMAIL INVOICE PROCESSOR**: it reads invoices straight out of
+Gmail, keeps a record of the message ids it has already handled ("Skipping
+already-processed email: 19f4858…"), and reports "No new invoices to process" when
+there is nothing new. Ingestion has therefore been automated all along — the earlier
+note calling it a manual process was wrong.
+
+**It has been failing on every run since the Google login expired:**
+
+```
+❌ FATAL: the BigQuery login has expired — this is NOT a missing table.
+   A scheduled run cannot answer a password prompt, so every run fails
+   here until someone signs in interactively on this Mac: gcloud auth login
+   bq said: Reauthentication failed. cannot prompt during non-interactive execution.
+```
+
+Two things follow, and together they are the case for moving this job:
+
+1. **A scheduled job on a laptop authenticates as a person, and people's logins
+   expire.** Nobody can pre-answer a password prompt, so the job cannot recover on
+   its own, and the failure is invisible to everyone except whoever reads a log file.
+2. **The cloud does not have this failure mode.** BigQuery access here is a service
+   account injected by the proxy — no interactive login, nothing to expire.
+
+The two Mac jobs authenticate differently, which is why one looked healthy and the
+other did not: the validator sweep uses application-default credentials
+(`bigquery.Client()`), still valid, while the processor shells out to the `bq` CLI,
+whose user login had lapsed. Same machine, same day, opposite verdicts.
+
+Immediate fix on the Mac, until the port is done: `gcloud auth login`.
+
+**Because the source is Gmail, there are now two possible ports** — the drop folder
+below, or giving a cloud job direct Gmail API access (allowlist
+`gmail.googleapis.com` plus credentials, e.g. a service account with domain-wide
+delegation). The second is the closer port, since `invoice_processor.py` already
+speaks Gmail and keeps its own processed-id ledger; the first needs no new
+credentials but adds a moving part. Worth choosing deliberately rather than
+defaulting to whichever gets built first.
+
 ## Prerequisite — the drop folder (BLOCKING, not yet configured)
 
 This job reads invoice PDFs from **one Google Drive folder**. It cannot read email
