@@ -78,8 +78,42 @@ the functions and write via step 5 instead.
 For each work-list row, extract the Drive file id from `pdf_url`
 (`/file/d/<id>/` or `?id=<id>`), download via the Google Drive connector's
 `download_file_content`, base64-decode, and save to `/tmp/pdf-cache/<invoice_number>.pdf`.
-Batch sensibly; a missing/failed PDF is not fatal — that row just degrades to
-the header-level result.
+
+**This step is why the sweep has been ineffective, so read the next paragraph before
+running it.** Without PDFs every row stays `needs_detail` for ever — the header pass
+alone cannot resolve a single invoice — and the run then looks like a clean no-op when
+it has actually done nothing. The 2026-08-12 02:00 MT run wrote nothing at all while
+27 invoices sat waiting, and 756711 went from `needs_detail` to `valid` the moment its
+PDF was read (3,811 pallets x $4.34 = $16,539.74, exact). **Fetching the PDFs *is* the
+job. A pass that skips them is not a cheaper sweep, it is a pointless one.**
+
+**The download will not come back inline.** These invoice PDFs run 0.5-3 MB, so
+`download_file_content` returns base64 far larger than a tool result can hold. The
+harness spills it to a file and hands you the path instead, in a message that reads
+like an error but is not one. Handle it exactly this way:
+
+1. Call `download_file_content` with the file id.
+2. If the result is a normal inline JSON payload, decode `content` from it.
+3. If instead you get "result (N characters) exceeds maximum allowed tokens … Output
+   has been saved to `<path>`", use that path. **Do not read the file into context** —
+   it is megabytes of base64 and reading it wastes the run. Decode it with a script:
+
+```python
+import base64, json
+d = json.load(open("<path from the message>"))          # {content, id, mimeType, title}
+open(f"/tmp/pdf-cache/{invoice_number}.pdf", "wb").write(base64.b64decode(d["content"]))
+```
+
+4. Sanity-check the first bytes are `%PDF-` before handing it to the line pass.
+
+Then `pip install pypdf cryptography cffi` (the container's pypdf is broken without
+them) and confirm `import pypdf` works before starting the batch.
+
+Work through the list one invoice at a time — download, decode, validate, write, then
+the next. Do not try to download everything first: each spill file is megabytes, and
+holding 27 of them buys nothing. A missing or failed PDF is not fatal for the run;
+that row degrades to the header-level result and gets named in the summary as
+"PDF unavailable" so it is visible rather than silently unresolved.
 
 ## 4. Validate
 
