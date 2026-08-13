@@ -874,16 +874,24 @@ def apply_vas_labor_check(invoice: dict, result: dict) -> None:
         return
 
     if derived > msa_rate:
-        ot = round(msa_rate * 1.5, 4)
-        if abs(derived - ot) < 0.01:
-            result["status"] = "discrepancy"
-            result["variance"] = round((derived - msa_rate) * hours, 2)
-            result["discrepancies"].append(
-                f"{hours:g} hrs at ${derived:,.4f}/hr is exactly 1.5x the {wh} {pretty} rate "
-                f"of ${msa_rate:,.4f} — apparent overtime, ${result['variance']:,.2f} above "
-                f"straight time. The MSA carries no overtime multiplier; confirm it was "
-                f"agreed before paying or disputing")
-            return
+        # Overtime at 1.5x is agreed (Anthony, 2026-08-12), so it is a contracted rate
+        # like any other. Checked against every role in the column, not just the role
+        # inferred from the wording, so OT on a specialised rate also resolves.
+        mult = card.get("overtime_multiplier")
+        if mult:
+            ot_hits = [r_ for r_, v in roles.items() if abs(derived - round(v * mult, 4)) < 0.01]
+            if ot_hits:
+                base = ot_hits[0]
+                result["status"] = "valid"
+                result["expected_amount"] = round(hours * derived, 2)
+                result["variance"] = 0.0
+                result["variance_percent"] = 0.0
+                result["line_report"] = (
+                    f"VALID vs the MSA hourly table: {hours:g} hrs x ${derived:,.4f} = "
+                    f"${amount:,.2f}, exact, at {mult:g}x overtime on the {wh} "
+                    f"{base.replace('_', ' ')} rate of ${roles[base]:,.4f}. Overtime at "
+                    f"{mult:g}x is agreed.")
+                return
         ceiling = max(roles.values())
         if derived > ceiling:
             over = round((derived - ceiling) * hours, 2)

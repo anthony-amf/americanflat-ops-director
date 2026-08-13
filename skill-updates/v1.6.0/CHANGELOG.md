@@ -108,9 +108,10 @@ and `vas_hourly` defaults to general labour.
 - Derived rate matches **any** row of that site's column → `valid`, naming the row.
   Matching on the whole column rather than only the guessed role means a wording
   mismatch cannot turn a contracted rate into a dispute.
-- Exactly **1.5x** the matched role → `discrepancy`, reported as apparent overtime.
-  The MSA carries no overtime multiplier, so whether one was agreed is not a question
-  code can answer.
+- Exactly **1.5x** any contracted role rate → `valid`, naming the base role. Overtime
+  at 1.5x is agreed (Anthony, 2026-08-12), so it is a contracted rate like any other.
+  It is a multiplier on whichever role row applies, not a rate of its own, so OT on
+  South Carolina physical inventory is $63.00 x 1.5 = $94.50.
 - **Above every** rate in the column → `disputed` for the excess over the highest
   contracted rate, which is the most defensible figure.
 - Within range but matching no row → `discrepancy`, identify the role before paying.
@@ -127,11 +128,17 @@ at the same time.
 | 755701 | SC | **valid** | 24.49 hrs x $63.00 stock consolidation, exact — $1,542.87 |
 | 756182 | NJ | **valid** | 106 hrs x $53.55 general labour, exact — $5,676.30 |
 | 756524 | Fontana | **valid** | 96 hrs x $59.5278, $28.80 *under* card |
-| 756523 | Fontana | discrepancy | 30 hrs at 1.5x — apparent overtime, $897.42 |
-| 756522 | Fontana | discrepancy | 4 hrs at 1.5x — apparent overtime, $119.66 |
+| 756523 | Fontana | **valid** | 30 hrs x $89.7417 = 1.5x general labour OT — $2,692.25 |
+| 756522 | Fontana | **valid** | 4 hrs x $89.7425 = 1.5x general labour OT — $358.97 |
 
-$12,933 of invoices resolved; $1,017.08 of apparent Fontana overtime surfaced for a
-human. The six already-`valid` Savannah and NJ labour invoices needed no change —
-they were right all along.
+**All eleven hourly VAS jobs in the ledger now resolve to `valid`** — $15,984 of
+invoices, none disputed. The six already-`valid` Savannah and NJ labour invoices
+needed no change; they were right all along.
+
+The two Fontana invoices were first stamped `discrepancy` as apparent overtime, then
+re-stamped `valid` once Anthony confirmed the 1.5x multiplier was agreed. The
+multiplier is now recorded in `rate-card-snapshot.json` (`overtime_multiplier`) and as
+a row plus footnote on the live Notion rate card, so neither the code nor a human
+reading the card has to rediscover it.
 
 Verified by 11 cases covering every hourly VAS job in the ledger.
