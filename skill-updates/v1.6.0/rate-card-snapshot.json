@@ -94,8 +94,8 @@
       "bol_fee": 8.0,
       "manual_order": 15.0
     },
-    "_af9_effective_from": "2026-05-01",
-    "_af9_effective_note": "The AF-9 $10.00 all-in pallet rate is applied to invoices dated on or after this date. Before it, the documented pre-June rate is the correct rate and the invoice is valid, not disputed \u2014 SC $11.74 combined billed via VAS, per the rate card's pre-June history table. Set to 2026-05-01 on Anthony's decision (2026-08-12) to ignore the three April 2026 SC pallet invoices (750206, 750576, 750984 \u2014 $226.20). NOTE the tension: the live Notion card says the new US rates 'took effect on invoices from the June 2026 billing weeks', which read strictly would also exempt the two 2026-05-20 invoices (752056, 752058 \u2014 $151.38) that are currently stamped disputed. Move this date to 2026-06-01 to adopt that stricter reading."
+    "_af9_effective_from": "2026-06-01",
+    "_af9_effective_note": "The AF-9 $10.00 all-in pallet rate applies to invoices dated on or after this date. Before it, the documented pre-June rate is the correct rate and the invoice is valid, not disputed. Set to 2026-06-01 (Anthony, 2026-08-12) to match the Notion rate card's own wording: the new US rates 'took effect on invoices from the June 2026 billing weeks'. This supersedes an earlier 2026-05-01 setting and returns the two 2026-05-20 SC pallet invoices (752056, 752058 \u2014 $151.38) to valid; the three April invoices were already out of scope under either date."
   },
   "storage": {
     "fontana": 4.47,

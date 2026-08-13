@@ -106,13 +106,12 @@ def main() -> int:
         "admin_vas._overtime_note")
 
     ltl = r.setdefault("ltl", {})
-    put(ltl, "_af9_effective_from", "2026-05-01", "ltl._af9_effective_from")
+    put(ltl, "_af9_effective_from", "2026-06-01", "ltl._af9_effective_from")
     put(ltl, "_af9_effective_note",
         ("AF-9's $10.00 all-in pallet rate applies to invoices dated on or after this date. "
          "Before it the documented pre-June rate is correct and the invoice is valid, not "
-         "disputed. Set to 2026-05-01 on Anthony's decision to ignore the three April 2026 "
-         "SC pallet invoices. The Notion card says the new US rates took effect from the "
-         "June 2026 billing weeks — move this to 2026-06-01 to adopt that stricter reading."),
+         "disputed. Set to 2026-06-01 (Anthony, 2026-08-12) to match the Notion card's own "
+         "wording: the new US rates took effect from the June 2026 billing weeks."),
         "ltl._af9_effective_note")
 
     put(r, "receiving", RECEIVING, "receiving")
