@@ -69,36 +69,69 @@ ignored, and the variance survives `apply_msa_conflicts`.
 750984 — $226.20) were left alone pending a decision on whether the MSA rate reaches
 back before its ~May 4-10 effective date.
 
-### Also in 1.6.0 — hourly VAS projects vs the site's own labour rate
+### Also in 1.6.0 — hourly VAS projects vs the MSA hourly table
 
 New `apply_vas_labor_check`, called straight after the pallet check. A VAS job
 described as a project plus hours ("MAY 2026 CONSOLIDATION PROJECT - 24.49 HRS")
 already carries everything needed for a verdict, but parked at `needs_detail`
-because nothing derived the rate. It now divides the total by the hours and compares
-the result to `admin_vas.<warehouse>.vas_hourly`.
+because nothing derived the rate. It divides the total by the hours, works out which
+row of the MSA hourly table the work belongs to, and compares.
 
-**The comparison is per warehouse, and that is the fix.** The rate table labels
-53.55, 59.8278, 63.0 and others simply as "hourly", so a Savannah job billed at New
-Jersey's $53.55 matched *a* known rate and passed as `valid` — even though South
-Carolina's contracted rate is $51.00. Four already-paid Savannah invoices went
-through that way (754284, 752123, 754339, 754338 — $303.45 above card between them).
-A rate is only right for the site it was contracted for.
+**The rate depends on both site and kind of work.** That is the whole reason a single
+figure per warehouse was not enough, and it is the bug this release fixes:
 
-Overtime is reported, not disputed blind: a rate at exactly 1.5x the site rate is
-flagged `discrepancy` as apparent overtime, because the MSA carries no overtime
-multiplier and whether one was agreed is not a question code can answer. This caught
-756522 and 756523 at Fontana, both at exactly 1.5 x $59.8278 = $89.74/hr, $1,017.08
-above straight time between them.
+| Role / activity | Fontana | New Jersey | South Carolina |
+|---|---|---|---|
+| Material handler | $35.00 | $35.00 | $32.00 |
+| Clerical | $42.00 | $42.00 | $40.00 |
+| General labour | $59.8278 | $53.55 | **$53.55** |
+| Physical inventory | $59.8278 | $53.55 | **$63.00** |
+| Stock consolidation | $59.8278 | $53.55 | **$63.00** |
+| Salaried supervisor | $82.1166 | $77.70 | $77.70 |
+| Dray admin fee | $52.8831 | $47.334 | $51.45 |
 
-Rates *below* card are stamped `valid` and noted as in Americanflat's favour rather
-than flagged — 756524 bills $59.5278 against a $59.8278 card, $28.80 under.
+Plus QA at Fontana $47.1232, IT $185/hr, supplies and equipment rental at cost + 12%.
 
-The check also clears validate()'s "provide hours from the invoice detail"
-placeholder once it has supplied them, so a resolved row cannot read `valid` and
-"needs more detail" simultaneously.
+### The rate card was wrong, and it mattered
 
-MSA hourly rates for reference: Fontana $59.8278, New Jersey $53.55, South Carolina
-$51.00, Canada $50.00.
+`admin_vas.south_carolina.vas_hourly` held **$51.00**, which appears nowhere in the
+MSA. The live Notion card names it outright: *"SC hourly per the MSA hourly table (was
+$51.00 on the old card)"*. The snapshot was carrying the superseded card value.
 
-**Nothing was written to the ledger for the labour rule** — the South Carolina rate
-needs Anthony's confirmation first (see below).
+Judged against that stale number, five correctly-billed Savannah invoices read as
+overbilled — including 755701, a stock-consolidation project at $63.00/hr, which is
+exactly on contract. `rate-card-snapshot.json` now carries the full role x site table
+and `vas_hourly` defaults to general labour.
+
+### How it decides
+
+- Derived rate matches **any** row of that site's column → `valid`, naming the row.
+  Matching on the whole column rather than only the guessed role means a wording
+  mismatch cannot turn a contracted rate into a dispute.
+- Exactly **1.5x** the matched role → `discrepancy`, reported as apparent overtime.
+  The MSA carries no overtime multiplier, so whether one was agreed is not a question
+  code can answer.
+- **Above every** rate in the column → `disputed` for the excess over the highest
+  contracted rate, which is the most defensible figure.
+- Within range but matching no row → `discrepancy`, identify the role before paying.
+- **Below** the role rate → `valid`, noted as in Americanflat's favour.
+
+It also clears validate()'s "provide hours from the invoice detail" placeholder once
+it has supplied them, so a resolved row cannot read `valid` and "needs more detail"
+at the same time.
+
+### Applied to the ledger
+
+| Invoice | Site | Verdict | |
+|---|---|---|---|
+| 755701 | SC | **valid** | 24.49 hrs x $63.00 stock consolidation, exact — $1,542.87 |
+| 756182 | NJ | **valid** | 106 hrs x $53.55 general labour, exact — $5,676.30 |
+| 756524 | Fontana | **valid** | 96 hrs x $59.5278, $28.80 *under* card |
+| 756523 | Fontana | discrepancy | 30 hrs at 1.5x — apparent overtime, $897.42 |
+| 756522 | Fontana | discrepancy | 4 hrs at 1.5x — apparent overtime, $119.66 |
+
+$12,933 of invoices resolved; $1,017.08 of apparent Fontana overtime surfaced for a
+human. The six already-`valid` Savannah and NJ labour invoices needed no change —
+they were right all along.
+
+Verified by 11 cases covering every hourly VAS job in the ledger.

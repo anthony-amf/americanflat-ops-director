@@ -775,24 +775,49 @@ def apply_vas_pallet_check(invoice: dict, result: dict) -> None:
 _VAS_HOURS = re.compile(r"(?<![\d.])(\d{1,4}(?:\.\d+)?)\s*(?:HRS?|HOURS?)\b", re.I)
 
 
+# Role keywords -> the row of the MSA hourly table. Order matters: the specific
+# activities are tested before general_labor, which is the catch-all the MSA itself
+# defines broadly ("equipment operator, office, admin, returns, photography, floor
+# loading, oversize, QA, routing").
+_ROLE_WORDS = [
+    ("stock_consolidation", ("consolidat",)),
+    ("physical_inventory",  ("physical inventory", "inventory count", "cycle count",
+                             "stock count")),
+    ("salaried_supervisor", ("supervisor", "salaried")),
+    ("clerical",            ("clerical",)),
+    ("material_handler",    ("material handler",)),
+    ("dray_admin_fee",      ("dray",)),
+    ("qa",                  ("qa ", " qa", "quality assurance")),
+]
+
+
+def _vas_role(notes: str) -> str:
+    low = (notes or "").lower()
+    for role, words in _ROLE_WORDS:
+        if any(w in low for w in words):
+            return role
+    return "general_labor"
+
+
 def apply_vas_labor_check(invoice: dict, result: dict) -> None:
-    """Judge an hourly VAS project against the MSA labour rate for ITS warehouse.
+    """Judge an hourly VAS project against the MSA hourly table: role x site.
 
     A VAS job described as a project plus hours ("MAY 2026 CONSOLIDATION PROJECT -
-    24.49 HRS") carries everything needed for a verdict, but parked at
-    `needs_detail` because nothing derived the rate. This divides the total by the
-    hours and compares the result to `admin_vas.<warehouse>.vas_hourly`.
+    24.49 HRS") carries everything needed for a verdict, but parked at `needs_detail`
+    because nothing derived the rate. This divides the total by the hours, works out
+    which row of the MSA hourly table the work belongs to, and compares.
 
-    **The comparison is per warehouse, and that is the point.** The rate table
-    labels 53.55, 59.8278, 63.0 and others simply as "hourly", so a Savannah job
-    billed at New Jersey's $53.55 matched a known rate and passed as `valid` even
-    though South Carolina's MSA rate is $51.00. Four already-paid Savannah invoices
-    went through that way. A rate is only right for the site it was contracted for.
+    **The rate depends on both the site and the kind of work**, which is why a single
+    figure per warehouse was not enough. South Carolina bills general labour at
+    $53.55 but physical inventory and stock consolidation at $63.00, so 755701 —
+    a consolidation project at $63.00/hr — is exactly on contract, and reading it
+    against a lone "SC hourly" number made a correct invoice look overbilled.
 
-    Overtime is recognised rather than disputed blind: a rate at 1.5x the site rate
-    is reported as apparent overtime and flagged for a human, because the MSA does
-    not carry an overtime multiplier and whether one was agreed is not a question
-    this code can answer.
+    When the derived rate matches no row for that site, it is only disputed if it is
+    ABOVE every rate in the site's column; the amount claimed is the excess over the
+    highest contracted rate, which is the most defensible figure. A rate at 1.5x the
+    matched role is reported as apparent overtime for a human rather than disputed,
+    since the MSA carries no overtime multiplier.
     """
     if (invoice.get("type_of_invoice") or "").strip().upper() != "VAS":
         return
@@ -809,58 +834,81 @@ def apply_vas_labor_check(invoice: dict, result: dict) -> None:
 
     wh = result.get("warehouse")
     card = ((result.get("_rates") or {}).get("admin_vas") or {}).get(wh) or {}
-    msa_rate = card.get("vas_hourly")
+    roles = card.get("hourly_roles") or {}
+    if not roles:
+        return                          # pre-v1.6.0 snapshot: no role table to judge against
+
+    notes = invoice.get("notes") or ""
+    role = _vas_role(notes)
+    msa_rate = roles.get(role) or card.get("vas_hourly")
     if not msa_rate:
-        return                          # no contracted rate for this site — leave alone
+        return
 
     amount = result.get("billed_amount")
     if amount is None:
         amount = float(invoice.get("amount") or 0)
     derived = round(amount / hours, 4)
-    delta = round((derived - msa_rate) * hours, 2)
     result["_labor_rule"] = True
-    # validate() left a "provide hours from the invoice detail" placeholder because
-    # it could not see the hours. We just supplied them, so drop it — leaving it in
-    # produces a row that reads "valid" and "needs more detail" at the same time,
-    # which is exactly the contradiction the 8/12 report-block work removed.
+    # validate() left a "provide hours from the invoice detail" placeholder because it
+    # could not see the hours. We just supplied them, so drop it — leaving it in makes
+    # a row read "valid" and "needs more detail" at once.
     result["discrepancies"] = [d for d in (result.get("discrepancies") or [])
                                if "hourly rate" not in str(d)]
 
-    if abs(derived - msa_rate) < 0.005:
+    pretty = role.replace("_", " ")
+    # Any row of this site's column is a contracted rate. Match the derived rate
+    # against all of them, not just the role we guessed from the wording.
+    exact = [r_ for r_, v in roles.items() if abs(derived - v) < 0.005]
+    if exact:
+        matched = exact[0].replace("_", " ")
         result["status"] = "valid"
-        result["expected_amount"] = round(hours * msa_rate, 2)
+        result["expected_amount"] = round(hours * derived, 2)
         result["variance"] = 0.0
         result["variance_percent"] = 0.0
-        result["line_report"] = (
-            f"VALID vs MSA labour: {hours:g} hrs x ${msa_rate:,.4f} = ${amount:,.2f}, exact, "
-            f"at the contracted {wh} VAS hourly rate.")
+        note = (f"VALID vs the MSA hourly table: {hours:g} hrs x ${derived:,.4f} = "
+                f"${amount:,.2f}, exact, at the {wh} {matched} rate.")
+        if exact[0] != role:
+            note += (f" Wording reads as {pretty}; the rate billed is the {matched} row. "
+                     f"Both are contracted for this site.")
+        result["line_report"] = note
         return
 
     if derived > msa_rate:
         ot = round(msa_rate * 1.5, 4)
         if abs(derived - ot) < 0.01:
             result["status"] = "discrepancy"
-            result["variance"] = delta
+            result["variance"] = round((derived - msa_rate) * hours, 2)
             result["discrepancies"].append(
-                f"{hours:g} hrs at ${derived:,.4f}/hr is exactly 1.5x the contracted {wh} VAS "
-                f"rate of ${msa_rate:,.4f} — apparent overtime, ${delta:,.2f} above straight "
-                f"time. The MSA carries no overtime multiplier; confirm it was agreed before "
-                f"paying or disputing")
+                f"{hours:g} hrs at ${derived:,.4f}/hr is exactly 1.5x the {wh} {pretty} rate "
+                f"of ${msa_rate:,.4f} — apparent overtime, ${result['variance']:,.2f} above "
+                f"straight time. The MSA carries no overtime multiplier; confirm it was "
+                f"agreed before paying or disputing")
             return
-        result["status"] = "disputed"
-        result["variance"] = delta
-        result["variance_percent"] = round(delta / amount * 100, 1) if amount else None
+        ceiling = max(roles.values())
+        if derived > ceiling:
+            over = round((derived - ceiling) * hours, 2)
+            result["status"] = "disputed"
+            result["variance"] = over
+            result["variance_percent"] = round(over / amount * 100, 1) if amount else None
+            result["discrepancies"].append(
+                f"{hours:g} hrs at ${derived:,.4f}/hr is above every contracted {wh} hourly "
+                f"rate (highest is ${ceiling:,.4f}) — ${over:,.2f} above the ceiling; reads as "
+                f"{pretty}, whose rate is ${msa_rate:,.4f}")
+            return
+        result["status"] = "discrepancy"
+        result["variance"] = round((derived - msa_rate) * hours, 2)
         result["discrepancies"].append(
-            f"{hours:g} hrs billed at ${derived:,.4f}/hr against the contracted {wh} VAS rate "
-            f"of ${msa_rate:,.4f} — ${delta:,.2f} above card; "
-            f"${hours * msa_rate:,.2f} is payable")
+            f"{hours:g} hrs at ${derived:,.4f}/hr matches no row of the {wh} hourly table but "
+            f"sits within its range; reads as {pretty} (${msa_rate:,.4f}). Identify the role "
+            f"before paying")
         return
 
     result["status"] = "valid"
     result["variance"] = 0.0
     result["line_report"] = (
-        f"{hours:g} hrs at ${derived:,.4f}/hr, BELOW the contracted {wh} VAS rate of "
-        f"${msa_rate:,.4f} — ${abs(delta):,.2f} in Americanflat's favour, nothing to dispute.")
+        f"{hours:g} hrs at ${derived:,.4f}/hr, below the {wh} {pretty} rate of "
+        f"${msa_rate:,.4f} — ${abs(round((msa_rate - derived) * hours, 2)):,.2f} in "
+        f"Americanflat's favour, nothing to dispute.")
 
 
 def apply_msa_conflicts(invoice: dict, result: dict) -> None:
