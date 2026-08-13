@@ -3,7 +3,7 @@
 *Mirror of the local memory note so cloud sessions see it. BigQuery
 (`finance.yusen_invoices`, `paid_at IS NULL`) is the authoritative ledger;
 this file is the human decision queue. Update or prune as decisions land.*
-*Last updated: 2026-08-06.*
+*Last updated: 2026-08-13.*
 
 ## MSA billing dispute — consolidated (2026-08-05, updated 8/6)
 
@@ -76,6 +76,23 @@ then it checks for the key, reports one line, and touches nothing — a clean
 no-op, not a failure. Once the key lands the first run works through the 9 SP/LTL
 invoices currently at `needs_detail` (~$62K, the largest unresolved block).
 It never marks anything paid.
+
+## Validator v1.5.0 — hourly labor by warehouse (waiting on the Mac)
+
+Anthony asked 2026-08-13 whether $63/hour is in line. It is, but only at
+**South Carolina**, and only for **physical inventory / stock consolidation**.
+SC general labor is $53.55, NJ $53.55, Fontana $59.8278 (MSA hourly table).
+The validator kept all hourly rates in one flat list, so $63 verified clean at
+any warehouse; the bundled rate snapshot also still had SC labor at the old
+$51.00 card rate. Audit of the ledger found no bad payments — the only hourly
+lines ever line-checked are NJ $53.55 (755985, 756179) and Fontana $59.8278
+(756527), all correct.
+
+Finished files + step-by-step: `skill-updates/v1.5.0/APPLY-ON-MAC.md`
+(warehouse-scoped `MSA_HOURLY_RATES`; a wrong-site rate now reports as an
+off-card labor rate at `needs_detail`, deliberately **not** `disputed`; SC
+snapshot rate corrected to $53.55; SC dray admin $51.45 added). Needs copying
+into `~/.claude/skills/yusen-invoice-validator/`, repackaging, and committing.
 
 ## Standing follow-ups
 
