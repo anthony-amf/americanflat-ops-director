@@ -62,12 +62,88 @@ def find_one(lines, needle, what):
     return hits[0]
 
 
+def find_def(lines, name, what):
+    """Line index of `def <name>(`, whatever its arguments or return type are.
+
+    Deliberately loose about the signature: 1.5.1 may have added a keyword
+    argument or dropped a type hint, and neither of those changes where the
+    insertion belongs.
+    """
+    hits = [i for i, l in enumerate(lines) if l.startswith(f"def {name}(")]
+    if len(hits) != 1:
+        raise Abort(f"{what}: expected exactly one `def {name}(`, found {len(hits)}")
+    return hits[0]
+
+
+def body_start(lines, start):
+    """Index of the first statement of a function — past a signature that may run
+    over several lines, and past a docstring of any shape."""
+    i = start
+    while i < len(lines) and not lines[i].rstrip().endswith(":"):
+        i += 1
+        if i - start > 20:
+            raise Abort(f"could not find the end of the signature at line {start + 1}")
+    i += 1
+    stripped = lines[i].strip() if i < len(lines) else ""
+    for q in ('"""', "'''"):
+        if stripped.startswith(q):
+            if not (stripped.endswith(q) and len(stripped) > 3):   # one-liner docstring
+                i += 1
+                while i < len(lines) and q not in lines[i]:
+                    i += 1
+                    if i - start > 400:
+                        raise Abort(f"unterminated docstring in the function at line {start + 1}")
+            i += 1
+            break
+    return i
+
+
+def body_end(lines, start):
+    """Index just past a top-level function — the next line at column zero.
+
+    Scanning starts after the signature, not after the `def` line: a signature
+    split over several lines closes with `) -> None:` at column zero, which would
+    otherwise read as the end of the function and make the span empty.
+    """
+    i = start
+    while i < len(lines) and not lines[i].rstrip().endswith(":"):
+        i += 1
+    for j in range(i + 1, len(lines)):
+        if lines[j] and not lines[j][0].isspace():
+            return j
+    return len(lines)
+
+
+def docstring_close(lines, start):
+    """Index of the line closing this function's docstring — the line the extra
+    paragraph goes above.
+
+    Returns None when there is no docstring, or when it is a one-liner: prose
+    cannot be inserted above a `\"\"\"text\"\"\"` line without landing outside the
+    string and breaking the file. The paragraph is documentation, so skipping it
+    costs nothing; the guard itself still goes in.
+    """
+    i = start
+    while i < len(lines) and not lines[i].rstrip().endswith(":"):
+        i += 1
+    i += 1
+    stripped = lines[i].strip() if i < len(lines) else ""
+    for q in ('"""', "'''"):
+        if stripped.startswith(q):
+            if stripped.endswith(q) and len(stripped) > 3:
+                return None                      # one-liner — nowhere to put it
+            i += 1
+            while i < len(lines) and q not in lines[i]:
+                i += 1
+            return i if i < len(lines) else None
+    return None
+
+
 def step_new_functions(lines, report):
     if any(l.startswith("def apply_vas_pallet_check") for l in lines):
         report.append("  already present  the two new check functions")
         return lines
-    at = find_one(lines, "def apply_msa_conflicts(invoice: dict, result: dict) -> None:",
-                  "new functions")
+    at = find_def(lines, "apply_msa_conflicts", "new functions")
     report.append(f"  ADD              apply_vas_pallet_check + apply_vas_labor_check "
                   f"({len(NEW_FUNCTIONS.splitlines())} lines) before apply_msa_conflicts, line {at + 1}")
     # two blank lines after, so apply_msa_conflicts keeps its PEP-8 separation
@@ -78,44 +154,42 @@ def step_rates(lines, report):
     if any(l.strip() == '"_rates": rates,' for l in lines):
         report.append("  already present  the rate card on validate()'s result")
         return lines
-    at = find_one(lines, '        "discrepancies": [],', "carry the rate card")
+    start = find_def(lines, "validate", "carry the rate card")
+    end = body_end(lines, start)
+    hits = [i for i in range(start, end) if lines[i].strip() == '"discrepancies": [],']
+    if len(hits) != 1:
+        raise Abort("carry the rate card: expected exactly one `\"discrepancies\": [],` "
+                    f"inside validate(), found {len(hits)}")
+    at = hits[0]
     report.append(f"  ADD              carry the rate card on validate()'s result, line {at + 2}")
     return lines[:at + 1] + RATES_LINES + lines[at + 1:]
 
 
 def step_line_pass(lines, report):
-    at = find_one(lines, '    was_disputed = result["status"] == "disputed"',
-                  "line-pass guard")
-    # already guarded?
-    window = lines[max(0, at - 8):at]
-    if any('result.get("_pallet_rule")' in l for l in window):
+    start = find_def(lines, "_line_pass_keeping_disputes", "line-pass guard")
+    if any('result.get("_pallet_rule")' in l
+           for l in lines[start:body_end(lines, start)]):
         report.append("  already present  the line-pass skip for pallet work orders")
         return lines
+    at = body_start(lines, start)
     report.append(f"  ADD              _line_pass_keeping_disputes skips pallet rows, line {at + 1}")
     lines = lines[:at] + LINE_PASS_GUARD + lines[at:]
-    # the explanatory paragraph goes at the end of that function's docstring,
-    # which is the closing triple-quote immediately above the guard we just added
-    close = at - 1
-    while close >= 0 and lines[close].strip() != '"""':
-        close -= 1
-    if close >= 0:
+    close = docstring_close(lines, start)
+    if close is not None:
         lines = lines[:close] + DOCSTRING_NOTE + lines[close:]
         report.append("                   (plus the matching note in its docstring)")
+    else:
+        report.append("                   (docstring left alone — nowhere to add the note)")
     return lines
 
 
 def step_msa_guard(lines, report):
-    start = find_one(lines, "def apply_msa_conflicts(invoice: dict, result: dict) -> None:",
-                     "apply_msa_conflicts guard")
-    body = lines[start:start + 40]
-    if any('result.get("_pallet_rule")' in l for l in body):
+    start = find_def(lines, "apply_msa_conflicts", "apply_msa_conflicts guard")
+    if any('result.get("_pallet_rule")' in l
+           for l in lines[start:body_end(lines, start)]):
         report.append("  already present  apply_msa_conflicts standing aside")
         return lines
-    rel = next((k for k, l in enumerate(body) if l == '    wh = result.get("warehouse")'), None)
-    if rel is None:
-        raise Abort("apply_msa_conflicts guard: could not find its "
-                    '`wh = result.get("warehouse")` line')
-    at = start + rel
+    at = body_start(lines, start)
     report.append(f"  ADD              apply_msa_conflicts stands aside for pallet rows, line {at + 1}")
     return lines[:at] + MSA_GUARD + lines[at:]
 
@@ -127,18 +201,22 @@ def step_call_sites(lines, report):
         out.append(lines[i])
         m = re.match(r"^(\s*)r = validate\(inv, rates\)\s*$", lines[i])
         if m:
-            nxt = lines[i + 1] if i + 1 < len(lines) else ""
-            if "apply_vas_pallet_check" in nxt:
+            after = lines[i + 1:i + 7]
+            if any("apply_vas_pallet_check" in l for l in after[:2]):
                 present += 1
-            elif nxt.strip() == "apply_msa_conflicts(inv, r)":
+            elif any(l.strip().startswith("apply_msa_conflicts(") for l in after):
+                # Both new checks must run before apply_msa_conflicts, which stands
+                # aside for anything the pallet rule has already judged. Slotting them
+                # straight after validate() satisfies that wherever the call sits.
                 pad = m.group(1)
                 out.append(f"{pad}apply_vas_pallet_check(inv, r)")
                 out.append(f"{pad}apply_vas_labor_check(inv, r)")
                 added += 1
                 report.append(f"  ADD              both checks wired in after validate(), line {i + 1}")
             else:
-                raise Abort(f"call site at line {i + 1}: expected "
-                            f"`apply_msa_conflicts(inv, r)` on the next line, found {nxt.strip()!r}")
+                raise Abort(f"call site at line {i + 1}: expected a call to "
+                            f"apply_msa_conflicts within the next few lines, found "
+                            f"{[l.strip() for l in after if l.strip()][:3]}")
         i += 1
     if present:
         report.append(f"  already present  {present} call site(s) already wired")
@@ -169,7 +247,7 @@ def main() -> int:
     except Abort as e:
         print(f"REFUSING to change anything — {e}")
         print("\nNothing was written. Send me this message and the output of:")
-        print(f"  grep -n 'r = validate(inv, rates)' {path}")
+        print(f"  grep -n '^def \\|r = validate(inv, rates)' {path}")
         return 1
 
     print(f"{path}")

@@ -121,12 +121,15 @@ sessions unzip, so the nightly run picks up v1.6.0 from it.
 ## Verified before shipping
 
 The installer was run against a pristine 1.5.0 and its output diffed byte-for-byte
-against this repo's v1.6.0 file — identical. It was then run against a copy of that file
-with 55 extra lines injected at three points, to imitate 1.5.1's drift: all six changes
-landed, the result compiled, and the 24-check suite passed against it. Re-running on an
-installed file reports "already present" six times and writes nothing. Two deliberately
-broken files (a renamed variable at an anchor, an unexpected call after `validate()`)
-both produced REFUSING with the file untouched.
+against this repo's v1.6.0 file — identical. Then against two rewritten copies: one with
+55 lines injected at three points (line-number drift), and one with
+`_line_pass_keeping_disputes` rewritten to hold its state in a dict, given a keyword-only
+argument, a signature split over six lines and a one-line docstring, plus
+`apply_msa_conflicts` split across multiple lines too. All six changes landed on both,
+both compiled, and the 24-check suite passed against both. Re-running on any installed
+file reports "already present" six times and writes nothing. Deliberately broken files
+(a renamed function, an unexpected call after `validate()`) produce REFUSING with the
+file untouched.
 
 The merge script was run against a pristine
 pre-v1.6.0 snapshot and the pair reproduced every v1.6.0 verdict exactly: 755701 valid,
