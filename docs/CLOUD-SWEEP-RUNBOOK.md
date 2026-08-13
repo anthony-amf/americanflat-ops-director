@@ -126,11 +126,17 @@ from pathlib import Path
 import json
 rates = json.load(open('/tmp/skill/yusen-invoice-validator/references/rate-card-snapshot.json'))
 r = V.validate(row_dict, rates)                          # header pass
+V.apply_vas_pallet_check(row_dict, r)                    # Savannah VAS pallet work orders
 V.apply_msa_conflicts(row_dict, r)                       # notes-based dispute check
 V._line_pass_keeping_disputes(row_dict, r, Path('/tmp/pdf-cache'))   # PDF line pass
 ```
 
-Run all three in that order. `_line_pass_keeping_disputes` is the wrapper that
+Run all four in that order. `apply_vas_pallet_check` (v1.6.0+) judges Savannah's
+VAS pallet work orders — Savannah bills pallets as VAS jobs, and the generic VAS
+logic cannot resolve them, so they parked at `needs_detail` even when billed
+correctly. It reads quantity and rate from `notes`, so it needs no PDF and no OCR;
+when it fires, the next two calls deliberately step aside rather than re-judging
+the same charge. `_line_pass_keeping_disputes` is the wrapper that
 stops the PDF pass from demoting a dispute the notes-based check already found.
 When `r["_settled"]` is set, the row was already settled — skip it, do not write.
 
