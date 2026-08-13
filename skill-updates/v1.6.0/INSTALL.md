@@ -32,17 +32,39 @@ mkdir -p ~/skill-backups/2026-08-13-yusen-v151 && cp ~/.claude/skills/yusen-invo
 
 Three files listed before you continue.
 
-## Step 2 — dry-run the code patch
-
-From a clone of this repo (or wherever you have `skill-updates/v1.6.0/`):
+## Step 2 — dry-run the code changes
 
 ```bash
-cd ~/.claude/skills/yusen-invoice-validator/scripts && patch -p0 --dry-run validate_rate_card.py < <PATH>/skill-updates/v1.6.0/v1.6.0-onto-1.5.x.patch
+python3 <PATH>/skill-updates/v1.6.0/install_v1_6_0.py ~/.claude/skills/yusen-invoice-validator/scripts/validate_rate_card.py
 ```
 
-- **Clean** → apply it: same command without `--dry-run`.
-- **"Hunk #N FAILED"** → 1.5.1 changed something near an insertion point. Stop and
-  send me the failed hunk; do not force it. The `.rej` file names the conflict.
+It prints one line per change and stops without writing. Six changes, all inserts:
+
+```
+  ADD              apply_vas_pallet_check + apply_vas_labor_check (261 lines) before apply_msa_conflicts
+  ADD              carry the rate card on validate()'s result
+  ADD              _line_pass_keeping_disputes skips pallet rows
+  ADD              apply_msa_conflicts stands aside for pallet rows
+  ADD              both checks wired in after validate()   x2
+```
+
+Then apply it:
+
+```bash
+python3 <PATH>/skill-updates/v1.6.0/install_v1_6_0.py ~/.claude/skills/yusen-invoice-validator/scripts/validate_rate_card.py --write
+```
+
+It writes its own timestamped backup first, and it compiles the result before saving —
+if the outcome would not run, nothing is written.
+
+If it prints **REFUSING**, 1.5.1 changed something at one of the six spots. Nothing was
+touched; send me the message.
+
+**Why not the `.patch` file.** `v1.6.0-onto-1.5.x.patch` is still in this directory and
+still correct against a pristine 1.5.0, but `patch` matches on line numbers, and 1.5.1's
+line numbers drifted — hunk 6 of 6 failed on the Mac for that reason and no other. The
+installer finds each spot by the code around it, so drift cannot break it. Re-running it
+is safe: anything already in place is reported as "already present" and left alone.
 
 ## Step 3 — merge the rate card (never a straight copy)
 
@@ -98,8 +120,15 @@ sessions unzip, so the nightly run picks up v1.6.0 from it.
 
 ## Verified before shipping
 
-The patch was applied to a pristine 1.5.0, compiled, and diffed byte-for-byte against
-this repo's v1.6.0 file — identical. The merge script was then run against a pristine
+The installer was run against a pristine 1.5.0 and its output diffed byte-for-byte
+against this repo's v1.6.0 file — identical. It was then run against a copy of that file
+with 55 extra lines injected at three points, to imitate 1.5.1's drift: all six changes
+landed, the result compiled, and the 24-check suite passed against it. Re-running on an
+installed file reports "already present" six times and writes nothing. Two deliberately
+broken files (a renamed variable at an anchor, an unexpected call after `validate()`)
+both produced REFUSING with the file untouched.
+
+The merge script was run against a pristine
 pre-v1.6.0 snapshot and the pair reproduced every v1.6.0 verdict exactly: 755701 valid,
 756523 valid (1.5× overtime), 756396 valid ($10 pallet), 754388 disputed ($14.317 wrap),
 750206 valid (pre-AF-9 April invoice).
