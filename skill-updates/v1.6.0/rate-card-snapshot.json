@@ -1,0 +1,309 @@
+{
+  "effective_date": "2026-06-01",
+  "source": "https://app.notion.com/p/3898555c2abc81efab1decc73a53973a",
+  "note": "FALLBACK SNAPSHOT ONLY. The Notion page is the source of truth. Rates here mirror the AMERICANFLAT Yusen MSA (draft 7.15.2026; rates confirmed final by Anthony 8/5/26; validity April 2026 - March 31 2027) as rebuilt onto the Notion card 2026-08-05. US & Canada are USD; Netherlands is EUR + 21% VAT (see references/netherlands.md). Update at contract renewal.",
+  "small_parcel_dtc": {
+    "fontana": {
+      "e_commerce_orders": 2.2264,
+      "additional_picks": 0.506,
+      "tax_labor": 0.0
+    },
+    "new_jersey": {
+      "e_commerce_orders": 2.2264,
+      "additional_picks": 0.506,
+      "tax_labor": 0.05
+    },
+    "south_carolina": {
+      "e_commerce_orders": 2.2264,
+      "additional_picks": 0.5796,
+      "tax_labor": 0.0
+    },
+    "canada": {
+      "e_commerce_orders": null,
+      "additional_picks": null,
+      "tax_labor": null
+    }
+  },
+  "small_parcel_vendor": {
+    "fontana": {
+      "ship_carton": 1.8887,
+      "pick_unit": 1.05,
+      "order_fee": 2.1585,
+      "manual_order": 2.35,
+      "small_parcel_addl": 0.6879
+    },
+    "new_jersey": {
+      "ship_carton": 1.7871,
+      "pick_unit": 1.0,
+      "order_fee": 2.1735,
+      "manual_order": null,
+      "small_parcel_addl": 0.6532
+    },
+    "south_carolina": {
+      "ship_carton": 1.6422,
+      "pick_unit": null,
+      "order_fee": null,
+      "manual_order": null,
+      "small_parcel_addl": 0.84
+    },
+    "canada": {
+      "ship_carton": null,
+      "pick_unit": null,
+      "order_fee": null,
+      "manual_order": null,
+      "small_parcel_addl": 0.85
+    }
+  },
+  "ltl": {
+    "fontana": {
+      "ship_carton": 1.8887,
+      "pallet": 10.0,
+      "stretchwrap": 0.0,
+      "pick_unit": 1.05,
+      "order_fee": 2.1585,
+      "bol_fee": 6.5,
+      "manual_order": 2.35,
+      "_pallet_note": "AF-9: $10.00 national all-in pallet INCLUSIVE of stretch wrap. Any separate wrap line (4.317-4.347) or 14.317 combined rate is DISPUTED, not a rate."
+    },
+    "new_jersey": {
+      "ship_carton": 1.7871,
+      "pallet": 10.0,
+      "stretchwrap": 0.0,
+      "pick_unit": null,
+      "order_fee": 2.1735,
+      "bol_fee": 6.5,
+      "manual_order": null,
+      "_pallet_note": "AF-9: $10.00 national all-in pallet INCLUSIVE of stretch wrap. Any separate wrap line (4.317-4.347) or 14.317 combined rate is DISPUTED, not a rate."
+    },
+    "south_carolina": {
+      "ship_carton": 1.6422,
+      "pallet": 10.0,
+      "stretchwrap": 0.0,
+      "pick_unit": null,
+      "order_fee": null,
+      "bol_fee": 6.5,
+      "manual_order": null,
+      "_pallet_note": "AF-9: $10.00 national all-in pallet INCLUSIVE of stretch wrap. Any separate wrap line (4.317-4.347) or 14.317 combined rate is DISPUTED, not a rate."
+    },
+    "canada": {
+      "ship_carton": 2.6,
+      "pallet": 16.0,
+      "stretchwrap": 6.0,
+      "pick_unit": 1.95,
+      "order_fee": null,
+      "bol_fee": 8.0,
+      "manual_order": 15.0
+    },
+    "_af9_effective_from": "2026-05-01",
+    "_af9_effective_note": "The AF-9 $10.00 all-in pallet rate is applied to invoices dated on or after this date. Before it, the documented pre-June rate is the correct rate and the invoice is valid, not disputed \u2014 SC $11.74 combined billed via VAS, per the rate card's pre-June history table. Set to 2026-05-01 on Anthony's decision (2026-08-12) to ignore the three April 2026 SC pallet invoices (750206, 750576, 750984 \u2014 $226.20). NOTE the tension: the live Notion card says the new US rates 'took effect on invoices from the June 2026 billing weeks', which read strictly would also exempt the two 2026-05-20 invoices (752056, 752058 \u2014 $151.38) that are currently stamped disputed. Move this date to 2026-06-01 to adopt that stricter reading."
+  },
+  "storage": {
+    "fontana": 4.47,
+    "new_jersey": 4.34,
+    "south_carolina": 3.35,
+    "canada": 5.75,
+    "_pending_review": "Resolved 2026-08-05: MSA rates confirmed final (SC 3.35 / NJ 4.34 / Fontana 4.47, effective billing weeks from ~May 4-10 2026). Pre-June history: SC 5.0925 / NJ 5.98 / Fontana 5.9055. Bases unchanged: SC = peak-day pallets, NJ = flat count, Fontana = locations + bulk."
+  },
+  "admin_vas": {
+    "fontana": {
+      "weekly": 2393.11,
+      "vas_hourly": 59.8278,
+      "disposal": 13.68,
+      "label": 0.45,
+      "hourly_roles": {
+        "material_handler": 35.0,
+        "clerical": 42.0,
+        "general_labor": 59.8278,
+        "physical_inventory": 59.8278,
+        "stock_consolidation": 59.8278,
+        "salaried_supervisor": 82.1166,
+        "dray_admin_fee": 52.8831,
+        "qa": 47.1232
+      },
+      "overtime_multiplier": 1.5
+    },
+    "new_jersey": {
+      "weekly": 1071.0,
+      "vas_hourly": 53.55,
+      "disposal": null,
+      "label": 0.45,
+      "labor_tax": {
+        "rate": 0.05,
+        "active_periods": [
+          {
+            "from": null,
+            "until": "2026-04-27"
+          }
+        ],
+        "note": "5% NJ admin labor tax, applied only during active_periods (each interval is [from, until); from=null means open start, until=null means open-ended; an interval may carry its own 'rate' to override). History: active through the week of April 13 (last taxed invoice billed 2026-04-20 at $1,124.55); dropped from the week of April 20 (invoiced 2026-04-27 at $1,071.00). If the tax returns, append another interval (e.g. {\"from\": \"2026-09-01\", \"until\": null})."
+      },
+      "hourly_roles": {
+        "material_handler": 35.0,
+        "clerical": 42.0,
+        "general_labor": 53.55,
+        "physical_inventory": 53.55,
+        "stock_consolidation": 53.55,
+        "salaried_supervisor": 77.7,
+        "dray_admin_fee": 47.334
+      },
+      "overtime_multiplier": 1.5
+    },
+    "south_carolina": {
+      "weekly": 1092.0,
+      "vas_hourly": 53.55,
+      "disposal": null,
+      "label": null,
+      "hourly_roles": {
+        "material_handler": 32.0,
+        "clerical": 40.0,
+        "general_labor": 53.55,
+        "physical_inventory": 63.0,
+        "stock_consolidation": 63.0,
+        "salaried_supervisor": 77.7,
+        "dray_admin_fee": 51.45
+      },
+      "overtime_multiplier": 1.5
+    },
+    "canada": {
+      "weekly": 1100.0,
+      "vas_hourly": 50.0,
+      "disposal": null,
+      "label": null
+    },
+    "_hourly_roles_note": "Full MSA hourly table, role x site, valid April 2026 - March 31 2027 (Anthony, 2026-08-12; mirrored on the Notion rate card rebuilt from the MSA 8/5). general_labor covers equipment operator, office, admin, returns, photography, floor loading, oversize, QA and routing. NOTE: the single vas_hourly figure this replaces had south_carolina at 51.00, which appears nowhere in the MSA and caused correctly-billed Savannah labour to read as above card. Verified against the live Notion card 2026-08-12, whose footnote reads: 'SC hourly per the MSA hourly table (was $51.00 on the old card)'. The 51.00 previously stored here was the superseded card value, not an MSA rate.",
+    "_hourly_roles_extra": {
+      "it_hourly": 185.0,
+      "supplies_equipment": "cost + 12% margin"
+    },
+    "_overtime_note": "Overtime is 1.5x the applicable role rate \u2014 AGREED (Anthony, 2026-08-12), so an hourly line at exactly 1.5x a contracted role rate is valid, not a dispute. It is a multiplier on whichever role row applies, not a rate of its own. Straight-time general labour OT: Fontana $89.7417, New Jersey $80.325, South Carolina $80.325."
+  },
+  "netherlands": {
+    "currency": "EUR",
+    "vat_rate": 0.21,
+    "monthly_minimum_eur": 6222.0,
+    "warehouse_address": "Appelweg 12, Moerdijk, NL",
+    "basis_note": "Outbound priced per CARTON (not per order). 2025 cost levels, subject to annual Panteia/NEA indexation. \u20ac6,222/month minimum for warehouse activities.",
+    "warehousing": {
+      "small_parcel_dtc": {
+        "e_commerce_orders": 2.89,
+        "additional_picks": 0.52,
+        "note": "\u20ac2.89/carton includes shipping-label application (no separate label fee)."
+      },
+      "outbound_b2b": {
+        "ship_carton": 1.89,
+        "note": "'Outbound Order Fulfillment B2B' \u20ac1.89/carton includes pallet config, wrapping, pack-list (covers stretchwrap). NL does not separate VC small-parcel vs LTL."
+      },
+      "storage_pallet_week": 2.75,
+      "storage_bin_location_week": 0.4,
+      "admin_weekly_tiers": [
+        {
+          "max_hours": 16,
+          "eur": 692.85
+        },
+        {
+          "max_hours": 24,
+          "eur": 1039.27
+        },
+        {
+          "max_hours": 32,
+          "eur": 1385.7
+        },
+        {
+          "max_hours": 40,
+          "eur": 1732.12
+        }
+      ],
+      "vas_hourly": {
+        "warehouse": 45.04,
+        "administration": 56.3,
+        "management": 78.82
+      }
+    },
+    "transport": {
+      "amazon_delivery_flat_eur": 100.0,
+      "fuel_is_pct_of_transport_outbound": true,
+      "transport_outbound": "variable (weight/volume/lane tariff) \u2014 not rate-card checkable without the Benelux freight tariff",
+      "note": "Outbound EU delivery invoices: per-order Transport Outbound + Fuel Surcharge (% of transport) + Amazon Delivery (flat \u20ac100). Subject to 21% VAT."
+    },
+    "nl_only_charges": {
+      "inbound_container_unloading_per_carton": {
+        "eur": 0.86,
+        "min_per_delivery_eur": 60.0
+      },
+      "inbound_additional_admin_per_carton": {
+        "eur": 0.14,
+        "note": "First 125,000 cartons over contract term"
+      },
+      "inbound_sortation_per_sku_container": {
+        "eur": 24.18
+      },
+      "storage_bin_location_per_location_week": {
+        "eur": 0.4,
+        "note": "Incl. common-ground area"
+      },
+      "drayage_per_container": {
+        "eur": 467.5
+      },
+      "project_mgmt_it_onetime": {
+        "eur": 17500.0,
+        "note": "Paid in advance before implementation"
+      }
+    }
+  },
+  "footnotes": {
+    "canada_storage": "Canada per pallet $5.75 + $2,850/month storage minimum",
+    "new_jersey_admin": "New Jersey weekly $1,071 base = $1,124.55 with 5% labor tax",
+    "canada_admin": "Canada $1,000 acct mgmt + $100 WMS portal = $1,100 \u2014 billed MONTHLY per the Brampton worksheet (verified on CA2WFS0003428, June 2026); the Notion card labels it weekly and needs correcting",
+    "new_jersey_label": "New Jersey label $0.45 + 5% labor tax"
+  },
+  "receiving": {
+    "fontana": {
+      "handling_in_per_carton": 0.9173,
+      "container_admin": 52.8831,
+      "ltl_air_delivery_per_carton": 0.7728,
+      "ltl_air_delivery_minimum": 72.45,
+      "container_trailer_storage_per_spot_day": 43.47,
+      "sortation_per_sku": 31.2981
+    },
+    "new_jersey": {
+      "handling_in_per_carton": 0.9467,
+      "container_admin": 47.334,
+      "ltl_air_delivery_per_carton": 0.7728,
+      "ltl_air_delivery_minimum": 72.45,
+      "container_trailer_storage_per_spot_day": 43.47,
+      "sortation_per_sku": 29.946
+    },
+    "south_carolina": {
+      "handling_in_per_carton": 0.7728,
+      "container_admin": 47.288,
+      "ltl_air_delivery_per_carton": 0.7728,
+      "ltl_air_delivery_minimum": 72.45,
+      "container_trailer_storage_per_spot_day": 43.47,
+      "sortation_per_sku": 24.15
+    },
+    "_note": "Receiving & handling-in, mirrored from the live Notion rate card 2026-08-12. This section did not exist before v1.6.0, so Receiving invoices had no per-unit basis in the snapshot at all \u2014 the only reason any validated is that container_admin and sortation happen to appear in the script's rate-label table, which the PDF line pass consults. Receiving notes carry no quantities (just 'INBOUND PROCESSING BETWEEN <dates>'), so unlike the VAS pallet and labour rules there is no notes-only shortcut: these invoices require the PDF.",
+    "_pre_june": {
+      "note": "Pre-June 2026 receiving rates. Absent from the Notion card's pre-June history table, which covers small parcel, LTL, pallet, BOL and storage but not receiving \u2014 so before v1.6.0 there was nothing to validate a pre-June receiving invoice against. Every observed line sits at exactly 1.087x the June rate, the inverse of the ~8% June cut (1/1.087 = 0.920). Confirmed 2026-08-12 against the PDFs of 749279 (NJ, 2026-03-31) and 752320 (Fontana, 2026-05-26); both recompute to the cent. Rates marked observed came off those invoices; south_carolina is derived and unconfirmed.",
+      "effective_until": "2026-06-01",
+      "fontana": {
+        "handling_in_per_carton": 0.9971,
+        "container_admin": 57.4816,
+        "sortation_per_sku": 34.0198,
+        "_source": "observed (752320)"
+      },
+      "new_jersey": {
+        "handling_in_per_carton": 1.029,
+        "container_admin": 51.45,
+        "sortation_per_sku": 32.55,
+        "_source": "observed (749279)"
+      },
+      "south_carolina": {
+        "handling_in_per_carton": 0.84,
+        "container_admin": 51.4021,
+        "sortation_per_sku": 26.2511,
+        "_source": "derived x1.087, unconfirmed"
+      }
+    },
+    "_nj_surcharge_note": "New Jersey receiving invoices carry the 5% labour tax under the line name 'NJ BILL OF RIGHTS SURCHARGE' \u2014 749279 bills 5.00% of $10,830.4560 = $541.52. Same charge as admin_vas.new_jersey.labor_tax, different wording, so anything matching on the phrase 'labor tax' will miss it. Effective-dated: dropped from the week of April 20 2026."
+  }
+}
