@@ -65,9 +65,27 @@ ignored, and the variance survives `apply_msa_conflicts`.
 ### Applied to the ledger ahead of this release
 
 756396 → valid ($70.00) and 755908 → valid ($490.00); 752056 → disputed ($52.20) and
-752058 → disputed ($99.18). The three April 2026 `$11.74` invoices (750206, 750576,
-750984 — $226.20) were left alone pending a decision on whether the MSA rate reaches
-back before its ~May 4-10 effective date.
+752058 → disputed ($99.18).
+
+### AF-9 has an effective date, and the code enforces it
+
+Anthony's decision (2026-08-12): ignore the three April 2026 `$11.74` invoices
+(750206, 750576, 750984 — $226.20). Saying so in conversation was not enough. Those
+rows are `valid` and paid, but a `disputed` result counts as an escalation downstream
+and overrides an existing `valid` stamp, so the pallet rule would have flipped all
+three back on the very next sweep and kept doing so nightly.
+
+`ltl._af9_effective_from` (2026-05-01) now bounds the rule. An invoice dated before it
+that recomputes at the documented pre-June rate is stamped `valid` with a note saying
+why — the pre-June rate is the *correct* rate for a pre-June invoice, not a legacy
+indulgence. One date in the rate card, changeable without touching code.
+
+**Worth flagging:** the live Notion card says the new US rates "took effect on invoices
+from the **June 2026 billing weeks**". Read strictly, that would also exempt the two
+2026-05-20 invoices (752056, 752058 — $151.38) currently stamped `disputed`. They were
+written that way on the earlier instruction to apply the MSA rate rather than the
+pre-MSA one, with the April/May split explicitly in view. Moving the date to
+2026-06-01 adopts the card's own reading and reverses those two.
 
 ### Also in 1.6.0 — hourly VAS projects vs the MSA hourly table
 

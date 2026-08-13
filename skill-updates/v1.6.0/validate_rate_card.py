@@ -731,6 +731,25 @@ def apply_vas_pallet_check(invoice: dict, result: dict) -> None:
     # detector and the PDF line pass do not re-judge the same charge.
     result["_pallet_rule"] = True
 
+    # AF-9 has an effective date. An invoice billed before it at the documented
+    # pre-June rate is correct, not disputed — and this guard is what stops a
+    # re-sweep from silently reversing that. A `disputed` result counts as an
+    # escalation downstream and overrides an existing `valid` stamp, so without
+    # the date test these rows would flip back every night.
+    eff = ((result.get("_rates") or {}).get("ltl") or {}).get("_af9_effective_from")
+    inv_date = str(invoice.get("date") or "")[:10]
+    if eff and inv_date and inv_date < eff:
+        if abs(expected - amount) <= 0.01:
+            result["status"] = "valid"
+            result["expected_amount"] = expected
+            result["variance"] = 0.0
+            result["variance_percent"] = 0.0
+            result["line_report"] = (
+                f"{pallets:g} pallets x ${rate:,.4f} = ${amount:,.2f}, exact. Billed "
+                f"{inv_date}, before AF-9 took effect ({eff}), so the pre-June rate applies "
+                f"— correct as billed, nothing disputed.")
+            return
+
     if abs(expected - amount) > 0.01:
         result["status"] = "discrepancy"
         result["expected_amount"] = expected
