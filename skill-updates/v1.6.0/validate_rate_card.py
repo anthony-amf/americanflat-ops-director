@@ -489,6 +489,9 @@ def validate(invoice: dict, rates: dict) -> dict:
         "status": "valid",
         "paid_at": str(invoice["paid_at"]) if invoice.get("paid_at") else None,
         "discrepancies": [],
+        # The rate card rides along so later checks (apply_vas_labor_check) can
+        # look up a per-warehouse contracted rate without being handed it again.
+        "_rates": rates,
     }
 
     if not wh:
@@ -766,6 +769,98 @@ def apply_vas_pallet_check(invoice: dict, result: dict) -> None:
     result["discrepancies"].append(
         f"{pallets:g} pallets x ${rate:,.4f} = ${amount:,.2f}, below the AF-9 $10.00 all-in "
         f"— unrecognised pallet rate, needs a human look")
+
+
+# "MAY 2026 CONSOLIDATION PROJECT - 24.49 HRS", "55 hrs @ $53.55", "2 hrs"
+_VAS_HOURS = re.compile(r"(?<![\d.])(\d{1,4}(?:\.\d+)?)\s*(?:HRS?|HOURS?)\b", re.I)
+
+
+def apply_vas_labor_check(invoice: dict, result: dict) -> None:
+    """Judge an hourly VAS project against the MSA labour rate for ITS warehouse.
+
+    A VAS job described as a project plus hours ("MAY 2026 CONSOLIDATION PROJECT -
+    24.49 HRS") carries everything needed for a verdict, but parked at
+    `needs_detail` because nothing derived the rate. This divides the total by the
+    hours and compares the result to `admin_vas.<warehouse>.vas_hourly`.
+
+    **The comparison is per warehouse, and that is the point.** The rate table
+    labels 53.55, 59.8278, 63.0 and others simply as "hourly", so a Savannah job
+    billed at New Jersey's $53.55 matched a known rate and passed as `valid` even
+    though South Carolina's MSA rate is $51.00. Four already-paid Savannah invoices
+    went through that way. A rate is only right for the site it was contracted for.
+
+    Overtime is recognised rather than disputed blind: a rate at 1.5x the site rate
+    is reported as apparent overtime and flagged for a human, because the MSA does
+    not carry an overtime multiplier and whether one was agreed is not a question
+    this code can answer.
+    """
+    if (invoice.get("type_of_invoice") or "").strip().upper() != "VAS":
+        return
+    if result.get("_settled") or result.get("status") == "error":
+        return
+    if result.get("_pallet_rule"):     # a pallet work order, not a labour job
+        return
+    m = _VAS_HOURS.search(invoice.get("notes") or "")
+    if not m:
+        return
+    hours = float(m.group(1))
+    if hours <= 0:
+        return
+
+    wh = result.get("warehouse")
+    card = ((result.get("_rates") or {}).get("admin_vas") or {}).get(wh) or {}
+    msa_rate = card.get("vas_hourly")
+    if not msa_rate:
+        return                          # no contracted rate for this site — leave alone
+
+    amount = result.get("billed_amount")
+    if amount is None:
+        amount = float(invoice.get("amount") or 0)
+    derived = round(amount / hours, 4)
+    delta = round((derived - msa_rate) * hours, 2)
+    result["_labor_rule"] = True
+    # validate() left a "provide hours from the invoice detail" placeholder because
+    # it could not see the hours. We just supplied them, so drop it — leaving it in
+    # produces a row that reads "valid" and "needs more detail" at the same time,
+    # which is exactly the contradiction the 8/12 report-block work removed.
+    result["discrepancies"] = [d for d in (result.get("discrepancies") or [])
+                               if "hourly rate" not in str(d)]
+
+    if abs(derived - msa_rate) < 0.005:
+        result["status"] = "valid"
+        result["expected_amount"] = round(hours * msa_rate, 2)
+        result["variance"] = 0.0
+        result["variance_percent"] = 0.0
+        result["line_report"] = (
+            f"VALID vs MSA labour: {hours:g} hrs x ${msa_rate:,.4f} = ${amount:,.2f}, exact, "
+            f"at the contracted {wh} VAS hourly rate.")
+        return
+
+    if derived > msa_rate:
+        ot = round(msa_rate * 1.5, 4)
+        if abs(derived - ot) < 0.01:
+            result["status"] = "discrepancy"
+            result["variance"] = delta
+            result["discrepancies"].append(
+                f"{hours:g} hrs at ${derived:,.4f}/hr is exactly 1.5x the contracted {wh} VAS "
+                f"rate of ${msa_rate:,.4f} — apparent overtime, ${delta:,.2f} above straight "
+                f"time. The MSA carries no overtime multiplier; confirm it was agreed before "
+                f"paying or disputing")
+            return
+        result["status"] = "disputed"
+        result["variance"] = delta
+        result["variance_percent"] = round(delta / amount * 100, 1) if amount else None
+        result["discrepancies"].append(
+            f"{hours:g} hrs billed at ${derived:,.4f}/hr against the contracted {wh} VAS rate "
+            f"of ${msa_rate:,.4f} — ${delta:,.2f} above card; "
+            f"${hours * msa_rate:,.2f} is payable")
+        return
+
+    result["status"] = "valid"
+    result["variance"] = 0.0
+    result["line_report"] = (
+        f"{hours:g} hrs at ${derived:,.4f}/hr, BELOW the contracted {wh} VAS rate of "
+        f"${msa_rate:,.4f} — ${abs(delta):,.2f} in Americanflat's favour, nothing to dispute.")
 
 
 def apply_msa_conflicts(invoice: dict, result: dict) -> None:
@@ -1236,6 +1331,7 @@ def main() -> None:
             if inv:
                 r = validate(inv, rates)
                 apply_vas_pallet_check(inv, r)
+                apply_vas_labor_check(inv, r)
                 apply_msa_conflicts(inv, r)
                 if not args.no_pdf:
                     _line_pass_keeping_disputes(inv, r, pdf_dir)
@@ -1262,6 +1358,7 @@ def main() -> None:
 
     r = validate(inv, rates)
     apply_vas_pallet_check(inv, r)
+    apply_vas_labor_check(inv, r)
     apply_msa_conflicts(inv, r)
     if not args.no_pdf:
         _line_pass_keeping_disputes(inv, r, pdf_dir)

@@ -127,11 +127,12 @@ import json
 rates = json.load(open('/tmp/skill/yusen-invoice-validator/references/rate-card-snapshot.json'))
 r = V.validate(row_dict, rates)                          # header pass
 V.apply_vas_pallet_check(row_dict, r)                    # Savannah VAS pallet work orders
+V.apply_vas_labor_check(row_dict, r)                     # hourly VAS projects vs the site's MSA labour rate
 V.apply_msa_conflicts(row_dict, r)                       # notes-based dispute check
 V._line_pass_keeping_disputes(row_dict, r, Path('/tmp/pdf-cache'))   # PDF line pass
 ```
 
-Run all four in that order. `apply_vas_pallet_check` (v1.6.0+) judges Savannah's
+Run all five in that order. `apply_vas_pallet_check` (v1.6.0+) judges Savannah's
 VAS pallet work orders — Savannah bills pallets as VAS jobs, and the generic VAS
 logic cannot resolve them, so they parked at `needs_detail` even when billed
 correctly. It reads quantity and rate from `notes`, so it needs no PDF and no OCR;
