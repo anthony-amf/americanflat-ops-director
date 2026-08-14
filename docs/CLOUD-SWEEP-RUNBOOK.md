@@ -1,8 +1,14 @@
 # Cloud validation sweep — runbook
 
-*Executed by the scheduled cloud sessions — 10:00 AM, 1:00 PM and 5:30 PM ET
-(the last is 30 min after the 3 PM MT ingestion). A fresh session follows this
-file top to bottom. Written 2026-08-06; owner anthony@americanflat.com.*
+*Phase 1 of the single nightly run `yusen-nightly-validation-2am-mt`, **2:00 AM MT
+daily** (Anthony, 2026-08-11), about 11 hours after the 3 PM MT ingestion so nothing
+is still in BigQuery's streaming buffer. Phase 2 is `STEDI-NIGHTLY-RUNBOOK.md`, run
+straight after this one in the same session. A fresh session follows this file top
+to bottom. Written 2026-08-06; owner anthony@americanflat.com.*
+
+*Replaces the former three-a-day schedule (10 AM / 1 PM / 5:30 PM ET). There is no
+second pass: whatever this run leaves unfinished waits a full day, so prefer
+finishing an invoice properly over finishing the list quickly.*
 
 ## Guard first: probe write access
 
@@ -72,8 +78,42 @@ the functions and write via step 5 instead.
 For each work-list row, extract the Drive file id from `pdf_url`
 (`/file/d/<id>/` or `?id=<id>`), download via the Google Drive connector's
 `download_file_content`, base64-decode, and save to `/tmp/pdf-cache/<invoice_number>.pdf`.
-Batch sensibly; a missing/failed PDF is not fatal — that row just degrades to
-the header-level result.
+
+**This step is why the sweep has been ineffective, so read the next paragraph before
+running it.** Without PDFs every row stays `needs_detail` for ever — the header pass
+alone cannot resolve a single invoice — and the run then looks like a clean no-op when
+it has actually done nothing. The 2026-08-12 02:00 MT run wrote nothing at all while
+27 invoices sat waiting, and 756711 went from `needs_detail` to `valid` the moment its
+PDF was read (3,811 pallets x $4.34 = $16,539.74, exact). **Fetching the PDFs *is* the
+job. A pass that skips them is not a cheaper sweep, it is a pointless one.**
+
+**The download will not come back inline.** These invoice PDFs run 0.5-3 MB, so
+`download_file_content` returns base64 far larger than a tool result can hold. The
+harness spills it to a file and hands you the path instead, in a message that reads
+like an error but is not one. Handle it exactly this way:
+
+1. Call `download_file_content` with the file id.
+2. If the result is a normal inline JSON payload, decode `content` from it.
+3. If instead you get "result (N characters) exceeds maximum allowed tokens … Output
+   has been saved to `<path>`", use that path. **Do not read the file into context** —
+   it is megabytes of base64 and reading it wastes the run. Decode it with a script:
+
+```python
+import base64, json
+d = json.load(open("<path from the message>"))          # {content, id, mimeType, title}
+open(f"/tmp/pdf-cache/{invoice_number}.pdf", "wb").write(base64.b64decode(d["content"]))
+```
+
+4. Sanity-check the first bytes are `%PDF-` before handing it to the line pass.
+
+Then `pip install pypdf cryptography cffi` (the container's pypdf is broken without
+them) and confirm `import pypdf` works before starting the batch.
+
+Work through the list one invoice at a time — download, decode, validate, write, then
+the next. Do not try to download everything first: each spill file is megabytes, and
+holding 27 of them buys nothing. A missing or failed PDF is not fatal for the run;
+that row degrades to the header-level result and gets named in the summary as
+"PDF unavailable" so it is visible rather than silently unresolved.
 
 ## 4. Validate
 
@@ -86,11 +126,18 @@ from pathlib import Path
 import json
 rates = json.load(open('/tmp/skill/yusen-invoice-validator/references/rate-card-snapshot.json'))
 r = V.validate(row_dict, rates)                          # header pass
+V.apply_vas_pallet_check(row_dict, r)                    # Savannah VAS pallet work orders
+V.apply_vas_labor_check(row_dict, r)                     # hourly VAS projects vs the site's MSA labour rate
 V.apply_msa_conflicts(row_dict, r)                       # notes-based dispute check
 V._line_pass_keeping_disputes(row_dict, r, Path('/tmp/pdf-cache'))   # PDF line pass
 ```
 
-Run all three in that order. `_line_pass_keeping_disputes` is the wrapper that
+Run all five in that order. `apply_vas_pallet_check` (v1.6.0+) judges Savannah's
+VAS pallet work orders — Savannah bills pallets as VAS jobs, and the generic VAS
+logic cannot resolve them, so they parked at `needs_detail` even when billed
+correctly. It reads quantity and rate from `notes`, so it needs no PDF and no OCR;
+when it fires, the next two calls deliberately step aside rather than re-judging
+the same charge. `_line_pass_keeping_disputes` is the wrapper that
 stops the PDF pass from demoting a dispute the notes-based check already found.
 When `r["_settled"]` is set, the row was already settled — skip it, do not write.
 
@@ -102,6 +149,30 @@ Generate one UPDATE per changed row, mirroring `write_result` semantics
 exactly — build the report with `V.merge_report(prior_report, V.compose_report(r))`,
 which replaces only its own previous `[AUTO <date>]` block and leaves payment
 cards, `[MSA DISPUTE …]` specs and human notes alone.
+
+**Never assign `validation_report` directly.** Always go through `merge_report`.
+Each pass owns exactly one tagged block and must leave every other block byte-for-byte
+intact — the row's history (`[MSA REVAL …]`, `[DEEP PASS …]`, `[STEDI …]`,
+`[PAID …]`) is the audit trail, and on a settled row nothing will ever rebuild it.
+Writing the field wholesale is what wiped the itemized math and Stedi results off
+754891 and 755265 on 2026-08-11.
+
+**Do not let a header-level result talk over a deeper one.** Before composing,
+check the prior report for a `[DEEP PASS …]`, `[STEDI …]`, `[MSA DISPUTE …]` or
+`[MSA REVAL …]` block. If one is present and this pass came back `needs_detail`,
+write a single line instead of the full card:
+
+```
+Invoice <inv> — header-level re-check only, no new findings. Itemized detail is
+already on file above (<tags>); this pass does not supersede it. Header total
+$<amount>, unchanged.
+```
+
+The `[AUTO]` block is written last, so it reads as the current verdict on the
+dashboards. Appending "provide itemized counts / no order-level Stedi result" under
+a completed deep pass makes a finished invoice look unfinished — exactly what
+happened on 755265. Validator v1.5.0+ does this automatically
+(`V._deferral_block(r, prior_report)`); on v1.4.0 the sweep must do it by hand.
 
 - SET `validated_at = CURRENT_TIMESTAMP()`, `validation_status`,
   `validation_variance` (disputed $ for disputed rows, else the result's

@@ -1,9 +1,16 @@
 # Nightly Stedi (EDI) order check — runbook
 
-*Executed by the scheduled cloud session `yusen-stedi-nightly`, 2:00 AM ET
-daily. Purpose: close the shipping axis on Small Parcel / LTL invoices so they
-stop parking at `needs_detail`. Written 2026-08-07; owner
-anthony@americanflat.com.*
+*Phase 2 of the single nightly run `yusen-nightly-validation-2am-mt`, **2:00 AM MT
+daily** (Anthony, 2026-08-11), executed immediately after phase 1
+(`CLOUD-SWEEP-RUNBOOK.md`) in the same session. Purpose: close the shipping axis on
+Small Parcel / LTL invoices so they stop parking at `needs_detail`. Written
+2026-08-07; owner anthony@americanflat.com.*
+
+*Phase order is load-bearing: this phase may only stamp an invoice `valid` when the
+contract check is already on the row, so the contract pass runs first and an invoice
+clearing both axes gets its stamp the same night. The old standalone
+`yusen-stedi-nightly` Routine (2:00 AM ET) is retained but disabled — its work is
+folded in here.*
 
 ## What this does, in one line
 
@@ -11,6 +18,44 @@ For every SP/LTL invoice that hasn't had its shipping check yet, confirm each
 billed order actually shipped (EDI 945, falling back to 940 = in warehouse),
 recompute the e-com pick charge on the contract's **additional-only** basis,
 and record both findings on the invoice row. It never marks anything paid.
+
+## Guard 0: the API-call budget (read this before anything else)
+
+**Every order lookup is a metered API call. Treat calls as money, not as a free
+resource.** This job can generate tens of thousands of them if written carelessly,
+and on 2026-08-11 an early version was about to: 61 invoices, one of them
+(754807) carrying 8,966 orders, including invoices settled in 2025 and NL rows
+whose orders are not in the US feed at all.
+
+Standing rules, in priority order:
+
+1. **Never query an order twice.** A matched order is matched forever — shipment
+   history does not change retroactively. Cache every result and consult the cache
+   before calling out.
+2. **A retry queries only what was unmatched.** The 5-day retry exists for orders
+   whose EDI record arrived late. Re-running the whole invoice to re-confirm
+   thousands of already-matched orders is pure waste. Step 4 explains how to store
+   the unmatched IDs so a retry costs a handful of calls instead of thousands.
+3. **Estimate before executing.** Sum the order count across the whole work list
+   first and print it. If the total exceeds **20,000 orders**, STOP and report the
+   estimate — do not start. That is a human decision, not an automated one.
+4. **On rate limiting or any 429/5xx, back off and stop.** Report which invoices
+   completed. Never retry in a tight loop, and never "push through" a limit.
+5. **Prefer one bulk query to many single ones** wherever the API supports it. If a
+   date-range or multi-id lookup is available, a week of orders should cost a few
+   paginated calls, not one call per order.
+
+**We are not asking Stedi about pricing** (Anthony, 2026-08-11 — they won't help).
+So the budget rules above are not provisional and there is no answer coming that
+relaxes them. They are the standing design, and they hold regardless of what a
+call costs: not re-asking a question you already know the answer to is correct
+engineering at any price.
+
+Practical consequence: the per-order lookup is the only retrieval method we can
+count on, so the way to keep this cheap is to query as few orders as possible —
+which is exactly what the work-list filters, the unmatched-only retry and the
+on-disk cache are for. If a bulk or date-range lookup turns out to exist, adopting
+it is a straight improvement; nobody is waiting on permission to look.
 
 ## Guard 1: is the API key present?
 
@@ -20,9 +65,14 @@ and record both findings on the invoice row. It never marks anything paid.
 
 `KEY_MISSING` → **STOP**. Report one line: "STEDI_API_KEY not set in this
 environment — nightly EDI check skipped, no rows touched." Do not attempt
-workarounds, do not guess match rates, change nothing. (As of 2026-08-07 the
-key is not yet in the cloud environment; Anthony is adding it. Until then this
-job is expected to no-op every night, which is fine.)
+workarounds, do not guess match rates, change nothing.
+
+The key and the network route both landed **2026-08-11**: `STEDI_API_KEY` is in the
+environment (id `rmyNws8`) and `core.us.stedi.com` is allowed through the proxy —
+verified with an authenticated call returning HTTP 200. So `KEY_MISSING` is no
+longer the expected outcome; if it happens, the environment setting was removed or
+the session did not pick it up, and that is worth reporting as a fault rather than
+a routine skip.
 
 ## Guard 2: BigQuery write access
 
@@ -43,16 +93,73 @@ SELECT invoice_number, warehouse, amount, CAST(date AS STRING) d,
        validation_report
 FROM `americanflat.finance.yusen_invoices`
 WHERE type_of_invoice LIKE 'SML%'
-  AND NOT STARTS_WITH(invoice_number, 'CA262')      -- NL transport: separate validator
+  -- US warehouses only. Stedi indexes the US EDI feed; NL and Canada orders are
+  -- simply absent from it, so checking them yields false "unmatched" findings.
+  AND NOT STARTS_WITH(invoice_number, 'CA262')      -- NL transport
+  AND NOT STARTS_WITH(invoice_number, 'CA252')      -- NL
+  AND NOT STARTS_WITH(invoice_number, 'CA2WFS')     -- Canada
+  AND NOT STARTS_WITH(invoice_number, 'FTI')        -- NL warehousing
+  -- Unsettled only. A paid row, or one already stamped valid, is closed: the
+  -- shipping question was answered before payment and re-asking it changes
+  -- nothing. `disputed` IS included — the shipping evidence supports the claim.
+  AND paid_at IS NULL
+  AND IFNULL(validation_status,'') IN ('', 'needs_detail', 'error', 'disputed')
+  -- Anthony, 2026-08-11: nothing before 2026. The 2025 invoices are closed
+  -- business and are not worth a single API call.
+  AND date >= '2026-01-01'
   AND supporting_doc_url IS NOT NULL
-  AND validation_report NOT LIKE '%[STEDI %'        -- no Stedi block yet
+  AND (
+        -- never checked
+        validation_report NOT LIKE '%[STEDI %'
+        -- or checked, came back with gaps, and is still inside the 5-day retry window
+        OR (validation_report LIKE '%[STEDI %'
+            AND validation_report LIKE '%UNMATCHED%'
+            AND REGEXP_EXTRACT(validation_report, r'\[STEDI (\d{4}-\d{2}-\d{2})[^\]]*\](?!.*\[STEDI )')
+                >= FORMAT_DATE('%Y-%m-%d', DATE_SUB(CURRENT_DATE(), INTERVAL 5 DAY)))
+      )
 ORDER BY date DESC
 ```
 
-The `[STEDI <date>]` report block is the marker for "already checked" — an
-invoice is processed once and then left alone. Rows whose status is already
-`disputed` still get checked (the shipping evidence is useful either way) but
-their status is never changed by this job.
+**The `[STEDI <date>]` block is the "already checked" marker — with one
+exception: a check that found unmatched orders is retried for 5 days.**
+
+A clean result is final: checked once, then left alone forever. But EDI
+shipment data lags — an order billed today may not appear in Stedi for a day or
+two, so a same-week check can report a gap that is really just timing. Those
+get retried each night for **5 days from the last check**, then stop.
+
+Five days is deliberate (Anthony, 2026-08-07): unmatched orders already trigger
+manual lookups on the ops side, so anything real will have surfaced by then. A
+gap still open after 5 days is a genuine finding — Yusen billed an order with
+no shipping evidence — and should stay flagged rather than be re-queried
+forever.
+
+Write the retry so it is visible: each retry appends a fresh `[STEDI <date>]`
+block, so the row's history shows the gap was re-checked and when. If a retry
+clears the gap, apply the normal status rules (100% matched, no pick overcharge
+-> `valid`). If day 5 passes with the gap open, say so in the summary once so a
+human picks it up — do not keep raising it nightly after that.
+
+Rows whose status is already `disputed` still get checked (the shipping
+evidence is useful either way) but their status is never changed by this job.
+
+**Scope matters — check the count before you start.** The first version of this
+query had no status filter and no non-US exclusions, so it selected **61 invoices
+worth $552K** including invoices paid and closed as far back as October 2025, plus
+12 NL/Canada rows whose orders are not in the US Stedi feed at all. Caught
+2026-08-11 on the first manual run, before it wrote anything. Two consequences,
+both bad: the NL rows would have collected false `UNMATCHED` findings — which then
+re-query for five nights and read like "Yusen billed an order that never shipped" —
+and 754807 alone carries 8,966 orders, so re-checking dozens of settled invoices
+means tens of thousands of needless API calls and a real chance of hitting a rate
+limit partway through a run.
+
+With the filters above the list should be roughly **10 US invoices** (as of
+2026-08-11: 756521, 756156, 756028, 755721, 755725, 755486, 755131, 754807,
+754702, 754698 — about $174K, mostly `disputed` rows awaiting the shipping axis).
+If the count comes back far outside that range, stop and say so rather than
+working through it — the query or the data has changed and it is worth a human
+look first.
 
 ## 2. Get the supporting worksheet
 
@@ -64,6 +171,16 @@ Drive connector (`download_file_content`), base64-decode to
 
 No supporting doc, or download fails → record nothing for that invoice, list it
 in the summary as "worksheet unavailable", move on.
+
+**Guard 3: is the Google Drive connector attached to this session?** Without it
+there is no way to fetch a worksheet, so every invoice degrades to "worksheet
+unavailable" and the whole run does nothing. If Drive is unavailable, STOP after
+the work list and report one line naming the count of invoices that were skipped
+for this reason — do not walk the list writing "unavailable" onto each row.
+The connector cannot be set through the trigger API for this org; it is attached
+per-Routine in the claude.ai Routines UI. As of 2026-08-11 it is attached to
+`yusen-cloud-validation-sweep` only — **not** to `yusen-stedi-nightly` and not to
+`yusen-cloud-validation-sweep-midday`.
 
 ## 3. Parse the order numbers
 
@@ -91,7 +208,32 @@ workers) against `https://core.us.stedi.com/2023-08-01/transactions`, 945
 first then 940 for anything not found. Fontana invoices run 1,000–9,000 orders.
 
 Record: orders checked, matched via 945, matched via 940, and the specific
-unmatched IDs (cap the stored list at ~20 with a count).
+unmatched IDs (cap the stored list at ~20 with a count). **When any order is
+unmatched, the stored block must contain the literal word `UNMATCHED`** — the
+5-day retry query in step 1 keys off it. A fully matched check must NOT contain
+that word, or it will be re-queried needlessly.
+
+**Store the unmatched IDs machine-readably, because the retry reads them back.**
+Put them on their own line inside the block, exactly:
+
+```
+UNMATCHED IDS: 6719203862_1, 6719204011, 6719204250 (3 of 289)
+```
+
+**A retry queries only those IDs — never the whole invoice again.** Parse that line
+out of the most recent `[STEDI]` block, look up only those orders, and write a
+fresh block with the outcome. If the stored list was truncated ("20 of 47 shown"),
+query the 20 you have and say so plainly in the new block, so the remainder is a
+known unknown rather than a silent one — then raise the cap for that invoice.
+
+This is where the money is. Re-checking 754807 costs ~8,966 calls; retrying its
+actual gaps costs as many calls as there are gaps. Same information, three orders
+of magnitude cheaper.
+
+**Cache to disk as you go**, `/tmp/stedi/cache-<invoice>.json`, one entry per order
+with its result. Consult the cache before every call. If a run dies partway — rate
+limit, timeout, interrupt — the next attempt resumes instead of starting over. Two
+runs were interrupted on 2026-08-11; with no cache, both started from zero.
 
 ## 5. Recompute the e-com pick charge (the money question)
 
@@ -125,14 +267,50 @@ One UPDATE per invoice. Append a `[STEDI <date>]` block to
 …]`, payment cards), containing the match counts, the unmatched IDs, and the
 pick recompute.
 
+**Never assign `validation_report` wholesale** — read the current value, splice
+your block in, write the whole merged text back (`V.merge_report(prior, block,
+tag="STEDI")` in validator v1.5.0+). This job owns the `[STEDI]` tag and nothing
+else. Overwriting the field is what destroyed the itemized math and prior Stedi
+results on 754891 and 755265 on 2026-08-11; on a settled row nothing rebuilds it.
+
 Status rules — narrow on purpose:
 
 | Finding | Status | Variance |
 |---|---|---|
-| 100% of orders matched, no pick overcharge | `valid` | unchanged |
+| 100% matched, no pick overcharge, **and the contract check has run** | `valid` | unchanged |
+| 100% matched, no pick overcharge, contract check has NOT run | leave as-is (`needs_detail`) | unchanged |
 | 100% matched, pick overcharge > $1 | `disputed` | overcharge $ (add to any existing disputed $) |
 | Any order unmatched | leave as-is (`needs_detail`) | unchanged |
 | Row already `disputed` | leave status; add the `[STEDI]` block | add overcharge to existing variance only if it is a NEW finding |
+
+**A clean shipping check alone must never promote a row to `valid`.** This job
+verifies one axis — that the billed orders shipped — plus the one contract
+question it can answer from the worksheet (the pick basis). It does not check the
+rate card, the $10 all-in pallet rule (AF-9), the removed pack-out (AF-7), or the
+invoice math. Those belong to the daytime sweeps.
+
+Stamping `valid` drops the row out of the daytime work list **permanently**, so
+promoting on shipping evidence alone can close the file on an invoice whose rates
+were never checked. That is a live risk, not a hypothetical: the daytime sweep is
+explicitly allowed to fall back to a header-level result when it cannot fetch the
+PDF, and the Google Drive connector is still not attached to the `-midday` Routine.
+An invoice could take a header-only pass at 10 AM and be sealed `valid` at 2 AM
+with its wrap or pack-out lines never examined — the two findings that make up most
+of the ~$9,207 dispute position.
+
+So before writing `valid`, confirm the contract side is actually done. It is done
+when the row's `validation_report` carries any of:
+
+- a `[DEEP PASS …]` block (in-conversation itemized review), or
+- an `[MSA REVAL …]` block, or
+- an `[AUTO …]` block reporting a line-level result — it names the parsed lines
+  ("at MSA-schedule rates") or carries a `Line detail:` line.
+
+If none of those is present, write the `[STEDI]` block with the clean shipping
+result, **leave the status at `needs_detail`**, and list the invoice in the summary
+as "shipping clear, waiting on the line-level check" so the next daytime sweep
+finishes it. Nothing is lost — the shipping result is recorded and the invoice
+gets its `valid` stamp on the next pass that can read the PDF.
 
 - `validated_by` MUST be `yusen-invoice-validator` (the standard automated
   writer). Any other value is treated as a human stamp downstream and freezes
