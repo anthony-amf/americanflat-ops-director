@@ -14,18 +14,40 @@ These are **not** rep-level decisions. Draft a holding reply, don't resolve.
 
 | Situation | Who decides |
 |---|---|
-| Problem reported **after the 30-day window** — replacement possible "depending on the situation" | **Your manager**, explicitly, before acting |
+| Problem reported **after the 30-day window** — replacement possible "depending on the situation" | ⚠ **Contested.** The SOP says consult your manager before acting. The $200 budget would fund it. See the note below — default to a quick manager check on anything not small |
 | A judgement call on an unusual or high-value case | **Senior management** — the SOP's own instruction is "when in doubt, ask help from senior management" |
 | The specific deduction to apply on a contested return (flat $5 vs. actual postage) | **Manager** — the SOPs conflict, see `returns-refunds.md` |
 | Which return-label process to follow | **Manager** — three SOPs disagree, see `returns-refunds.md` |
 | Wholesale **unit pricing** | **Angela** (pricing approval); initial review uses 10% off AMZ List Price |
 | Anything committing money outside the standard remedies | **Manager** |
 
-**No rep-level spend authority is defined in the SOPs.** Until one is set, the working
-line is: a rep may act on remedies policy already prescribes for the situation; anything
-*beyond* prescribed policy is a manager call regardless of amount. Never invent a dollar
-limit. See the Authority section of `judgment-and-empathy.md` — it names the two numbers
-Anthony would need to set to remove most of the daily friction.
+**Rep spend authority: $200 per agent per month** (Anthony, 2026-08-17). A monthly
+discretionary pool, not a per-ticket cap. It funds goodwill *beyond* prescribed policy;
+remedies policy already prescribes for the situation don't touch it. Within the pool the
+rep decides alone — no escalation needed, including waiving the 20% restocking fee. Past
+the pool, or once the month's budget is spent, a discretionary ask becomes a manager call.
+Full scope, pacing, and tracking in the Authority section of `judgment-and-empathy.md`.
+
+### ⚠ The budget vs. the post-30-day manager gate
+
+These two rules collide and Anthony hasn't reconciled them yet:
+
+- **How To: Customer Service Policies** (Replacements): a post-30-day replacement is
+  possible "depending on the situation — **consult with your manager before acting**."
+- **The $200 monthly budget** (2026-08-17) lists a post-day-30 replacement as exactly the
+  kind of discretion a rep now funds themselves.
+
+The budget grants **money** authority; the SOP imposes a **process** gate on this one
+named scenario, and a spend limit doesn't automatically dissolve a named gate.
+
+**Working answer until Anthony says otherwise:** if it's small and inside the budget,
+the rep can act — that is plainly what the budget is for, and routing a $25 frame to a
+manager defeats its purpose. For anything not obviously small, keep the manager check;
+it costs one message. Tell the rep both rules exist so they aren't blindsided.
+
+**This needs a one-line decision:** does the $200 budget supersede the "consult your
+manager" instruction on post-30-day replacements, or does that gate survive the budget?
+Whichever way it goes, the SOP text should be updated to match.
 
 The standing instruction from the refund policy is worth quoting to the rep verbatim
 when they're on the fence:

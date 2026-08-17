@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.2.0 — 2026-08-17
+
+Fills the authority gap 1.1.0 flagged: **$200 per agent per month** of discretionary
+spend (Anthony, 2026-08-17). The skill no longer escalates every step beyond prescribed
+policy — within the pool the rep decides alone.
+
+- **A monthly pool, not a per-ticket cap.** The rep paces it across the month. Roughly
+  $46/week or $10/business day, so a steady trickle of small gestures fits comfortably; a
+  single gesture over ~$75 eats a third of the month and is worth a second thought even
+  though it's affordable.
+- **Scope of the budget — the load-bearing decision.** It funds **discretion only**:
+  waiving the 20% restocking fee, absorbing return shipping, a keep-it discount above the
+  15–25% band, a replacement past day 30, a full refund where policy says store credit,
+  goodwill with no policy basis. Remedies policy **already prescribes** never touch it —
+  a replacement for a damaged item, keep-it under $50, the missing-accessory partial
+  refund are normal cost of doing business. Had prescribed remedies counted, two
+  damaged-frame replacements would exhaust a rep's month and they could not do their job.
+  The budget buys judgment, not the baseline.
+- **Answers the restocking-fee question outright:** yes, a rep may waive the 20% fee
+  alone — $20 on a $100 order sits comfortably inside the pool.
+- **When the budget is spent, warmth doesn't run out.** Prescribed remedies remain
+  available (they were never coming out of the pool) and the whole empathy section still
+  applies. Discretionary asks escalate as normal requests. The budget is an internal
+  constraint the customer never hears about — no "I've used up my allowance."
+- **Harmonized with the cost-of-remedy bands.** Those bands describe posture on
+  *prescribed* remedies; the budget is the authority for going *beyond* them. Previously
+  the bands were the only guidance and could be misread as a spend limit.
+- **⚠ Surfaces a new collision.** The SOP says a post-30-day replacement requires
+  consulting a manager; the budget lists exactly that as rep-funded discretion. A spend
+  limit doesn't dissolve a named process gate, so the working answer is: act if it's small
+  and inside budget, keep the manager check otherwise. Needs a one-line decision from
+  Anthony, and the SOP text should be updated either way. Recorded in `escalation.md`.
+- **⚠ Tracking gap flagged.** Nothing tracks the discretionary tally automatically, so it's
+  a manual running count today — and an untracked budget becomes either unused or
+  unbounded. A shared sheet of date / ticket / amount / reason would fix it and would feed
+  the exception review.
+- Two assumptions stated rather than buried: calendar month with **no rollover**, and
+  **per agent** rather than a shared team pot.
+
 ## 1.1.0 — 2026-08-17
 
 Adds **judgment and empathy** on top of 1.0.0's policy lookup. Until now the skill

@@ -71,8 +71,11 @@ escalation.
 | **~$50–150** | **Use the ladder generously.** Replacement or store credit, offered warmly and immediately. Ask for photos, but frame it as "so we can get the right one out" not as verification | Real money, still cheaper than a churned customer. This is the band where warmth converts a complaint into loyalty |
 | **Above ~$150, or repeat requests from one customer** | **Escalate before promising.** Holding reply, then your manager | Beyond a rep-level call, and pattern cases need a human who can see the pattern |
 
-These bands are guidance for weighing the call, **not a spend authority**. See *Authority*
-below — the actual approval limit is unset and needs Anthony's decision.
+These bands describe **posture on prescribed remedies** — how much friction to add, how
+generously to apply the ladder. They are not the spend authority. The authority is the
+**$200 monthly discretionary budget** below, which governs only the goodwill that goes
+beyond what policy already prescribes. The two work together: the bands tell you how to
+handle what policy already covers, the budget tells you how far past it you can go alone.
 
 Judgment cuts both ways. A $12 poster does not need photo verification and a 3-day
 round trip. A $400 order from a customer on their fourth claim is not a goodwill case
@@ -120,26 +123,89 @@ None of these decide it alone. Two or three together make a strong case.
 
 ---
 
-## Authority — needs Anthony's decision ⚠
+## Authority — the $200 monthly discretionary budget
 
-The SOPs do not state a rep-level spend limit. Until one is set, this skill will not
-invent one, because a fabricated authority figure is worse than an escalation.
+**Each CX agent has $200 per month to spend at their own discretion.**
+(Anthony, 2026-08-17.) Within it the rep decides alone and does not ask permission.
 
-**Current guidance in the absence of a limit:** a rep may act unilaterally on remedies
-that policy already prescribes for the situation (replacement, store credit, the
-15–25% keep-it discount, partial refunds for missing accessories, keep-it under $50).
-Anything **beyond** what policy prescribes — a waived restocking fee, a replacement past
-day 30, a full refund where policy says store credit, a goodwill gesture with no policy
-basis — is a **manager call**, regardless of amount.
+This is a **monthly pool, not a per-ticket cap.** The rep manages it across the month,
+which means the question is never just "can I afford this one" but "am I pacing this
+sensibly."
 
-Once a limit exists, it belongs here, and the escalation table in `escalation.md` should
-point at it. Two numbers would resolve most of the daily friction:
+### What comes out of the $200
 
-1. The dollar value a rep can resolve without asking.
-2. Whether a rep may waive the 20% restocking fee on their own, and under what conditions.
+Only **discretion** — goodwill that goes *beyond* what policy already prescribes:
 
-Until then, when the rep is about to exceed prescribed policy, say plainly: *"This is
-past what policy already allows, so it needs your manager — here's a holding reply."*
+- Waiving the 20% restocking fee
+- Absorbing return shipping we'd normally deduct from the refund
+- A keep-it discount **above** the 15–25% band
+- A replacement after day 30
+- A full refund where policy says store credit
+- Expedited shipping offered as an apology
+- Any goodwill gesture with no policy basis at all
+
+### What does NOT come out of the $200
+
+Remedies **policy already prescribes** are normal cost of doing business, not discretion.
+They never touch the budget:
+
+- Replacement or refund for a damaged, defective, or wrong item
+- Keep-it under $50
+- The partial refund for a missing accessory
+- The 15–25% keep-it discount, within band
+- A lost-in-transit replacement
+- Anything else the policy files say to do for that situation
+
+This distinction is load-bearing. If prescribed remedies counted, two damaged-frame
+replacements would exhaust a rep's month and they could not do their job. The budget buys
+**judgment**, not the baseline.
+
+### Pacing
+
+$200/month is roughly **$46 a week, or $10 a business day.** Most discretionary gestures
+are small — a waived $20 restocking fee, an absorbed $9 return label — so the pool
+comfortably covers a steady trickle of them.
+
+A **single gesture over ~$75** eats more than a third of the month. That's not prohibited,
+but be deliberate about it: it's the kind of call worth a second thought, or a quick word
+with a manager even though you don't strictly need one.
+
+If it's early in the month and the pool is already half gone, that's a signal — either an
+unusual run of problems worth flagging upstream, or a habit of reaching for discretion
+where prescribed policy would have covered it.
+
+### When the budget is spent
+
+**Warmth never runs out.** An exhausted budget changes what you can *give*, not how you
+treat someone. Everything in the empathy section still applies in full, and prescribed
+remedies are still available — they were never coming out of the pool.
+
+For a discretionary ask you can no longer fund: escalate it to your manager as a normal
+request. The budget is an internal constraint and the customer should never hear about it.
+Never write "I've used up my monthly allowance" — say what you *can* do, and if you need
+approval, use the holding reply.
+
+### Tracking it
+
+Log every discretionary decision with the **amount and the reason**, and keep a running
+total for the month. Shopify refunds already go in the **CX Refunds** tab; replacements go
+in the replacement log. The discretionary tally is the rep's own running count on top of
+those.
+
+⚠ **No system tracks this automatically today.** Until one does, it's a manual tally, and
+an untracked budget quietly becomes either unused or unbounded. A simple shared sheet with
+date / ticket / amount / reason would fix it, and would also feed the exception review
+below — worth setting up alongside the budget.
+
+### What this resolves, and what it assumes
+
+The budget answers the restocking-fee question directly: **yes, a rep can waive the 20%
+fee on their own** — on a $100 order that's $20 of discretion, comfortably inside the pool.
+
+Two assumptions, flagged rather than buried. Correct these if they're wrong:
+
+1. **Calendar month, no rollover.** Unspent budget doesn't carry into the next month.
+2. **Per agent, not per team.** Each rep has their own $200; it isn't a shared pot.
 
 ---
 

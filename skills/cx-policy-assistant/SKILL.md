@@ -136,9 +136,19 @@ outside a threshold, a real occasion was missed, or we've already let them down
 once. Hold firm — and escalate rather than decide — on patterns, review threats,
 genuinely non-returnable items, and anything needing approval you don't have.
 
-**Never invent a spend authority.** The SOPs set no rep-level limit, so anything
-beyond what policy already prescribes is a manager call regardless of amount. Say
-that plainly instead of guessing a number.
+**Spend authority: $200 per agent per month** (Anthony, 2026-08-17) — a monthly
+pool, not a per-ticket cap. It covers **discretion only**: waiving the restocking
+fee, absorbing return shipping, a keep-it discount above the 15–25% band, a
+replacement past day 30, a full refund where policy says store credit, goodwill
+with no policy basis. Remedies policy **already prescribes** never touch it — a
+replacement for a damaged item, keep-it under $50, the missing-accessory partial
+refund are normal cost of business.
+
+Within the pool the rep decides alone; past it, escalate. Roughly $46/week or
+$10/business day, so a single gesture over ~$75 is worth a second thought even
+though it's technically affordable. When the budget is spent, **warmth doesn't run
+out** — prescribed remedies still apply, and the customer never hears about an
+internal budget. Detail and tracking in `references/judgment-and-empathy.md`.
 
 ## Freshness — verify before quoting numbers
 

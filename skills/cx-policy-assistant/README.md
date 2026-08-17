@@ -60,10 +60,12 @@ softening that isn't generosity, it's a promise that breaks. A restocking fee or
 replacement is a decision, and decisions can flex. Reps get this wrong in both directions,
 over-promising the impossible while refusing things they could have granted.
 
-**Why it won't name a spend limit.** The SOPs define no rep-level authority, so the skill
-escalates instead of guessing — a fabricated approval figure is worse than an escalation.
-Two numbers from you would remove most of the daily friction; they're named in the
-Authority section of `judgment-and-empathy.md`.
+**The spend authority: $200 per agent per month.** A monthly discretionary pool, not a
+per-ticket cap. Critically, it funds **discretion only** — goodwill beyond what policy
+already prescribes. Prescribed remedies (a replacement for a damaged item, keep-it under
+$50, the missing-accessory partial refund) are normal cost of business and never touch it;
+if they did, two damaged-frame replacements would exhaust a rep's month. The budget buys
+judgment, not the baseline. Scope, pacing, and tracking in `judgment-and-empathy.md`.
 
 **Why it surfaces conflicts instead of resolving them.** The SOPs were written at
 different times and genuinely contradict each other — return-label handling has three
@@ -129,7 +131,11 @@ Open items worth resolving. The first three are SOP contradictions recorded in
 1. The three-way return-label conflict (who creates labels).
 2. The return-carrier conflict (Endicia/USPS vs. cheapest-of-Stamps-or-FedEx).
 3. Whether the 20% restocking fee and the flat $5 handling cost stack.
-4. **Rep spend authority is undefined.** Two numbers would remove most of the daily
-   friction: the value a rep can resolve without asking, and whether they may waive the
-   restocking fee alone. Until set, the skill escalates anything beyond prescribed policy
-   rather than guessing. See the Authority section of `judgment-and-empathy.md`.
+4. **Does the $200 budget supersede the post-30-day manager gate?** The SOP says consult a
+   manager before a post-30-day replacement; the budget lists that as rep-funded
+   discretion. Working answer is act-if-small, check-otherwise. Needs one line from
+   Anthony, and the SOP text updated either way. See `escalation.md`.
+5. **Nothing tracks the discretionary tally.** It's a manual running count today. A shared
+   sheet of date / ticket / amount / reason would fix it and feed the exception review.
+
+*Resolved:* rep spend authority — **$200 per agent per month**, set 2026-08-17.
