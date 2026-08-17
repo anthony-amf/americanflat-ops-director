@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.4.0 — 2026-08-17
+
+**The Notion SOPs were updated to match the decisions**, so the skill no longer carries
+overrides against its own sources. Notion is the single source of truth again.
+
+Written into Notion:
+
+- *How To: Customer Service Policies* — new **Rep Discretion & Spend Authority** section
+  placed ahead of the individual rules, so a rep meets the discretion frame before the
+  rules it applies to. States the $200/month pool, its discretion-only scope, the
+  prescribed-remedies carve-out, what to do when the budget is spent, and the logging ask.
+- *How To: Customer Service Policies* → Replacements — the post-30-day line now reads as
+  the rep's own call within budget, replacing "consult with your manager before acting."
+- *How To: Returns/Replacements/Refunds* → Refund Policy — a cross-reference to the budget
+  placed directly after the SOP's own "use your judgement and try to keep Americanflat
+  profitable" line, which is where a rep is standing when they need the number.
+
+Changed here as a result:
+
+- **Standing overrides table is now empty** and both entries recorded as retired. The
+  section stays as the mechanism for future decisions that outrun the SOP text.
+- Snapshot last-edited dates for both pages moved to 2026-08-17.
+- `policies.md` gained the new Rep Discretion section and its post-30-day entry now
+  mirrors the live Notion wording instead of annotating an override against it.
+- The "Notion has not caught up" warnings in `escalation.md`, `policies.md`, and
+  `judgment-and-empathy.md` are gone — they were true for about an hour.
+
+- **⚠ New caution recorded in `sources.md`:** editing Notion through the MCP round-trips
+  the page's markdown and can mangle untouched text nearby. A literal `$________`
+  placeholder in the Refund Process steps collapsed to `$__` as a side effect of an
+  unrelated edit on the same page; caught on verification and restored. After any write to
+  a Notion SOP, re-fetch and diff the whole page, not just the part you changed.
+
 ## 1.3.0 — 2026-08-17
 
 Resolves the collision 1.2.0 surfaced: **the $200 budget overrides the post-30-day

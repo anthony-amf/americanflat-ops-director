@@ -133,11 +133,9 @@ Open items worth resolving. The first three are SOP contradictions recorded in
 3. Whether the 20% restocking fee and the flat $5 handling cost stack.
 4. **Nothing tracks the discretionary tally.** It's a manual running count today. A shared
    sheet of date / ticket / amount / reason would fix it and feed the exception review.
-5. **Two Notion pages need updating to match decisions already made** — the post-30-day
-   "consult your manager" line, and the absence of any stated rep spend authority. Until
-   they're updated, the *Standing overrides* register in `sources.md` is what keeps a
-   snapshot refresh from silently reverting them.
+   This is the only substantive open item left.
 
 *Resolved:* rep spend authority — **$200 per agent per month** (2026-08-17). Post-30-day
-replacements — **the budget overrides the manager gate**; rep's own call within budget
-(2026-08-17).
+replacements — **the budget overrides the old manager gate**; rep's own call within budget
+(2026-08-17). Both are now **written into the Notion SOPs**, so no standing overrides are
+outstanding and Notion is the single source of truth again.

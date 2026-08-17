@@ -13,8 +13,8 @@ Dashboard). Fetch a page with the Notion MCP tool `notion-fetch` using the ID be
 
 | Page | Notion page ID | Last edited at snapshot | Status |
 |---|---|---|---|
-| How To: Customer Service Policies | `0e07af7d-729e-4aac-8a04-ed88426c84e2` | 2025-10-07 | Live |
-| How To: Returns/Replacements/Refunds | `1bcf13a0-15dc-41ae-a155-0b2894d5d3c1` | 2025-10-07 | Live |
+| How To: Customer Service Policies | `0e07af7d-729e-4aac-8a04-ed88426c84e2` | **2026-08-17** | Live |
+| How To: Returns/Replacements/Refunds | `1bcf13a0-15dc-41ae-a155-0b2894d5d3c1` | **2026-08-17** | Live |
 | How To: Operate in Zendesk | `60797b21-c016-4d70-8d22-0502e58a1b07` | 2025-10-07 | Live |
 | How To: Create Shipping Return Labels | `2fe8555c-2abc-8091-91f6-fea4436f034a` | 2026-05-25 | Live |
 | How To: Get a Cost Estimation for a Return Shipping Label | `8d5336c1-d0bc-4433-9663-d4242ab2ff89` | 2026-04-28 | Live |
@@ -61,30 +61,35 @@ Send SOP corrections to the page owner rather than editing policy pages directly
 **If live Notion and the snapshot disagree: live Notion wins.** Say so to the rep so the
 snapshot can be refreshed.
 
-## Standing overrides — read before every refresh ⚠
+## Standing overrides — currently none ✅
 
-Decisions Anthony has made that **supersede** what a live Notion page still says. The
-Notion text has not caught up, so **a refresh will re-import the old rule and silently
-reverse the decision** unless you re-apply the override.
+This section exists to catch decisions that **supersede** what a live Notion page still
+says, because a refresh would otherwise re-import the old rule and silently reverse the
+decision. **The table is empty right now** — Notion is the single source of truth again.
 
-| Override | Source page still says | Decided |
+Two decisions were carried here on 2026-08-17 and have since been **written into Notion**,
+so the overrides were retired the same day:
+
+| Decision | Now in Notion as | Retired |
 |---|---|---|
-| **Post-30-day replacements are ordinary rep discretion** — no manager check when it fits the $200 monthly budget | *How To: Customer Service Policies* → Replacements: "Consult with your manager before acting. This is not a rep-level call." | Anthony, 2026-08-17 |
-| **Rep spend authority is $200/agent/month** for discretion beyond prescribed policy | Nothing — the SOPs define no authority at all | Anthony, 2026-08-17 |
+| Rep spend authority is $200/agent/month for discretion beyond prescribed policy | *Customer Service Policies* → new **Rep Discretion & Spend Authority** section; cross-referenced from *Returns/Replacements/Refunds* → Refund Policy | 2026-08-17 |
+| Post-30-day replacements are ordinary rep discretion within that budget | *Customer Service Policies* → Replacements, replacing the old "consult with your manager before acting" line | 2026-08-17 |
 
-**On every refresh:** after re-importing a page, walk this table and re-apply each
-override. A refresh that silently restores a superseded rule is worse than a stale
-snapshot, because nobody will notice.
-
-Best fix is to get the Notion pages updated so these entries can be retired. Until then
-this table is load-bearing.
+**When a future decision outruns the SOP text, add it here** with what the page still says
+and the date — then get Notion updated and retire the row. A refresh that silently
+restores a superseded rule is worse than a stale snapshot, because nobody notices.
 
 ## Refreshing this snapshot
 
 Re-fetch each page above, update the corresponding reference file, and update both the
 snapshot date at the top of each file and the "last edited" column here. **Then walk the
-Standing overrides table above and re-apply every entry.** Bump the minor version in
-`skill.toml` and add a `CHANGELOG.md` entry.
+Standing overrides table above and re-apply any entry still listed** (currently none).
+Bump the minor version in `skill.toml` and add a `CHANGELOG.md` entry.
+
+⚠ **Editing Notion through the MCP round-trips the page's markdown**, which can mangle
+untouched text nearby — on 2026-08-17 a literal `$________` placeholder collapsed to
+`$__` as a side effect of an unrelated edit. After any write to a Notion SOP, re-fetch the
+page and diff it against what you expected, not just the part you changed.
 
 Worth doing whenever a policy changes, and on a routine cadence regardless — the pages
 carry no change notifications.

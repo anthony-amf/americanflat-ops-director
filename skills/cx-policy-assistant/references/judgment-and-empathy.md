@@ -127,7 +127,9 @@ None of these decide it alone. Two or three together make a strong case.
 ## Authority — the $200 monthly discretionary budget
 
 **Each CX agent has $200 per month to spend at their own discretion.**
-(Anthony, 2026-08-17.) Within it the rep decides alone and does not ask permission.
+(Anthony, 2026-08-17 — now written into the *Customer Service Policies* SOP as its
+**Rep Discretion & Spend Authority** section.) Within it the rep decides alone and does
+not ask permission.
 
 This is a **monthly pool, not a per-ticket cap.** The rep manages it across the month,
 which means the question is never just "can I afford this one" but "am I pacing this
@@ -140,8 +142,8 @@ Only **discretion** — goodwill that goes *beyond* what policy already prescrib
 - Waiving the 20% restocking fee
 - Absorbing return shipping we'd normally deduct from the refund
 - A keep-it discount **above** the 15–25% band
-- A replacement after day 30 — explicitly the rep's own call as of 2026-08-17; the SOP's
-  "consult your manager" line is superseded
+- A replacement after day 30 — explicitly the rep's own call as of 2026-08-17, and the SOP
+  now says so
 - A full refund where policy says store credit
 - Expedited shipping offered as an apology
 - Any goodwill gesture with no policy basis at all

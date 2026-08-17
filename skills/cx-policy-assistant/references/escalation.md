@@ -30,20 +30,17 @@ Full scope, pacing, and tracking in the Authority section of `judgment-and-empat
 
 ### Post-30-day replacements — the budget wins ✅
 
-**Resolved (Anthony, 2026-08-17): the $200 budget overrides the manager gate.**
+**Resolved (Anthony, 2026-08-17): the $200 budget overrides the old manager gate — and
+Notion now says so.**
 
-The SOP still reads *"we can send a replacement after the 30 days window for returns,
-depending on the situation. Consult with your manager before acting."* That instruction is
-**superseded.** A post-30-day replacement is now ordinary rep discretion: if it fits the
-month's budget, the rep decides and acts, no manager check.
+A post-30-day replacement is ordinary rep discretion: if it fits the month's budget, the
+rep decides and acts, no manager check. Escalate only for the reasons that apply to any
+discretionary spend — it exceeds the $200, the month is already spent, or there's a pattern
+of repeat claims from that customer.
 
-Escalate only for the reasons that apply to any discretionary spend — it exceeds the $200,
-the month is already spent, or there's a pattern of repeat claims from that customer.
-
-⚠ **The SOP text has not been changed in Notion.** Anyone refreshing this snapshot will
-re-import the "consult your manager" line and silently reverse this decision. The override
-is recorded in `sources.md` under *Standing overrides* — check that list on every refresh.
-Better still, get the Notion page itself updated so the conflict disappears.
+The *Customer Service Policies* page was updated the same day, replacing its previous
+"consult with your manager before acting" line. No standing override is needed and none is
+outstanding — `sources.md` records the retired entry.
 
 The standing instruction from the refund policy is worth quoting to the rep verbatim
 when they're on the fence:

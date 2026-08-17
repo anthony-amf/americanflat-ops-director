@@ -12,6 +12,30 @@ heading in Notion.
 
 ---
 
+## Rep discretion & spend authority
+
+*(Added to Notion 2026-08-17. This is the frame for everything below it.)*
+
+- **Each CX agent has $200 per month to spend at their own discretion.** Within that
+  budget the decision is the rep's — no manager approval needed.
+- It is a **monthly pool, not a per-ticket limit** — roughly $46 a week. Pace it across
+  the month, and note what was spent and why on the ticket.
+- **It covers discretion only** — goodwill beyond what these policies already prescribe:
+  waiving the 20% restocking fee, absorbing return shipping normally deducted from a
+  refund, a keep-it discount above the 15–25% range, a replacement after the 30-day
+  window, a full refund where policy says store credit, or goodwill with no policy basis.
+- **Remedies these policies already prescribe do NOT count against the $200** — a
+  replacement for a damaged, defective, or wrong item; keep-it under $50; the partial
+  refund for a missing accessory; a lost-in-transit replacement. Normal cost of doing
+  business, not discretion.
+- **When the budget is spent:** every policy-prescribed remedy is still available, and
+  the rep should be just as warm and helpful. A discretionary ask they can no longer fund
+  goes to their manager. **Never mention an internal budget to a customer.**
+- **Log what's spent and why.** Repeated bending of the same rule for the same reason
+  means the rule is wrong and should change — the notes are how that surfaces.
+
+Full reasoning, pacing guidance, and the empathy craft are in `judgment-and-empathy.md`.
+
 ## Artist inquiries
 
 An artist asking to have their artwork featured on our products arrives through
@@ -132,13 +156,11 @@ aren't visible to us.
 - If we sent a replacement and the customer then reports the original arrived, send
   a return label so one comes back.
 - **Problem reported after 30 days:** a replacement is still possible depending on
-  the situation — *the SOP adds "consult your manager before acting. This is not a
-  rep-level call."*
-  ⚠ **SUPERSEDED (Anthony, 2026-08-17):** the manager gate no longer applies. A
-  post-30-day replacement is **ordinary rep discretion** — if it fits the rep's $200
-  monthly budget, they decide and act without checking. Escalate only if it exceeds
-  the budget, the month is spent, or there's a pattern of repeat claims. The Notion
-  page still carries the old wording; see *Standing overrides* in `sources.md`.
+  the situation. **This is the rep's own call** — if it fits their $200 monthly
+  discretionary budget, they go ahead without checking with a manager. Escalate only
+  if it costs more than the remaining budget, or the customer has a pattern of repeat
+  claims. *(Notion updated 2026-08-17; this replaced the previous "consult with your
+  manager before acting" instruction.)*
 - **Pick & ship issues:**
   - AF.com orders missing pieces or damaged → get more info **and photos** before
     shipping a replacement or refunding.
