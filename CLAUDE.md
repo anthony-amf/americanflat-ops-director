@@ -178,6 +178,17 @@ plain string replace will double-insert.
   sweep).
 - `selling-partner-api-models-main/` — vendored Amazon SP-API models (reference
   only; unrelated to invoice validation).
+- `skills/cx-policy-assistant/` — **the one skill whose source does live in this
+  repo** (exception to the "canonical skill source is NOT in this repo" rule
+  above; it was authored in a cloud session, which cannot write to
+  `~/.claude/skills/`). A CX policy reference bot for claude.ai: answers a rep's
+  policy question, cites the Notion SOP, and drafts the customer reply. No
+  scripts, no secrets, no writes — pure knowledge + `references/`. Its reference
+  files are a **dated snapshot of nine Notion SOPs**, so they go stale the same
+  way the dashboard template does; `references/sources.md` holds the page IDs,
+  the refresh procedure, and five real contradictions between the source SOPs
+  (return-label handling has three different answers). To install: copy the
+  directory to `~/.claude/skills/` and package it as usual.
 - Committed `*.skill` files are packaged artifacts of other personal skills;
   treat them as binaries.
 

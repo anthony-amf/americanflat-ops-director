@@ -1,0 +1,17 @@
+[skill]
+name = "skill-cx-policy-assistant"
+version = "1.0.0"
+description = "Answer an Americanflat CX rep's customer-service policy question and draft the customer-ready reply. Covers returns, refunds, replacements, store credit, cancellations, damage claims, lost packages, the 12h/24h response SLA, Zendesk ticket handling, marketplace routing, samples, phone orders, pricing questions, and wholesale intake. Quotes the governing policy with its Notion source, flags manager escalations and SOP conflicts, then writes the message in Americanflat's voice. Advisory only — issues no refunds, creates no labels, touches no systems."
+owner = "Anthony Armstrong <anthony@americanflat.com>"
+tier = 1
+department = "ops"
+language = "none"
+
+[environment]
+requires_network = true
+requires_secrets = false
+stdlib_only = true
+
+[compatibility]
+platforms = ["macos", "linux"]
+providers = ["claude"]
