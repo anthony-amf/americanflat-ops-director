@@ -1,0 +1,468 @@
+<title>Amazon Chargeback Rate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --paper:        #F5F7F9;
+    --surface:      #FFFFFF;
+    --surface-sunk: #EDF1F4;
+    --rule:         #D6DEE5;
+    --rule-soft:    #E6ECF1;
+    --ink:          #131C25;
+    --ink-mid:      #4A5866;
+    --ink-soft:     #6E7C8A;
+    --accent:       #1B5B6B;
+    --accent-soft:  #E2EFF2;
+    --debit:        #9C382F;
+    --debit-soft:   #F6E7E5;
+    --credit:       #2C6A4B;
+    --credit-soft:  #E4F0EA;
+    --flag:         #98691A;
+    --flag-soft:    #F7EEDC;
+
+    --display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --data: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #0E141A;
+      --surface:      #161F27;
+      --surface-sunk: #1C262F;
+      --rule:         #2C3944;
+      --rule-soft:    #222D37;
+      --ink:          #E4EAEF;
+      --ink-mid:      #A8B6C2;
+      --ink-soft:     #8494A2;
+      --accent:       #58A7B8;
+      --accent-soft:  #17313A;
+      --debit:        #DB8177;
+      --debit-soft:   #33201E;
+      --credit:       #77BE9A;
+      --credit-soft:  #172C23;
+      --flag:         #D3A24E;
+      --flag-soft:    #2E2617;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:        #0E141A;
+    --surface:      #161F27;
+    --surface-sunk: #1C262F;
+    --rule:         #2C3944;
+    --rule-soft:    #222D37;
+    --ink:          #E4EAEF;
+    --ink-mid:      #A8B6C2;
+    --ink-soft:     #8494A2;
+    --accent:       #58A7B8;
+    --accent-soft:  #17313A;
+    --debit:        #DB8177;
+    --debit-soft:   #33201E;
+    --credit:       #77BE9A;
+    --credit-soft:  #172C23;
+    --flag:         #D3A24E;
+    --flag-soft:    #2E2617;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+  section { margin-top: 3.5rem; }
+
+  .eyebrow {
+    font-size: .7rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-soft);
+  }
+  h1 {
+    font-family: var(--display); font-weight: 400;
+    font-size: clamp(2rem, 5vw, 3rem); line-height: 1.12;
+    margin: .5rem 0 0; text-wrap: balance; letter-spacing: -.01em;
+  }
+  h2 {
+    font-family: var(--display); font-weight: 400;
+    font-size: clamp(1.35rem, 3vw, 1.7rem); line-height: 1.2;
+    margin: 0 0 .35rem; text-wrap: balance;
+  }
+  h3 {
+    font-size: .95rem; font-weight: 700; margin: 2rem 0 .5rem;
+    letter-spacing: -.005em;
+  }
+  p { margin: 0 0 1rem; max-width: 66ch; color: var(--ink-mid); }
+  p.lede { color: var(--ink); font-size: 1.05rem; }
+  .sub { color: var(--ink-soft); font-size: .9rem; }
+  strong { color: var(--ink); font-weight: 650; }
+  .num { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--data); font-variant-numeric: tabular-nums; font-size: .88em; }
+
+  header .rule {
+    height: 3px; width: 4rem; background: var(--accent);
+    margin-top: 1.5rem;
+  }
+
+  /* ---- headline answer ---- */
+  .answer {
+    margin-top: 2.5rem; background: var(--surface);
+    border: 1px solid var(--rule); border-radius: 3px;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  }
+  @media (max-width: 44rem) { .answer { grid-template-columns: 1fr; } }
+  .answer > div { padding: 2rem; }
+  .answer .figure {
+    background: var(--accent-soft);
+    border-right: 1px solid var(--rule);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  @media (max-width: 44rem) {
+    .answer .figure { border-right: none; border-bottom: 1px solid var(--rule); }
+  }
+  .big {
+    font-family: var(--display); font-size: clamp(3.4rem, 11vw, 5rem);
+    line-height: .95; letter-spacing: -.03em; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .big-cap { margin-top: .75rem; font-size: .92rem; color: var(--ink-mid); max-width: 30ch; }
+  dl.facts { margin: 0; display: grid; gap: .9rem; }
+  dl.facts > div {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 1rem; border-bottom: 1px dotted var(--rule); padding-bottom: .55rem;
+  }
+  dl.facts dt { color: var(--ink-mid); font-size: .9rem; }
+  dl.facts dd {
+    margin: 0; font-family: var(--data); font-variant-numeric: tabular-nums;
+    font-size: .95rem; font-weight: 600; white-space: nowrap;
+  }
+
+  /* ---- ladder ---- */
+  .ladder { display: grid; gap: 0; margin-top: 1.5rem; }
+  .row {
+    display: grid; grid-template-columns: 1fr 5.5rem 8.5rem 4.5rem;
+    align-items: center; gap: .75rem;
+    padding: .7rem .85rem; border-bottom: 1px solid var(--rule-soft);
+  }
+  .row.head {
+    border-bottom: 1.5px solid var(--rule); padding-bottom: .5rem;
+    font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-soft); font-weight: 700;
+  }
+  .row.head span:not(:first-child) { text-align: right; }
+  .row .lines, .row .amt, .row .pct {
+    text-align: right; font-family: var(--data);
+    font-variant-numeric: tabular-nums; font-size: .88rem;
+  }
+  .row .amt { color: var(--debit); }
+  .row .pct { font-weight: 700; }
+  .row .name { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+  .row .name b { font-weight: 620; font-size: .93rem; }
+  .row .name em { font-style: normal; color: var(--ink-soft); font-size: .78rem; }
+  .row.spot {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent); padding-left: calc(.85rem - 3px);
+  }
+  .row.spot .pct, .row.spot .name b { color: var(--accent); }
+  .row.nil .amt, .row.nil .pct { color: var(--ink-soft); text-decoration: line-through; }
+  .row.total {
+    border-bottom: none; border-top: 1.5px solid var(--rule);
+    margin-top: .25rem; font-weight: 700;
+  }
+  .row.total .name b { font-size: .93rem; }
+  @media (max-width: 40rem) {
+    .row { grid-template-columns: 1fr 7.5rem 4rem; }
+    .row .lines { display: none; }
+  }
+
+  /* ---- generic table ---- */
+  .scroll { overflow-x: auto; margin-top: 1.25rem; }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .89rem; }
+  th {
+    text-align: left; font-size: .7rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft);
+    border-bottom: 1.5px solid var(--rule); padding: 0 .7rem .5rem 0; font-weight: 700;
+  }
+  td { padding: .65rem .7rem .65rem 0; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  th.r, td.r { text-align: right; padding-right: 0; }
+  td.r { font-family: var(--data); font-variant-numeric: tabular-nums; }
+
+  .pill {
+    display: inline-block; font-size: .7rem; font-weight: 700;
+    letter-spacing: .04em; padding: .15rem .5rem; border-radius: 2px; white-space: nowrap;
+  }
+  .pill.ok    { background: var(--credit-soft); color: var(--credit); }
+  .pill.off   { background: var(--flag-soft);   color: var(--flag); }
+  .pill.miss  { background: var(--debit-soft);  color: var(--debit); }
+
+  .note {
+    background: var(--surface-sunk); border-left: 3px solid var(--flag);
+    padding: 1.1rem 1.25rem; margin-top: 1.5rem; border-radius: 0 3px 3px 0;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .note .eyebrow { color: var(--flag); }
+
+  ul.check { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: .85rem; }
+  ul.check li {
+    padding-left: 1.6rem; position: relative; color: var(--ink-mid); max-width: 68ch;
+  }
+  ul.check li::before {
+    content: ""; position: absolute; left: 0; top: .55rem;
+    width: .5rem; height: .5rem; border: 1.5px solid var(--accent); border-radius: 50%;
+  }
+  footer {
+    margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule);
+    font-size: .82rem; color: var(--ink-soft);
+  }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Americanflat &middot; Amazon Vendor Central &middot; AMWV0</div>
+    <h1>What share of our Amazon billing comes back as chargebacks?</h1>
+    <p class="lede" style="margin-top:1rem">
+      Measured across the 51 remittances Amazon paid between 3 and 17 August 2026, against
+      the $2,095,904.08 of invoices those remittances settled.
+    </p>
+    <div class="rule"></div>
+  </header>
+
+  <div class="answer">
+    <div class="figure">
+      <div class="big">0.72%</div>
+      <div class="big-cap">
+        of invoice value was taken back as operational chargebacks &mdash; the
+        per&#8209;shipment penalties for late, short or mis&#8209;labelled deliveries.
+      </div>
+    </div>
+    <div>
+      <dl class="facts">
+        <div><dt>Gross invoices billed in the window</dt><dd>$2,095,904.08</dd></div>
+        <div><dt>Chargebacks deducted</dt><dd style="color:var(--debit)">&minus;$15,064.83</dd></div>
+        <div><dt>Chargeback lines</dt><dd>1,825</dd></div>
+        <div><dt>Average per chargeback</dt><dd>$8.25</dd></div>
+        <div><dt>Still open, not yet taken</dt><dd>&minus;$16,007.31</dd></div>
+      </dl>
+      <p class="sub" style="margin:1.25rem 0 0">
+        Almost all of it is one fault type: 1,782 of the 1,825 lines are
+        on&#8209;time&#8209;shipment misses, worth &minus;$12,466.79.
+      </p>
+    </div>
+  </div>
+
+  <section>
+    <h2>The number depends entirely on what you divide by</h2>
+    <p>
+      Amazon nets many different things out of a payment, and only one of them is a
+      chargeback in the sense a CEO means it &mdash; a penalty we earned by missing a
+      delivery commitment. The rest are contractual trade funds, claims and accounting
+      true&#8209;ups. Quoting a single "deduction rate" without saying which is how this
+      KPI gets misread, so here are all three framings.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Framing</th><th class="r">Rate</th><th>What it actually measures</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Operational chargebacks</strong><br><span class="sub">the KPI to report</span></td>
+            <td class="r" style="color:var(--accent);font-weight:700">0.72%</td>
+            <td>Penalties we can fix through warehouse and routing performance. Directly
+                comparable period to period.</td>
+          </tr>
+          <tr>
+            <td><strong>All deductions</strong><br><span class="sub">excluding the reversed provision</span></td>
+            <td class="r">53.56%</td>
+            <td>Everything Amazon withheld. Not a performance measure &mdash; see the
+                warning below.</td>
+          </tr>
+          <tr>
+            <td><strong>Open payables against open receivables</strong><br><span class="sub">the balance-sheet view</span></td>
+            <td class="r">2.54%</td>
+            <td>$85,991.97 queued for deduction against $3,387,979.25 of receivables.
+                Of that, chargebacks alone are 0.47%.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <div class="eyebrow">Do not quote the 53.56% as a chargeback rate</div>
+      <p style="margin-top:.5rem">
+        Two&#8209;thirds of it is co&#8209;op accruals, aged&#8209;receivable settlements and
+        damage allowances &mdash; periodic true&#8209;ups covering <em>months</em> of trading
+        that happened to land inside this two&#8209;week payment window. The denominator is
+        two weeks of invoices; the numerator is not. The ratio is arithmetically correct and
+        economically meaningless.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Every dollar Amazon withheld, by kind</h2>
+    <p class="sub">
+      2,097 deduction lines, 3&ndash;17 August 2026. Percentages are against the same
+      $2,095,904.08 of invoices, which is why the lower rows overstate &mdash; they answer to
+      a longer period than the denominator covers.
+    </p>
+
+    <div class="ladder">
+      <div class="row head">
+        <span>Category</span><span>Lines</span><span>Amount</span><span>% billed</span>
+      </div>
+
+      <div class="row spot">
+        <div class="name"><b>Operational chargebacks</b><em>On-time shipment, in-full delivery, receiving accuracy, own container</em></div>
+        <span class="lines">1,825</span><span class="amt">&minus;15,064.83</span><span class="pct">0.72%</span>
+      </div>
+      <div class="row">
+        <div class="name"><b>Co-op &amp; trade funds</b><em>Marketing accruals and bulk-buy allowances</em></div>
+        <span class="lines">120</span><span class="amt">&minus;440,587.16</span><span class="pct">21.02%</span>
+      </div>
+      <div class="row">
+        <div class="name"><b>DFP for AR invoice</b><em>Single settlement, 16222737HPA26, over 7 payments</em></div>
+        <span class="lines">7</span><span class="amt">&minus;317,227.20</span><span class="pct">15.14%</span>
+      </div>
+      <div class="row">
+        <div class="name"><b>Damage allowance</b><em>Claim 6268-1490026100 and related</em></div>
+        <span class="lines">4</span><span class="amt">&minus;130,263.72</span><span class="pct">6.22%</span>
+      </div>
+      <div class="row">
+        <div class="name"><b>SPA price allowance</b><em>Negotiated price support</em></div>
+        <span class="lines">24</span><span class="amt">&minus;100,282.84</span><span class="pct">4.78%</span>
+      </div>
+      <div class="row">
+        <div class="name"><b>Shortage &amp; price claims</b><em>Quantity and price disputes on specific invoices</em></div>
+        <span class="lines">106</span><span class="amt">&minus;90,950.03</span><span class="pct">4.34%</span>
+      </div>
+      <div class="row">
+        <div class="name"><b>AVS / SVS service fees</b><em>Vendor services subscription</em></div>
+        <span class="lines">2</span><span class="amt">&minus;28,260.45</span><span class="pct">1.35%</span>
+      </div>
+      <div class="row nil">
+        <div class="name"><b>Aged-receivable provision</b><em>Taken across 9 payments 7&ndash;10 Aug, then reversed in full on 10 Aug &mdash; no cash effect</em></div>
+        <span class="lines">9</span><span class="amt">&minus;561,119.52</span><span class="pct">0.00%</span>
+      </div>
+      <div class="row total">
+        <div class="name"><b>Total withheld, net of the reversal</b></div>
+        <span class="lines">2,097</span><span class="amt">&minus;1,122,636.23</span><span class="pct">53.56%</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How the two reports line up with the dashboard</h2>
+    <p>
+      The payables export and the remittance export together cover two of the dashboard's
+      eight figures. Everything on the receivables side is invisible to them.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Dashboard figure</th><th class="r">On screen</th>
+            <th class="r">In the reports</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Payables &mdash; ready for deduction</strong><br><span class="sub">the payables CSV</span></td>
+            <td class="r">&minus;$85,991.97</td><td class="r">&minus;$86,939.89</td>
+            <td><span class="pill off">off by $947.92</span><br>
+                <span class="sub">$857.14 is the 32 lines already settled on 14 Aug that the
+                export had not caught up with; $90.78 moved after the pull.</span></td>
+          </tr>
+          <tr>
+            <td><strong>Payables &mdash; in progress</strong></td>
+            <td class="r">$0.00</td><td class="r">&mdash;</td>
+            <td><span class="pill ok">nothing to reconcile</span><br>
+                <span class="sub">No such stage exists in either export. It is empty, so
+                nothing is being missed today.</span></td>
+          </tr>
+          <tr>
+            <td><strong>Payments</strong></td>
+            <td class="r">$968,194.94</td><td class="r">$1,017,352.58</td>
+            <td><span class="pill off">off by $49,157.64</span><br>
+                <span class="sub">Exactly one payment &mdash; 368031671, 14 Aug &mdash; present in
+                the remittance export and absent from this tile.</span></td>
+          </tr>
+          <tr>
+            <td><strong>Receivables &mdash; in progress</strong></td>
+            <td class="r">$3,172,726.53</td><td class="r">&mdash;</td>
+            <td><span class="pill miss">not covered</span></td>
+          </tr>
+          <tr>
+            <td><strong>Receivables &mdash; ready for payment</strong></td>
+            <td class="r">$215,252.72</td><td class="r">&mdash;</td>
+            <td><span class="pill miss">not covered</span></td>
+          </tr>
+          <tr>
+            <td><strong>Adjustments</strong></td>
+            <td class="r">$73,657.56</td><td class="r">&mdash;</td>
+            <td><span class="pill miss">not covered</span></td>
+          </tr>
+          <tr>
+            <td><strong>Total estimate</strong></td>
+            <td class="r">$3,375,644.84</td><td class="r">&mdash;</td>
+            <td><span class="pill ok">internally consistent</span><br>
+                <span class="sub">$3,387,979.25 &minus; $85,991.97 + $73,657.56 balances to
+                the cent.</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Answering the direct question</h3>
+    <p>
+      <strong>Your payables &rarr; ready for deduction is the payables CSV</strong>, essentially
+      line for line. <strong>In progress is not in either report</strong> &mdash; but it reads
+      $0.00, so there is no hidden liability sitting behind it. The receivables side, all
+      $3.39m of it, and the $73,657.56 of adjustments appear in neither file. To reconcile
+      those we need the receivables and adjustments exports from behind their own
+      <em>View details</em> links.
+    </p>
+  </section>
+
+  <section>
+    <h2>What JP should check before this goes to the CEO</h2>
+    <ul class="check">
+      <li><strong>The denominator choice.</strong> I used gross invoice face value settled in
+          the window ($2,095,904.08). Using net-of-terms-discount ($2,062,079.38) instead
+          moves the rate from 0.72% to 0.73% &mdash; immaterial, but it should be the same
+          basis every period.</li>
+      <li><strong>Whether a two-week window is the right reporting period.</strong> It is what
+          the remittance export covers. A rolling quarter would be steadier and would stop
+          periodic true-ups distorting the secondary ratios.</li>
+      <li><strong>The $77,909.43 of untraceable cash.</strong> Nine payments carry remittance
+          items Amazon will not display because the ordering codes are not attached to our
+          account. That cash is received and banked, but cannot be tied to invoices &mdash; and
+          it may contain further deductions that would raise the 0.72%.</li>
+      <li><strong>The $317,227.20 "DFP for AR invoice".</strong> The largest un-reversed
+          deduction in the window, and the remittance gives no explanation beyond that
+          label. Worth confirming it was expected.</li>
+      <li><strong>Whether historic chargebacks belong in the rate.</strong> $16,007.31 of
+          chargebacks are queued but not yet taken, some dating to December 2025. Including
+          them on an accrual basis rather than a cash basis would raise the rate to roughly
+          1.5%.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Sources: Vendor Central exports <span class="mono">Your payables &ndash; ready for
+    deduction</span> (1,881 lines) and <span class="mono">Payments</span> (51 remittances,
+    3,046 detail lines), both pulled 17 August 2026, matched line by line on transaction
+    number. 42 of 51 payments tie to the cent; the 9 that do not are the ones Amazon
+    itself flags. Working file:
+    <span class="mono">amazon-payables-remittance-match.xlsx</span>.
+  </footer>
+
+</div>
