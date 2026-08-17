@@ -61,11 +61,30 @@ Send SOP corrections to the page owner rather than editing policy pages directly
 **If live Notion and the snapshot disagree: live Notion wins.** Say so to the rep so the
 snapshot can be refreshed.
 
+## Standing overrides — read before every refresh ⚠
+
+Decisions Anthony has made that **supersede** what a live Notion page still says. The
+Notion text has not caught up, so **a refresh will re-import the old rule and silently
+reverse the decision** unless you re-apply the override.
+
+| Override | Source page still says | Decided |
+|---|---|---|
+| **Post-30-day replacements are ordinary rep discretion** — no manager check when it fits the $200 monthly budget | *How To: Customer Service Policies* → Replacements: "Consult with your manager before acting. This is not a rep-level call." | Anthony, 2026-08-17 |
+| **Rep spend authority is $200/agent/month** for discretion beyond prescribed policy | Nothing — the SOPs define no authority at all | Anthony, 2026-08-17 |
+
+**On every refresh:** after re-importing a page, walk this table and re-apply each
+override. A refresh that silently restores a superseded rule is worse than a stale
+snapshot, because nobody will notice.
+
+Best fix is to get the Notion pages updated so these entries can be retired. Until then
+this table is load-bearing.
+
 ## Refreshing this snapshot
 
 Re-fetch each page above, update the corresponding reference file, and update both the
-snapshot date at the top of each file and the "last edited" column here. Bump the minor
-version in `skill.toml` and add a `CHANGELOG.md` entry.
+snapshot date at the top of each file and the "last edited" column here. **Then walk the
+Standing overrides table above and re-apply every entry.** Bump the minor version in
+`skill.toml` and add a `CHANGELOG.md` entry.
 
 Worth doing whenever a policy changes, and on a routine cadence regardless — the pages
 carry no change notifications.

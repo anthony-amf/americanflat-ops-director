@@ -509,8 +509,9 @@ Americanflat's own wording, from the wholesale SOP. Replace the bracketed detail
 
 - An invented order number, tracking number, refund amount, or date.
 - A delivery promise faster than 3–4 days processing + 5–7 days shipping.
-- A commitment that needs approval: post-30-day replacement, wholesale pricing, a
-  specific deduction amount on a contested return.
+- A commitment that needs approval: wholesale pricing, discretionary spend beyond the $200
+  monthly budget, a specific deduction amount on a contested return. (A post-30-day
+  replacement is fine to commit to — it's the rep's own call within budget.)
 - A reply to a review-for-free-product request. Policy is **no response at all**.
 - An offer to ship accessories or hardware separately.
 - An offer to cancel or hold an order.

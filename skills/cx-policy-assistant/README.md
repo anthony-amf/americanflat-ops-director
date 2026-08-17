@@ -131,11 +131,13 @@ Open items worth resolving. The first three are SOP contradictions recorded in
 1. The three-way return-label conflict (who creates labels).
 2. The return-carrier conflict (Endicia/USPS vs. cheapest-of-Stamps-or-FedEx).
 3. Whether the 20% restocking fee and the flat $5 handling cost stack.
-4. **Does the $200 budget supersede the post-30-day manager gate?** The SOP says consult a
-   manager before a post-30-day replacement; the budget lists that as rep-funded
-   discretion. Working answer is act-if-small, check-otherwise. Needs one line from
-   Anthony, and the SOP text updated either way. See `escalation.md`.
-5. **Nothing tracks the discretionary tally.** It's a manual running count today. A shared
+4. **Nothing tracks the discretionary tally.** It's a manual running count today. A shared
    sheet of date / ticket / amount / reason would fix it and feed the exception review.
+5. **Two Notion pages need updating to match decisions already made** — the post-30-day
+   "consult your manager" line, and the absence of any stated rep spend authority. Until
+   they're updated, the *Standing overrides* register in `sources.md` is what keeps a
+   snapshot refresh from silently reverting them.
 
-*Resolved:* rep spend authority — **$200 per agent per month**, set 2026-08-17.
+*Resolved:* rep spend authority — **$200 per agent per month** (2026-08-17). Post-30-day
+replacements — **the budget overrides the manager gate**; rep's own call within budget
+(2026-08-17).

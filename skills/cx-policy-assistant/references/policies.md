@@ -132,7 +132,13 @@ aren't visible to us.
 - If we sent a replacement and the customer then reports the original arrived, send
   a return label so one comes back.
 - **Problem reported after 30 days:** a replacement is still possible depending on
-  the situation — **consult your manager before acting.** This is not a rep-level call.
+  the situation — *the SOP adds "consult your manager before acting. This is not a
+  rep-level call."*
+  ⚠ **SUPERSEDED (Anthony, 2026-08-17):** the manager gate no longer applies. A
+  post-30-day replacement is **ordinary rep discretion** — if it fits the rep's $200
+  monthly budget, they decide and act without checking. Escalate only if it exceeds
+  the budget, the month is spent, or there's a pattern of repeat claims. The Notion
+  page still carries the old wording; see *Standing overrides* in `sources.md`.
 - **Pick & ship issues:**
   - AF.com orders missing pieces or damaged → get more info **and photos** before
     shipping a replacement or refunding.

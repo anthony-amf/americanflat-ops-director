@@ -115,8 +115,9 @@ None of these decide it alone. Two or three together make a strong case.
   escalate.
 - **The item is genuinely non-returnable.** Washed or used items, Final Sale. This is a
   condition problem, not a policy preference.
-- **Granting it needs someone else's approval.** Wholesale pricing, post-30-day
-  replacement, anything above your authority. Holding reply.
+- **Granting it needs someone else's approval.** Wholesale pricing, discretionary spend
+  beyond your $200 monthly budget, anything above your authority. Holding reply.
+  *(A post-30-day replacement is no longer on this list — it's your call within budget.)*
 - **The gap is large, not marginal.** Six months past the window is not day 32.
 - **You'd be setting a precedent you can't repeat.** If it only works because nobody
   else asks, it's not a decision — it's an exception that needs a manager.
@@ -139,7 +140,8 @@ Only **discretion** — goodwill that goes *beyond* what policy already prescrib
 - Waiving the 20% restocking fee
 - Absorbing return shipping we'd normally deduct from the refund
 - A keep-it discount **above** the 15–25% band
-- A replacement after day 30
+- A replacement after day 30 — explicitly the rep's own call as of 2026-08-17; the SOP's
+  "consult your manager" line is superseded
 - A full refund where policy says store credit
 - Expedited shipping offered as an apology
 - Any goodwill gesture with no policy basis at all

@@ -14,7 +14,7 @@ These are **not** rep-level decisions. Draft a holding reply, don't resolve.
 
 | Situation | Who decides |
 |---|---|
-| Problem reported **after the 30-day window** — replacement possible "depending on the situation" | ⚠ **Contested.** The SOP says consult your manager before acting. The $200 budget would fund it. See the note below — default to a quick manager check on anything not small |
+| Problem reported **after the 30-day window** | **The rep decides** — no manager check needed, if it fits the $200 budget. Anthony's 2026-08-17 decision supersedes the SOP's "consult your manager" line. Escalate only if it exceeds the budget or the month is spent |
 | A judgement call on an unusual or high-value case | **Senior management** — the SOP's own instruction is "when in doubt, ask help from senior management" |
 | The specific deduction to apply on a contested return (flat $5 vs. actual postage) | **Manager** — the SOPs conflict, see `returns-refunds.md` |
 | Which return-label process to follow | **Manager** — three SOPs disagree, see `returns-refunds.md` |
@@ -28,26 +28,22 @@ rep decides alone — no escalation needed, including waiving the 20% restocking
 the pool, or once the month's budget is spent, a discretionary ask becomes a manager call.
 Full scope, pacing, and tracking in the Authority section of `judgment-and-empathy.md`.
 
-### ⚠ The budget vs. the post-30-day manager gate
+### Post-30-day replacements — the budget wins ✅
 
-These two rules collide and Anthony hasn't reconciled them yet:
+**Resolved (Anthony, 2026-08-17): the $200 budget overrides the manager gate.**
 
-- **How To: Customer Service Policies** (Replacements): a post-30-day replacement is
-  possible "depending on the situation — **consult with your manager before acting**."
-- **The $200 monthly budget** (2026-08-17) lists a post-day-30 replacement as exactly the
-  kind of discretion a rep now funds themselves.
+The SOP still reads *"we can send a replacement after the 30 days window for returns,
+depending on the situation. Consult with your manager before acting."* That instruction is
+**superseded.** A post-30-day replacement is now ordinary rep discretion: if it fits the
+month's budget, the rep decides and acts, no manager check.
 
-The budget grants **money** authority; the SOP imposes a **process** gate on this one
-named scenario, and a spend limit doesn't automatically dissolve a named gate.
+Escalate only for the reasons that apply to any discretionary spend — it exceeds the $200,
+the month is already spent, or there's a pattern of repeat claims from that customer.
 
-**Working answer until Anthony says otherwise:** if it's small and inside the budget,
-the rep can act — that is plainly what the budget is for, and routing a $25 frame to a
-manager defeats its purpose. For anything not obviously small, keep the manager check;
-it costs one message. Tell the rep both rules exist so they aren't blindsided.
-
-**This needs a one-line decision:** does the $200 budget supersede the "consult your
-manager" instruction on post-30-day replacements, or does that gate survive the budget?
-Whichever way it goes, the SOP text should be updated to match.
+⚠ **The SOP text has not been changed in Notion.** Anyone refreshing this snapshot will
+re-import the "consult your manager" line and silently reverse this decision. The override
+is recorded in `sources.md` under *Standing overrides* — check that list on every refresh.
+Better still, get the Notion page itself updated so the conflict disappears.
 
 The standing instruction from the refund policy is worth quoting to the rep verbatim
 when they're on the fence:

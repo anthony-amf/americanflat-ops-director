@@ -190,9 +190,12 @@ plain string replace will double-insert.
   policy choices can). Rep spend authority is **$200/agent/month** (Anthony,
   2026-08-17) — a monthly pool covering *discretion only*; policy-prescribed
   remedies never touch it, or two damaged-frame replacements would exhaust a rep's
-  month. Two open questions: whether that budget supersedes the SOP's "consult your
-  manager" gate on post-30-day replacements, and that **nothing tracks the
-  discretionary tally** (manual count today). Its reference
+  month. That budget **overrides** the SOP's "consult your manager" gate on
+  post-30-day replacements (Anthony, 2026-08-17) — but the Notion page still carries
+  the old wording, so `references/sources.md` keeps a **Standing overrides** register
+  that must be re-applied after every snapshot refresh or the decision silently
+  reverts. Still open: **nothing tracks the discretionary tally** (manual count
+  today). Its reference
   files are a **dated snapshot of nine Notion SOPs**, so they go stale the same
   way the dashboard template does; `references/sources.md` holds the page IDs,
   the refresh procedure, and five real contradictions between the source SOPs

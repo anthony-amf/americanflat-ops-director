@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.3.0 — 2026-08-17
+
+Resolves the collision 1.2.0 surfaced: **the $200 budget overrides the post-30-day
+manager gate** (Anthony, 2026-08-17). A post-30-day replacement is now ordinary rep
+discretion — if it fits the month's budget, the rep decides and acts without checking.
+Escalation applies only for the reasons any discretionary spend escalates: over budget,
+month spent, or a pattern of repeat claims.
+
+Minor rather than patch because this changes what the skill tells a rep to do — one
+fewer escalation on a scenario that comes up often.
+
+Updated in six places that still routed the rep to a manager: the decision-rules table in
+`SKILL.md`, its drafting limits, the stop-and-ask table and collision note in
+`escalation.md`, the hold-firm signals and budget scope in `judgment-and-empathy.md`, the
+never-draft list in `reply-templates.md`, and the Replacements section of `policies.md`.
+
+- **New: *Standing overrides* register in `references/sources.md`.** The reason this needed
+  more than an edit — the Notion SOP still reads "consult with your manager before acting.
+  This is not a rep-level call." Anyone refreshing the snapshot would re-import that line
+  and silently reverse the decision, with nobody noticing. The register lists every
+  decision that supersedes live SOP text, and the refresh procedure now requires walking it
+  after every re-import. A refresh that quietly restores a superseded rule is worse than a
+  stale snapshot.
+- **The SOP quote is preserved, not rewritten,** in `policies.md` — the snapshot stays a
+  faithful record of what Notion says, with the override marked inline against it. Editing
+  the quote would have made the snapshot lie about its source.
+- Best fix remains updating the Notion page itself so the override can be retired; flagged
+  in both `sources.md` and `escalation.md`.
+
 ## 1.2.0 — 2026-08-17
 
 Fills the authority gap 1.1.0 flagged: **$200 per agent per month** of discretionary

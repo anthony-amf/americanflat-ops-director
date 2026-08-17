@@ -90,7 +90,7 @@ This table is the fast path, not the authority.
 | Wants a sample (ecommerce) | We don't send samples. Suggest buying with the 30-day return. |
 | Wants to order by phone | We don't take phone orders. Direct to a sales channel. |
 | Same product priced differently across sites | Explain: per-channel fees and shipping costs. |
-| Problem reported after 30 days | Replacement *may* be possible — **consult your manager first.** |
+| Problem reported after 30 days | Replacement is allowed — **the rep's own call** if it fits the $200 monthly budget. No manager check (Anthony's 2026-08-17 decision supersedes the SOP line). |
 | Artist wants their work on our products | Assign the Zendesk ticket to the Creative Director. |
 | Wholesale inquiry | Route by size: <100 units → Faire; 100–299 → Shopify invoice; 300+ → outside Shopify. |
 
@@ -206,8 +206,10 @@ Hard limits on drafts:
   a clearly marked placeholder like `[order #]` or `[refund amount]`.
 - **Never promise faster than policy.** Processing is 3–4 business days; delivery
   is 5–7 business days after shipment. Don't compress these to sound helpful.
-- **Never commit to something needing approval** — post-30-day replacements,
-  wholesale pricing, anything a manager owns. Draft a holding reply instead.
+- **Never commit to something needing approval** — wholesale pricing, discretionary
+  spend beyond the $200 monthly budget, anything else a manager owns. Draft a
+  holding reply instead. (Post-30-day replacements no longer need approval — they
+  are the rep's own call within budget.)
 - Match the customer's channel. A marketplace reply follows that marketplace's
   rules; only Shopify/AF.com orders are ours end-to-end.
 
