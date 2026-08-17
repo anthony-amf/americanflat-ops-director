@@ -363,6 +363,98 @@ Send once, 3–4 business days after the last message.
 >
 > Have an amazing day.
 
+### Angry customer — second failure on the same order
+
+Name the emotion, stop optimizing the remedy, hand them control. See
+`judgment-and-empathy.md`.
+
+> Hi {Name},
+>
+> You've every right to be frustrated — this is the second time we've got this order wrong,
+> and that's not the experience we want you to have. I'm sorry.
+>
+> I'd rather just make this right than put you through another round of it, so two options,
+> whichever suits you better: I can send a replacement out today and follow it personally
+> until it's with you, or I can refund you in full. Either way, please keep or dispose of
+> what you've got — nothing needs to come back to us.
+>
+> Just tell me which you'd prefer and I'll take care of it.
+>
+> Have an amazing day.
+
+### Granting latitude — just outside the window
+
+For day-32 cases where policy technically says no and judgment says yes. Lead with the
+fix; mention the window without making it the point.
+
+> Hi {Name},
+>
+> Thank you for reaching out, and I'm sorry the [product] arrived like that.
+>
+> I've had a look and I can get a replacement out to you — it'll ship within 3–4 business
+> days and reach you 5–7 business days after that. You're a little past our usual 30-day
+> window, but the frame arriving damaged is on us to sort out, so let's not worry about it.
+>
+> Could you send a quick photo when you get a chance? It helps me get the right replacement
+> out and lets our product team catch whatever went wrong.
+>
+> Have an amazing day.
+
+### The keep-it discount instead of a return
+
+Often the better outcome for everyone — no freight, no restock, customer keeps the product.
+Confirm the percentage against live Notion.
+
+> Hi {Name},
+>
+> Thank you for reaching out to us.
+>
+> Before we go through the trouble of a return — would you rather keep the [product] and
+> let us refund you [15–25]% of what you paid? A lot of customers prefer that, and it saves
+> you packing it back up and waiting on the refund.
+>
+> If you'd still rather send it back, that's completely fine and I'll get a return started
+> for you. Just let me know which you'd prefer.
+>
+> Have an amazing day.
+
+### A genuine no, delivered warmly
+
+The "yes, and" structure: what we can do, the honest limit and its real reason, then the
+path forward. Never cite "policy" as the reason.
+
+> Hi {Name},
+>
+> Thank you for reaching out, and I'm sorry for the trouble.
+>
+> Let me see what I can do here. The package is already with the carrier, so we aren't able
+> to redirect it at this point — once it's out of the warehouse it's genuinely out of our
+> hands. What I can do is this: if it comes back to us, I'll get it straight out to the
+> correct address, and I'll keep an eye on it so you don't have to chase us for an update.
+>
+> I know that's not the answer you were hoping for. Please let me know if there's anything
+> else I can help with in the meantime.
+>
+> Have an amazing day.
+
+### Missed occasion — gift, wedding, memorial
+
+The product failed at something that mattered and no remedy fixes the timing.
+Acknowledge that specifically before offering anything.
+
+> Hi {Name},
+>
+> Thank you for letting us know, and I'm genuinely sorry — a gift arriving late for
+> [occasion] isn't something a replacement really fixes, and I understand that.
+>
+> Here's what I can do: [remedy]. And please keep what arrived; there's no need to send
+> anything back.
+>
+> I'm sorry we didn't get this right when it mattered. If there's anything else I can do to
+> help, please just say.
+>
+> Have an amazing day.
+
 ### Wholesale inquiry, under 100 units → Faire
 
 Americanflat's own wording, from the wholesale SOP.

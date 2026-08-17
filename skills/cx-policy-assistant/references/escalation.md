@@ -21,6 +21,12 @@ These are **not** rep-level decisions. Draft a holding reply, don't resolve.
 | Wholesale **unit pricing** | **Angela** (pricing approval); initial review uses 10% off AMZ List Price |
 | Anything committing money outside the standard remedies | **Manager** |
 
+**No rep-level spend authority is defined in the SOPs.** Until one is set, the working
+line is: a rep may act on remedies policy already prescribes for the situation; anything
+*beyond* prescribed policy is a manager call regardless of amount. Never invent a dollar
+limit. See the Authority section of `judgment-and-empathy.md` — it names the two numbers
+Anthony would need to set to remove most of the daily friction.
+
 The standing instruction from the refund policy is worth quoting to the rep verbatim
 when they're on the fence:
 

@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.1.0 — 2026-08-17
+
+Adds **judgment and empathy** on top of 1.0.0's policy lookup. Until now the skill
+answered strictly by the book, which produced technically-correct answers that lose
+customers — a rep enforcing a 30-day window to the day, against someone whose frame
+arrived broken, has followed the rule and failed the job.
+
+The latitude was already in the SOPs and simply wasn't usable: the refund policy says
+*"use your judgement and try to keep Americanflat profitable"*, and the policy list
+authorizes bending outright for an angry customer because a bad review costs more than
+the order. This release makes that operational rather than buried.
+
+- **New `references/judgment-and-empathy.md`.** Organizing principle: *be generous with
+  warmth, deliberate with money.* Warmth is free and needs no approval; margin is finite,
+  so latitude on money is bounded and sometimes escalated. Reps who conflate the two
+  either give away margin to seem nice or stay cold thinking rigidity is safe.
+- **Capability limits vs. policy choices** — the distinction reps get wrong in both
+  directions. We genuinely cannot redirect a shipped package or cancel an order already
+  processing; a restocking fee or a day-32 replacement is a decision that can flex.
+  Softening a capability limit isn't generosity, it's a promise that breaks. The skill now
+  says which kind of "no" it is, because "the carrier already has it" lands very
+  differently from "our policy doesn't allow that."
+- **Cost-of-remedy test.** Under ~$50 just fix it — policy already says the customer keeps
+  it, so don't add proof and delay to a decision already made. ~$50–150, use the ladder
+  generously. Above that or on a repeat claimant, escalate before promising.
+- **Signals for and against latitude** — lean generous when it's our fault, first contact,
+  barely outside a threshold, a real occasion was missed, or we've already failed once.
+  Hold firm and escalate on patterns, review threats as leverage, non-returnable
+  condition, and anything needing approval the rep lacks.
+- **Empathy craft** with before/after pairs: lead with the fix not the rule, never cite
+  "policy" as a reason, acknowledge the specific thing instead of generic regret,
+  apologize once then act, name the emotion when it's plainly there, "yes, and" rather
+  than a bare no, offer choices to someone who feels powerless, own it as "we" without
+  blaming the warehouse or carrier, and match the customer's register.
+- **Five de-escalation templates** — angry customer on a second failure, granting latitude
+  just outside the window, the keep-it discount as the better outcome, a genuine no
+  delivered warmly, and a missed occasion (gift, wedding, memorial) where no remedy fixes
+  the timing.
+- **Exception logging.** Bent rules get noted, because repeated exceptions are evidence the
+  rule is wrong — a restocking fee everyone quietly waives is data, not a series of
+  one-offs.
+- **Authority gap flagged rather than invented.** The SOPs define no rep-level spend limit,
+  so the skill refuses to fabricate one: remedies policy already prescribes are the rep's
+  call, anything beyond prescribed policy is a manager's regardless of amount. Names the
+  two numbers Anthony would need to set to remove most daily friction.
+- Discretion is now part of the **answer contract**, not an optional file — a harsher-than-
+  warranted answer must come with the room around it.
+
 ## 1.0.0 — 2026-08-17
 
 First version. A policy reference bot for Americanflat's CX reps, built for claude.ai:
