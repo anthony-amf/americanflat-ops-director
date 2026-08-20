@@ -1,0 +1,655 @@
+<title>Claude Code Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  /* Americanflat design tokens (skill-design-system v1.0.0), adapted for screen.
+     Light palette on bare :root; dark redefines tokens only. */
+  :root {
+    --ground:      #FFFFFF;
+    --sunk:        #FAFAF9;
+    --ink:         #0F0F0F;
+    --ink-muted:   #666666;
+    --ink-faint:   #8C8C8C;
+    --rule:        #E6E6E6;
+    --rule-bold:   #B3B3B3;
+    --opus:        #CE0E2D;
+    --fable:       #1E56C8;
+    --alert:       #CE0E2D;
+    --mark:        #0F0F0F;
+    --mark-2:      #666666;
+    --mark-3:      #B3B3B3;
+    --mark-4:      #E0E0DE;
+    --grid:        #EDEDEB;
+    --tip-bg:      #0F0F0F;
+    --tip-ink:     #FFFFFF;
+
+    --sans: 'DM Sans', 'Glacial Indifference', 'Inter', system-ui, sans-serif;
+    --mono: 'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:    #0F0F0F;
+      --sunk:      #1A1A1A;
+      --ink:       #F7F7F5;
+      --ink-muted: #A8A8A4;
+      --ink-faint: #7A7A76;
+      --rule:      #2A2A28;
+      --rule-bold: #3D3D3A;
+      --opus:      #E8394F;
+      --fable:     #4A7BE8;
+      --alert:     #E8394F;
+      --mark:      #F7F7F5;
+      --mark-2:    #A8A8A4;
+      --mark-3:    #5C5C58;
+      --mark-4:    #4E4E49;
+      --grid:      #262624;
+      --tip-bg:    #F7F7F5;
+      --tip-ink:   #0F0F0F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:    #0F0F0F;
+    --sunk:      #1A1A1A;
+    --ink:       #F7F7F5;
+    --ink-muted: #A8A8A4;
+    --ink-faint: #7A7A76;
+    --rule:      #2A2A28;
+    --rule-bold: #3D3D3A;
+    --opus:      #E8394F;
+    --fable:     #4A7BE8;
+    --alert:     #E8394F;
+    --mark:      #F7F7F5;
+    --mark-2:    #A8A8A4;
+    --mark-3:    #5C5C58;
+    --mark-4:    #4E4E49;
+    --grid:      #262624;
+    --tip-bg:    #F7F7F5;
+    --tip-ink:   #0F0F0F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 28px 88px; }
+
+  /* ---------- header ---------- */
+  header { padding: 40px 0 28px; }
+  .brandline {
+    display: flex; align-items: baseline; gap: 14px;
+    padding-bottom: 36px;
+  }
+  .wordmark { height: 17px; width: auto; color: var(--ink); display: block; }
+  .brandline .origin {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  h1 {
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    font-weight: 700; line-height: 1.04; letter-spacing: -0.02em;
+    margin: 0 0 18px; text-wrap: balance;
+  }
+  .dateline {
+    display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline;
+    font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+    color: var(--ink-muted);
+  }
+  .lede {
+    max-width: 62ch; margin: 24px 0 0; color: var(--ink-muted);
+    font-size: 1.0625rem;
+  }
+  .lede strong { color: var(--ink); font-weight: 700; }
+
+  /* ---------- section scaffolding ---------- */
+  section { padding-top: 60px; }
+  .eyebrow {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 20px;
+    border-top: 1px solid var(--rule-bold);
+    padding-top: 12px; margin-bottom: 28px;
+  }
+  .eyebrow h2 {
+    font-family: var(--mono); font-weight: 500; font-size: 11.5px;
+    letter-spacing: .14em; text-transform: uppercase;
+    margin: 0; color: var(--ink);
+  }
+  .eyebrow .note {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em;
+    color: var(--ink-faint); text-align: right;
+  }
+
+  /* ---------- KPI strip ---------- */
+  .kpis {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--rule);
+  }
+  .kpi { padding: 22px 24px 24px; border-left: 1px solid var(--rule); }
+  .kpi:first-child { border-left: 0; padding-left: 0; }
+  .kpi .k-label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-muted); margin-bottom: 12px;
+  }
+  .kpi .k-value {
+    font-size: 2.5rem; font-weight: 700; line-height: 1;
+    letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+  }
+  .kpi .k-value .unit { font-size: 1.25rem; font-weight: 400; color: var(--ink-muted); letter-spacing: 0; }
+  .kpi .k-sub { margin-top: 10px; font-size: 13px; color: var(--ink-muted); }
+  @media (max-width: 800px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .kpi { border-top: 1px solid var(--rule); }
+    .kpi:nth-child(-n+2) { border-top: 0; }
+    .kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
+  }
+
+  /* ---------- weekly chart ---------- */
+  .chart-shell { overflow-x: auto; }
+  svg.chart { display: block; width: 100%; height: auto; min-width: 560px; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .axis-tick {
+    font-family: var(--mono); font-size: 10.5px; fill: var(--ink-faint);
+  }
+  .axis-label {
+    font-family: var(--sans); font-size: 12px; fill: var(--ink-muted);
+  }
+  .axis-label.now { fill: var(--ink); font-weight: 700; }
+  .bar { fill: var(--mark); transition: opacity .12s ease; }
+  .bar-hit { fill: transparent; cursor: default; }
+  .bar-group:hover .bar, .bar-group:focus-visible .bar { opacity: .62; }
+  .bar-group:focus-visible { outline: 2px solid var(--fable); outline-offset: 2px; }
+  .peak-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 500; fill: var(--ink);
+  }
+
+  /* ---------- tooltip ---------- */
+  #tip {
+    position: fixed; z-index: 40; pointer-events: none; opacity: 0;
+    transform: translate(-50%, -100%);
+    background: var(--tip-bg); color: var(--tip-ink);
+    padding: 9px 12px; font-size: 12.5px; line-height: 1.45;
+    transition: opacity .1s ease;
+    max-width: 260px;
+  }
+  #tip .t-head { font-weight: 700; margin-bottom: 3px; }
+  #tip .t-row { font-family: var(--mono); font-size: 11.5px; opacity: .82; white-space: nowrap; }
+
+  /* ---------- model comparison ---------- */
+  .legend { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 26px; }
+  .legend .item { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  .swatch { width: 11px; height: 11px; flex: none; }
+  .swatch.opus { background: var(--opus); }
+  .swatch.fable { background: var(--fable); }
+  .legend .item .meta { font-family: var(--mono); font-size: 11.5px; color: var(--ink-muted); }
+
+  .pairs { display: flex; flex-direction: column; gap: 26px; }
+  .pair-row { display: grid; grid-template-columns: 132px 1fr; gap: 8px 18px; align-items: center; }
+  .pair-row .metric {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-muted);
+  }
+  .pair-bars { display: flex; flex-direction: column; gap: 5px; }
+  .pbar { display: flex; align-items: center; gap: 10px; }
+  .pbar .fill { height: 15px; min-width: 2px; }
+  .pbar .fill.opus { background: var(--opus); }
+  .pbar .fill.fable { background: var(--fable); }
+  .pbar .val {
+    font-family: var(--mono); font-size: 12.5px; font-weight: 500;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .pair-row { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- two-up grid ---------- */
+  .two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+  @media (max-width: 800px) { .two-up { grid-template-columns: 1fr; gap: 48px; } }
+
+  /* ---------- status list ---------- */
+  .statuses { display: flex; flex-direction: column; gap: 14px; }
+  .status-row { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  .status-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .status-name { font-size: 14.5px; }
+  .status-name .dot {
+    display: inline-block; width: 7px; height: 7px; background: var(--alert);
+    margin-right: 7px; vertical-align: middle;
+  }
+  .status-count {
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-count.flag { color: var(--alert); }
+  .status-track { height: 8px; background: var(--sunk); }
+  .status-fill { height: 8px; background: var(--mark); }
+  .status-fill.flag { background: var(--alert); }
+  .status-why { font-size: 12.5px; color: var(--ink-faint); }
+
+  /* ---------- proportion bar ---------- */
+  .prop-bar { display: flex; height: 34px; gap: 2px; margin-bottom: 20px; }
+  .prop-seg { min-width: 2px; }
+  .prop-legend { display: flex; flex-direction: column; gap: 11px; }
+  .prop-item { display: grid; grid-template-columns: 11px 1fr auto auto; gap: 11px; align-items: baseline; font-size: 14px; }
+  .prop-item .chip { width: 11px; height: 11px; align-self: center; }
+  .prop-item .num, .prop-item .pct {
+    font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums;
+    color: var(--ink-muted);
+  }
+  .prop-item .pct { min-width: 56px; text-align: right; color: var(--ink); font-weight: 500; }
+
+  /* ---------- table ---------- */
+  .t-shell { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; }
+  thead th {
+    text-align: left; font-family: var(--mono); font-weight: 500; font-size: 10.5px;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted);
+    padding: 0 14px 10px 0; border-bottom: 1px solid var(--ink);
+  }
+  thead th.num, tbody td.num { text-align: right; padding-right: 26px; }
+  thead th:last-child, tbody td:last-child { padding-right: 0; }
+  tbody td {
+    padding: 13px 14px 13px 0; border-bottom: 1px solid var(--rule);
+    font-size: 14.5px; vertical-align: baseline;
+  }
+  tbody td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13.5px; }
+  tbody td.money { font-weight: 500; }
+  tbody tr:last-child td { border-bottom: 1px solid var(--rule-bold); }
+  .mchip { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-family: var(--mono); font-size: 12px; }
+  .mchip .swatch { width: 9px; height: 9px; }
+  .state { font-family: var(--mono); font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
+  .state.flag { color: var(--alert); }
+
+  /* ---------- repo ---------- */
+  .repo-figures { display: flex; flex-wrap: wrap; gap: 40px 56px; margin-bottom: 40px; }
+  .figure .f-value {
+    font-size: 2rem; font-weight: 700; line-height: 1; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .figure .f-label { font-size: 13px; color: var(--ink-muted); margin-top: 8px; max-width: 22ch; }
+  .months { display: flex; flex-direction: column; gap: 16px; }
+  .month-row { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: center; }
+  .month-row .m-name { font-family: var(--mono); font-size: 12px; color: var(--ink-muted); }
+  .month-bar { display: flex; gap: 2px; align-items: center; }
+  .month-bar .seg { height: 17px; min-width: 2px; }
+  .month-bar .seg.human { background: var(--mark); }
+  .month-bar .seg.agent { background: var(--mark-2); }
+  .month-bar .m-total {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-muted);
+    margin-left: 8px; font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 76px; border-top: 1px solid var(--rule-bold); padding-top: 24px;
+    display: flex; flex-wrap: wrap; gap: 32px; justify-content: space-between;
+  }
+  footer .method { max-width: 66ch; font-size: 13.5px; color: var(--ink-muted); }
+  footer .method p { margin: 0 0 10px; }
+  footer .method b { color: var(--ink); font-weight: 700; }
+  footer .stamp {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    color: var(--ink-faint); text-align: right;
+  }
+  .prose { max-width: 66ch; color: var(--ink-muted); font-size: 14.5px; }
+  .prose strong { color: var(--ink); font-weight: 700; }
+  .prose p { margin: 0 0 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brandline">
+    <svg class="wordmark" viewBox="0 0 480 80" role="img" aria-label="americanflat">
+      <text x="0" y="58" fill="currentColor" font-family="'DM Sans', 'Glacial Indifference', sans-serif" font-weight="700" font-size="64" letter-spacing="2.56">americanflat</text>
+    </svg>
+    <span class="origin">ops workspace</span>
+  </div>
+  <h1>Claude Code Ledger</h1>
+  <div class="dateline">
+    <span>14 Jul &ndash; 20 Aug 2026</span>
+    <span>37 days &middot; 17 active</span>
+    <span>28 cloud sessions</span>
+  </div>
+  <p class="lede">Every Claude Code session that ran in the cloud against this workspace, with what it cost and where it ended up. <strong>Sessions on your Mac are not in here</strong> &mdash; the container starts empty, so only the cloud service's own records are available.</p>
+</header>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="k-label">Sessions</div>
+    <div class="k-value">28</div>
+    <div class="k-sub">6.3 per active week</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">Total spend</div>
+    <div class="k-value"><span class="unit">$</span>231.01</div>
+    <div class="k-sub">$8.25 average per session</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">Tokens handled</div>
+    <div class="k-value">157.1<span class="unit">M</span></div>
+    <div class="k-sub">728K of it written by Claude</div>
+  </div>
+  <div class="kpi">
+    <div class="k-label">Reused context</div>
+    <div class="k-value">95.8<span class="unit">%</span></div>
+    <div class="k-sub">read from cache, not re-sent</div>
+  </div>
+</div>
+
+<section>
+  <div class="eyebrow">
+    <h2>Spend by week</h2>
+    <div class="note">bars are dollars &middot; hover for detail</div>
+  </div>
+  <div class="chart-shell">
+    <svg class="chart" id="weekly" viewBox="0 0 720 268" role="img"
+         aria-label="Weekly spend: week of 13 Jul $14.99, 20 Jul $58.55, 27 Jul $73.04, 3 Aug $52.01, 10 Aug $17.73, 17 Aug $14.69."></svg>
+  </div>
+  <p class="prose" style="margin-top:26px">One week carries a third of the whole bill. The week of <strong>27 July</strong> is a single long-running session &mdash; the main Yusen Invoice Validation thread &mdash; that stayed open for eighteen days and cost <strong>$73.04</strong> on its own. The week of <strong>3 August</strong> cost less in total across five times as many sessions.</p>
+</section>
+
+<section>
+  <div class="eyebrow">
+    <h2>Opus 5 vs Fable 5</h2>
+    <div class="note">28 sessions split by model</div>
+  </div>
+  <div class="legend">
+    <div class="item"><span class="swatch opus"></span><span>Opus 5</span><span class="meta">16 sessions &middot; $8.74 avg</span></div>
+    <div class="item"><span class="swatch fable"></span><span>Fable 5</span><span class="meta">12 sessions &middot; $7.60 avg</span></div>
+  </div>
+  <div class="pairs" id="pairs"></div>
+  <p class="prose" style="margin-top:32px">Opus ran more of your work and cost more in total, but the gap per session is small &mdash; <strong>$8.74 against $7.60</strong>. Fable's twelve sessions were the July stretch; every session since 7 August has been Opus.</p>
+</section>
+
+<section>
+  <div class="eyebrow">
+    <h2>Where sessions ended up</h2>
+    <div class="note">last recorded state of each session</div>
+  </div>
+  <div class="two-up">
+    <div class="statuses" id="statuses"></div>
+    <div>
+      <div class="prop-bar" id="propbar"></div>
+      <div class="prop-legend" id="proplegend"></div>
+      <p class="prose" style="margin-top:26px">Almost nothing you spend goes on new text. <strong>95%</strong> of the tokens are context being read back out of cache each turn, which is billed at a tenth of the normal rate &mdash; that ratio is why 157 million tokens came to $231 rather than several thousand.</p>
+    </div>
+  </div>
+  <p class="prose" style="margin-top:34px"><strong>Seven of 28 sessions stopped waiting on you</strong>, and five of those seven were the same problem: GitHub or BigQuery write permission the session did not have. Both were eventually granted. It is the single biggest recoverable cost in this ledger &mdash; those sessions did the work, then had nowhere to put it.</p>
+</section>
+
+<section>
+  <div class="eyebrow">
+    <h2>Most expensive sessions</h2>
+    <div class="note">top 8 of 28 &middot; 82% of total spend</div>
+  </div>
+  <div class="t-shell">
+    <table>
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Started</th>
+          <th>Model</th>
+          <th class="num">Cost</th>
+          <th class="num">Written</th>
+          <th>Ended</th>
+        </tr>
+      </thead>
+      <tbody id="toprows"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">
+    <h2>What landed in the repo</h2>
+    <div class="note">americanflat-ops-director &middot; 70 commits</div>
+  </div>
+  <div class="repo-figures">
+    <div class="figure">
+      <div class="f-value">29</div>
+      <div class="f-label">commits authored by Claude, out of 70 &mdash; 41% of the repo's history</div>
+    </div>
+    <div class="figure">
+      <div class="f-value">+3,608</div>
+      <div class="f-label">lines added by Claude, against 175 removed, across 52 file changes</div>
+    </div>
+    <div class="figure">
+      <div class="f-value">1</div>
+      <div class="f-label">month in which all 29 of those commits landed</div>
+    </div>
+  </div>
+  <div class="months" id="months"></div>
+  <p class="prose" style="margin-top:30px">June and July are entirely hand-written; the agent's commits all arrive in August, once the write permission from those blocked sessions came through. Claude's commits are small and additive &mdash; <strong>21 lines removed for every 100 added</strong>, mostly runbook and documentation edits rather than validator logic.</p>
+</section>
+
+<footer>
+  <div class="method">
+    <p><b>Where these numbers come from.</b> The cloud service's own session records &mdash; token counts and cost as billed &mdash; plus <code>git log</code> on this repo. Nothing is estimated.</p>
+    <p><b>What is missing.</b> Claude Code runs on your Mac too, and those sessions keep their history locally, so they are not counted here. Two of the 28 (both CLI bridge sessions) report no token figures at all and count as sessions worth $0. Cowork sessions are also excluded.</p>
+  </div>
+  <div class="stamp">
+    compiled 20 Aug 2026<br>28 sessions &middot; 6 artifacts published
+  </div>
+</footer>
+</div>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var weekly = [
+    { label: "13 Jul", spend: 14.99, n: 2,  tok: 4.6,  out: 11068  },
+    { label: "20 Jul", spend: 58.55, n: 6,  tok: 33.7, out: 168024 },
+    { label: "27 Jul", spend: 73.04, n: 2,  tok: 40.4, out: 64020  },
+    { label: "3 Aug",  spend: 52.01, n: 10, tok: 48.7, out: 260835 },
+    { label: "10 Aug", spend: 17.73, n: 5,  tok: 14.7, out: 92188  },
+    { label: "17 Aug", spend: 14.69, n: 3,  tok: 15.0, out: 131819 }
+  ];
+
+  var tip = document.getElementById("tip");
+  function showTip(html, x, y) {
+    tip.innerHTML = html;
+    tip.style.left = x + "px";
+    tip.style.top = (y - 12) + "px";
+    tip.style.opacity = "1";
+  }
+  function hideTip() { tip.style.opacity = "0"; }
+
+  function fmt(n) { return n.toLocaleString("en-US"); }
+
+  /* ---- weekly bar chart ---- */
+  var W = 720, H = 268, L = 46, R = 10, T = 18, B = 42;
+  var pw = W - L - R, ph = H - T - B;
+  var max = 80, ticks = [0, 20, 40, 60, 80];
+  var svg = document.getElementById("weekly");
+  var NS = "http://www.w3.org/2000/svg";
+  function el(name, attrs) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) { e.setAttribute(k, attrs[k]); }
+    return e;
+  }
+  function y(v) { return T + ph - (v / max) * ph; }
+
+  ticks.forEach(function (t) {
+    svg.appendChild(el("line", { class: "grid-line", x1: L, x2: L + pw, y1: y(t), y2: y(t) }));
+    var lab = el("text", { class: "axis-tick", x: L - 10, y: y(t) + 3.5, "text-anchor": "end" });
+    lab.textContent = "$" + t;
+    svg.appendChild(lab);
+  });
+
+  var slot = pw / weekly.length, barW = Math.min(64, slot - 18);
+  weekly.forEach(function (d, i) {
+    var cx = L + slot * i + slot / 2;
+    var x0 = cx - barW / 2, top = y(d.spend), h = T + ph - top, r = 4;
+    var g = el("g", { class: "bar-group", tabindex: "0", role: "listitem",
+      "aria-label": d.label + ": $" + d.spend.toFixed(2) + ", " + d.n + " sessions" });
+    var path = "M" + x0 + " " + (T + ph) +
+               " L" + x0 + " " + (top + r) +
+               " Q" + x0 + " " + top + " " + (x0 + r) + " " + top +
+               " L" + (x0 + barW - r) + " " + top +
+               " Q" + (x0 + barW) + " " + top + " " + (x0 + barW) + " " + (top + r) +
+               " L" + (x0 + barW) + " " + (T + ph) + " Z";
+    g.appendChild(el("path", { class: "bar", d: path }));
+    g.appendChild(el("rect", { class: "bar-hit", x: cx - slot / 2, y: T, width: slot, height: ph }));
+
+    var name = el("text", { class: "axis-label" + (i === weekly.length - 1 ? " now" : ""),
+      x: cx, y: T + ph + 22, "text-anchor": "middle" });
+    name.textContent = d.label;
+    svg.appendChild(g);
+    svg.appendChild(name);
+
+    if (d.spend === 73.04) {
+      var pk = el("text", { class: "peak-label", x: cx, y: top - 9, "text-anchor": "middle" });
+      pk.textContent = "$73.04";
+      svg.appendChild(pk);
+    }
+
+    var body = '<div class="t-head">Week of ' + d.label + '</div>' +
+      '<div class="t-row">$' + d.spend.toFixed(2) + ' &middot; ' + d.n + ' session' + (d.n === 1 ? '' : 's') + '</div>' +
+      '<div class="t-row">' + d.tok.toFixed(1) + 'M tokens &middot; ' + fmt(d.out) + ' written</div>';
+    function onMove(ev) {
+      var pt = ev.touches ? ev.touches[0] : ev;
+      showTip(body, pt.clientX, pt.clientY);
+    }
+    g.addEventListener("mousemove", onMove);
+    g.addEventListener("mouseleave", hideTip);
+    g.addEventListener("focus", function () {
+      var b = g.getBoundingClientRect();
+      showTip(body, b.left + b.width / 2, b.top);
+    });
+    g.addEventListener("blur", hideTip);
+  });
+  var axisWeek = el("text", { class: "axis-tick", x: L, y: H - 8 });
+  axisWeek.textContent = "week beginning";
+  svg.appendChild(axisWeek);
+
+  /* ---- model pairs ---- */
+  var pairs = [
+    { metric: "Sessions",      opus: 16,      fable: 12,      f: function (v) { return v; } },
+    { metric: "Spend",         opus: 139.83,  fable: 91.18,   f: function (v) { return "$" + v.toFixed(2); } },
+    { metric: "Tokens",        opus: 108.7,   fable: 48.4,    f: function (v) { return v.toFixed(1) + "M"; } },
+    { metric: "Written by it", opus: 487007,  fable: 240947,  f: function (v) { return fmt(v); } }
+  ];
+  var pw2 = document.getElementById("pairs");
+  pairs.forEach(function (p) {
+    var m = Math.max(p.opus, p.fable);
+    var row = document.createElement("div");
+    row.className = "pair-row";
+    row.innerHTML =
+      '<div class="metric">' + p.metric + '</div>' +
+      '<div class="pair-bars">' +
+        '<div class="pbar"><span class="fill opus" style="width:' + (p.opus / m * 78).toFixed(1) + '%"></span>' +
+          '<span class="val">' + p.f(p.opus) + '</span></div>' +
+        '<div class="pbar"><span class="fill fable" style="width:' + (p.fable / m * 78).toFixed(1) + '%"></span>' +
+          '<span class="val">' + p.f(p.fable) + '</span></div>' +
+      '</div>';
+    pw2.appendChild(row);
+  });
+
+  /* ---- statuses ---- */
+  var statuses = [
+    { name: "Ready for you to review", n: 15, why: "finished, output waiting", flag: false },
+    { name: "Blocked, needs a decision", n: 7, why: "mostly missing write permission", flag: true },
+    { name: "Still working", n: 4, why: "includes this session", flag: false },
+    { name: "Closed out", n: 2, why: "archived CLI bridge sessions", flag: false }
+  ];
+  var sw = document.getElementById("statuses");
+  statuses.forEach(function (s) {
+    var row = document.createElement("div");
+    row.className = "status-row";
+    row.innerHTML =
+      '<div class="status-top">' +
+        '<span class="status-name">' + (s.flag ? '<span class="dot"></span>' : '') + s.name + '</span>' +
+        '<span class="status-count' + (s.flag ? ' flag' : '') + '">' + s.n + ' &middot; ' + Math.round(s.n / 28 * 100) + '%</span>' +
+      '</div>' +
+      '<div class="status-track"><div class="status-fill' + (s.flag ? ' flag' : '') + '" style="width:' + (s.n / 15 * 100).toFixed(1) + '%"></div></div>' +
+      '<div class="status-why">' + s.why + '</div>';
+    sw.appendChild(row);
+  });
+
+  /* ---- token composition ---- */
+  var comp = [
+    { name: "Context read back from cache", v: 149781694, c: "var(--mark)" },
+    { name: "Context written into cache",   v: 6523930,   c: "var(--mark-2)" },
+    { name: "Text Claude produced",         v: 727954,    c: "var(--mark-3)" },
+    { name: "Your prompts",                 v: 76370,     c: "var(--mark-4)" }
+  ];
+  var total = comp.reduce(function (a, b) { return a + b.v; }, 0);
+  var bar = document.getElementById("propbar");
+  var leg = document.getElementById("proplegend");
+  comp.forEach(function (c) {
+    var pct = c.v / total * 100;
+    var seg = document.createElement("div");
+    seg.className = "prop-seg";
+    seg.style.background = c.c;
+    seg.style.flex = "0 0 " + Math.max(pct, 0.55).toFixed(3) + "%";
+    bar.appendChild(seg);
+
+    var item = document.createElement("div");
+    item.className = "prop-item";
+    item.innerHTML =
+      '<span class="chip" style="background:' + c.c + '"></span>' +
+      '<span>' + c.name + '</span>' +
+      '<span class="num">' + fmt(c.v) + '</span>' +
+      '<span class="pct">' + (pct < 0.1 ? pct.toFixed(2) : pct.toFixed(1)) + '%</span>';
+    leg.appendChild(item);
+  });
+
+  /* ---- top sessions ---- */
+  var top = [
+    ["Yusen Invoice Validation", "the long-running main thread", "27 Jul", "opus", 73.04, 64020, "Ready", false],
+    ["Ops Projects management tool", "", "21 Jul", "fable", 22.44, 30757, "Ready", false],
+    ["Claudible meeting presentation", "", "4 Aug", "opus", 14.00, 44747, "Ready", false],
+    ["Yusen MSA comparison analysis", "", "14 Jul", "fable", 13.60, 11068, "Blocked", true],
+    ["Marketplace orders to BigQuery", "", "21 Jul", "fable", 13.48, 53430, "Blocked", true],
+    ["Validate 754855", "", "5 Aug", "fable", 11.39, 37085, "Working", false],
+    ["Yusen Invoice Validation", "push denied", "23 Jul", "fable", 10.12, 33541, "Blocked", true],
+    ["CX policy reference bot", "", "17 Aug", "opus", 8.21, 60824, "Working", false]
+  ];
+  var tb = document.getElementById("toprows");
+  top.forEach(function (r) {
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td>' + r[0] + (r[1] ? ' <span class="state">&mdash; ' + r[1] + '</span>' : '') + '</td>' +
+      '<td class="num">' + r[2] + '</td>' +
+      '<td><span class="mchip"><span class="swatch ' + r[3] + '"></span>' + (r[3] === "opus" ? "Opus 5" : "Fable 5") + '</span></td>' +
+      '<td class="num money">$' + r[4].toFixed(2) + '</td>' +
+      '<td class="num">' + fmt(r[5]) + '</td>' +
+      '<td><span class="state' + (r[7] ? ' flag' : '') + '">' + r[6] + '</span></td>';
+    tb.appendChild(tr);
+  });
+
+  /* ---- months ---- */
+  var months = [
+    { name: "June", human: 15, agent: 0 },
+    { name: "July", human: 21, agent: 0 },
+    { name: "August", human: 5, agent: 29 }
+  ];
+  var mmax = 34;
+  var mw = document.getElementById("months");
+  months.forEach(function (m) {
+    var row = document.createElement("div");
+    row.className = "month-row";
+    var t = m.human + m.agent;
+    row.innerHTML =
+      '<div class="m-name">' + m.name + '</div>' +
+      '<div class="month-bar">' +
+        (m.human ? '<span class="seg human" style="width:' + (m.human / mmax * 74).toFixed(1) + '%"></span>' : '') +
+        (m.agent ? '<span class="seg agent" style="width:' + (m.agent / mmax * 74).toFixed(1) + '%"></span>' : '') +
+        '<span class="m-total">' + t + (m.agent ? ' &middot; ' + m.agent + ' by Claude' : ' &middot; all by hand') + '</span>' +
+      '</div>';
+    mw.appendChild(row);
+  });
+})();
+</script>
