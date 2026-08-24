@@ -155,6 +155,19 @@ the live artifact, extract from `<title>` to the last `</script>`, restore the
 two placeholders, and confirm every `r.<field>` the template reads is emitted by
 `normalize()`. Do this whenever the page design changes.
 
+**The Marketplace Shipments portal** is the second artifact — Target, Macy's,
+Michaels and Shopify orders, searchable by order number, customer name or
+tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
+Built by this repo's `refresh_marketplace_shipments.py` straight off the
+marketplace feeds already in BigQuery (`acenda`, `macys`, `shipstation`) — no
+schedule, republish with `url:` like the Yusen one. Two facts it is built around:
+ShipStation's *shipment* feed stopped loading in Oct 2023, so Michaels/Shopify
+rows have no ship date or tracking; and Target Plus redacts customer names ~45
+days after the order and the sync rewrites the rows in place, which is why
+`sql/marketplace_shipments_setup.sql` defines a durable ledger table whose MERGE
+never overwrites a captured fact with a blank. Full detail:
+`MARKETPLACE-SHIPMENTS.md`.
+
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's
 `refresh_yusen_dashboard.py`. Other processes re-export it from a base template,
