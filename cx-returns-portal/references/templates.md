@@ -1,0 +1,189 @@
+# Warehouse email templates
+
+Six templates, each lifted from a thread the warehouse actually replied to. Keep the
+shape. The warehouses have learned to read these — a reformatted email gets a slower,
+vaguer answer.
+
+Placeholders are `{{like_this}}`. `{{wh_greeting}}` is the team name from
+`warehouses.md` (`Fontana Team`, `NJ Team`, `SC Team`, `Yusen Canada Team`, `Yusen NL Team`).
+
+---
+
+## 1 — Reship / replacement: prioritize
+
+**Subject:** `AMF x TS {{warehouse}} Request to Prioritize Replacement order # {{rs_order}}`
+
+```
+Hi {{wh_greeting}},
+
+Please prioritize replacement order #{{rs_order}} for shipment by {{deadline}}.
+
+This replacement must ship as one full master carton. Please do not piece-pick
+individual units or split the shipment.
+
+We are currently dealing with an unhappy customer on the original order, so it's
+important that this replacement is processed correctly and leaves the warehouse today.
+
+Once shipped, please send me the tracking number or ensure tracking is properly
+placed on the order so my team can retrieve it.
+
+Thanks in advance!
+
+Best,
+{{sender_name}}
+```
+
+Drop the master-carton paragraph when the replacement is genuinely a loose-unit pick
+(a single frame, a single print). Keep it whenever the original shipped as a set —
+split replacements are how the same complaint comes back twice.
+
+## 2 — Missing units / short-ship investigation
+
+**Subject:** `AMF x TS {{warehouse}} {{marketplace}} Order #{{order}} – Missing Units Verification`
+
+```
+Hi {{wh_greeting}},
+
+Could you please review {{marketplace}} Order #{{order}}? The customer is reporting
+that the order was not received in full.
+
+They specifically state they are missing:
+
+  - {{sku}} x {{qty}}
+
+Could you please confirm:
+
+  - What quantities physically shipped for each SKU?
+  - Whether any additional cartons/packages were shipped separately
+  - Any additional tracking numbers associated with this order
+
+{{replacement_note}}
+
+Thank you,
+{{sender_name}}
+```
+
+`{{replacement_note}}` — when a replacement is already placed:
+
+> A replacement has already been placed for the customer, but we need to understand
+> what happened with the original shipment and confirm whether this was a warehouse
+> short-ship.
+
+Otherwise omit the line entirely. Don't write "no replacement has been placed" — it
+reads as an instruction not to act.
+
+## 3 — Tracking verification
+
+**Subject:** `AMF x TS {{warehouse}} {{marketplace}} Order #{{order}} – Tracking Verification`
+
+```
+Hi {{wh_greeting}},
+
+Could you please review {{marketplace}} Order #{{order}} and verify the tracking
+number entered for the shipment?
+
+Tracking: {{tracking}} is coming back as invalid in {{carrier}}, and the customer
+cannot track their package.
+
+Could you please confirm the correct tracking number and that the shipment
+physically left the building?
+
+Thank you,
+{{sender_name}}
+```
+
+## 4 — Cancel a replacement order
+
+**Subject:** `AMF x TS {{warehouse}} Request to Cancel {{rs_order}}`
+
+```
+Hi team,
+
+Please cancel PO # {{rs_order}} -- this is a replacement order that is no longer
+needed, thank you!
+
+Best,
+{{sender_name}}
+```
+
+Send this the moment the customer says the original turned up. An RS order that
+ships after the customer is satisfied is pure loss — product, freight and a pick fee.
+
+## 5 — Return received at the warehouse: disposition
+
+**Subject:** `AMF x TS {{warehouse}} Return {{tracking_or_ref}} – Disposition`
+
+```
+Hi {{wh_greeting}},
+
+Thank you for flagging the return received {{received_date}}{{tracking_clause}}.
+
+Item: {{sku}} / {{ean}} — {{qty}} pcs
+
+Please {{disposition}}.
+
+{{condition_note}}
+
+Thank you,
+{{sender_name}}
+```
+
+`{{disposition}}` is one of:
+
+- `restock this into sellable inventory` — undamaged, resalable
+- `discard for damage -- I have logged it from my side` — damaged; the second half
+  matters, it tells the WH we've taken the inventory hit so they don't wait
+- `hold this aside and send photos before we decide` — unclear condition or high value
+
+`{{condition_note}}` — for anything the WH couldn't identify:
+
+> If the item number doesn't resolve in your system, the AF style code is
+> `{{sku}}` and the EAN is `{{ean}}`.
+
+NL specifically hits this: they receive DHL/Amazon returns with a barcode that isn't
+in their WMS and will sit on it until someone maps it.
+
+## 6 — Damaged on arrival
+
+**Subject:** `AMF x TS {{warehouse}} {{marketplace}} Order #{{order}} – Damaged on Arrival`
+
+```
+Hi {{wh_greeting}},
+
+The customer on {{marketplace}} Order #{{order}} received their order damaged.
+
+Item: {{sku}} x {{qty}}
+Shipped under tracking: {{tracking}}
+
+A replacement has been placed under #{{rs_order}} — please prioritize it for
+shipment by {{deadline}} and send tracking back on this thread.
+
+Separately, could you please check:
+
+  - How this order was packed (carton size, void fill, corner protection)
+  - Whether other units of {{sku}} in the same location show damage
+
+We're seeing enough breakage on this style that we want to know whether it's a
+packing issue or an inbound one.
+
+Thank you,
+{{sender_name}}
+```
+
+The second half is what turns a one-off reship into a fix. Include it whenever the
+same SKU has broken more than once.
+
+---
+
+## Signature
+
+Emails send under the CX teammate's own name and signature. The portal appends:
+
+```
+{{sender_name}}
+{{sender_title}}
+americanflat.com
+```
+
+Don't sign as John Nunez unless John is sending. The warehouse replies to whoever
+signed, and a reply to the wrong person stalls.

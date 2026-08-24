@@ -68,3 +68,6 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Not a credential — the CX returns portal reads this warehouse routing table.
+!cx-returns-portal/references/routing.json

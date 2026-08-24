@@ -1,0 +1,90 @@
+{
+  "_comment": "Machine-readable source of truth for the portal. Human docs: warehouses.md, templates.md. Update BOTH, then re-run scripts/build_portal.py. Verified 2026-08-24.",
+  "verified": "2026-08-24",
+  "always_cc": "NYC_Ops@americanflat.com",
+  "warehouses": {
+    "fontana": {
+      "label": "Fontana, CA",
+      "subject_prefix": "AMF x TS Fontana",
+      "greeting": "Fontana Team",
+      "order_prefix": null,
+      "to": ["fontanacsr@us.yusen-logistics.com", "FontanaShipping@us.yusen-logistics.com"],
+      "cc": ["Marisol.Luna@us.yusen-logistics.com", "William.Keller@us.yusen-logistics.com", "NYC_Ops@americanflat.com"],
+      "cc_inventory": ["FontanaInventory@us.yusen-logistics.com", "Norma.Luna@us.yusen-logistics.com"]
+    },
+    "nj": {
+      "label": "New Jersey",
+      "subject_prefix": "AMF x TS New Jersey",
+      "greeting": "NJ Team",
+      "order_prefix": "AME*",
+      "to": ["Livel.Beltrez@us.yusen-logistics.com", "Donald.Kistner@us.yusen-logistics.com"],
+      "cc": ["Leandra.Murchison@us.yusen-logistics.com", "Jorge.Blanco@us.yusen-logistics.com", "NYC_Ops@americanflat.com"],
+      "cc_inventory": []
+    },
+    "sc": {
+      "label": "South Carolina",
+      "subject_prefix": "AMF x TS South Carolina",
+      "greeting": "SC Team",
+      "order_prefix": "AMS*",
+      "to": ["Gilma.Munoz@us.yusen-logistics.com", "aanguiano@tpservices.com", "Bryan.Lopez@us.yusen-logistics.com"],
+      "cc": ["Hardeeville_CSRs@us.yusen-logistics.com", "Hardeeville_Mgmt@us.yusen-logistics.com", "NYC_Ops@americanflat.com"],
+      "cc_inventory": ["Kwayne.Huggins@us.yusen-logistics.com"]
+    },
+    "ca": {
+      "label": "Yusen Canada",
+      "subject_prefix": "AMF x Yusen Canada",
+      "greeting": "Yusen Canada Team",
+      "order_prefix": null,
+      "to": ["Warehousenorth.CSR@ca.yusen-logistics.com"],
+      "cc": ["sayaka.ambo@ca.yusen-logistics.com", "Taranjeet.Kaur@ca.yusen-logistics.com", "Eric.Houston@ca.yusen-logistics.com", "Brian.Lapointe@ca.yusen-logistics.com", "NYC_Ops@americanflat.com"],
+      "cc_inventory": []
+    },
+    "nl": {
+      "label": "Yusen NL",
+      "subject_prefix": "AMF x Yusen NL",
+      "greeting": "Yusen NL Team",
+      "order_prefix": null,
+      "to": ["customerservice.MRD@bnl.yusen-logistics.com"],
+      "cc": ["mahjoub@americanflat.com", "NYC_Ops@americanflat.com"],
+      "cc_inventory": []
+    }
+  },
+  "cases": {
+    "reship": {
+      "label": "Reship — prioritize",
+      "blurb": "RS order is placed. Ask the warehouse to ship it today.",
+      "needs": ["rs_order", "deadline"],
+      "inventory_cc": false
+    },
+    "missing": {
+      "label": "Missing units",
+      "blurb": "Customer came up short. Ask what physically shipped.",
+      "needs": ["order", "skus"],
+      "inventory_cc": true
+    },
+    "tracking": {
+      "label": "Tracking verification",
+      "blurb": "Tracking is invalid or never scanned.",
+      "needs": ["order", "tracking"],
+      "inventory_cc": false
+    },
+    "cancel": {
+      "label": "Cancel replacement",
+      "blurb": "RS order is no longer needed. Send immediately.",
+      "needs": ["rs_order"],
+      "inventory_cc": false
+    },
+    "return": {
+      "label": "Return disposition",
+      "blurb": "A return landed at the warehouse. Tell them what to do with it.",
+      "needs": ["skus"],
+      "inventory_cc": true
+    },
+    "damaged": {
+      "label": "Damaged on arrival",
+      "blurb": "Arrived broken. Reship plus a packing check.",
+      "needs": ["order", "skus", "rs_order", "deadline"],
+      "inventory_cc": true
+    }
+  }
+}
