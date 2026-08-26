@@ -68,3 +68,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# CX bot: derived catalogue + defect export are committed so the bot works
+# without a rebuild (see cx-bot/README.md)
+!cx-bot/product_kb.json
