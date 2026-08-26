@@ -2,12 +2,32 @@
 
 What the warehouse email should be, given what the customer said.
 
+## Check the fulfillment status before anything else
+
+**A customer reporting a shortage is not evidence of a short-ship.** Look at the
+Shopify order status first:
+
+- **Fulfilled** and the customer is short → a real discrepancy. Investigate (case 2).
+- **Partially fulfilled** and the customer is short → the balance was **never
+  shipped**. The warehouse picked exactly what was released to them and did nothing
+  wrong. Chase the balance (case 3), don't open an investigation.
+
+Getting this backwards is expensive in both directions. An investigation email on a
+partially-fulfilled order has the warehouse count inventory for a discrepancy that
+doesn't exist, and burns the day the customer is actually waiting on. It also spends
+credibility: warehouses that get asked to chase phantom shortages answer the real
+ones more slowly.
+
+The tell is only visible on the Shopify screenshot — the `Unfulfilled (n)` card.
+The Zendesk ticket alone will always read like a short-ship.
+
 ## Reship, investigate, or both
 
 | Customer says | Send | Also |
 |---|---|---|
 | "Arrived damaged" | Damaged on arrival (6) | Reship prioritize (1) if RS is placed |
-| "Missing items / came up short" | Missing units verification (2) | Reship prioritize (1) — run both in parallel |
+| "Missing items / came up short", order **Fulfilled** | Missing units verification (2) | Reship prioritize (1) — run both in parallel |
+| "Missing items / came up short", order **Partially fulfilled** | Unshipped balance (3) | No investigation — nothing was mis-picked |
 | "Never arrived", tracking shows delivered | Tracking verification (3) | Carrier claim, not a WH issue, if the scan is clean |
 | "Never arrived", tracking never scanned | Tracking verification (3) | The package likely never left — WH issue |
 | "Wrong item" | Missing units verification (2), reworded | Ask what SKU was physically picked |

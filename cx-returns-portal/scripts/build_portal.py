@@ -241,6 +241,11 @@ footer.foot {
   font-size:.75rem; color:var(--text-muted);
   display:flex; justify-content:space-between; gap:var(--s3); flex-wrap:wrap;
 }
+.aside {
+  margin:0; font-size:.75rem; line-height:1.55; color:var(--text-muted);
+  padding-left:var(--s3); border-left:1px solid var(--border-bold);
+}
+.aside strong { color:var(--text); font-weight:700; }
 .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 </style>
 
@@ -260,12 +265,15 @@ footer.foot {
     <section class="panel" aria-label="Case intake">
       <div class="block">
         <p class="eyebrow">1 &middot; Paste the customer details</p>
-        <textarea id="paste" spellcheck="false" placeholder="Paste the Gorgias ticket, the forwarded email, or the order details.
+        <textarea id="paste" spellcheck="false" placeholder="Paste the Zendesk ticket, the forwarded email, or the order details.
 
 Example:
 Customer Sarah Whitfield, Shopify order #22397, says she is missing
 MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
         <div id="readout" class="flag quiet"><span>Waiting for a paste.</span></div>
+        <p class="aside">Working from <strong>screenshots</strong> of the Shopify order and the
+          Zendesk ticket? This page can only read text. Drag the images into Claude and ask for
+          the returns portal skill — it reads them directly, so nothing gets retyped.</p>
       </div>
 
       <div class="block">
@@ -409,6 +417,10 @@ function findSkus(t, exclude) {
   let m;
   while ((m = withQty.exec(t)) !== null) push(m[1], m[2]);
 
+  // ...and the other way round: "8 x MW1114WH57".
+  const qtyFirst = /\b(\d{1,3})\s*(?:x|×)\s*([A-Z][A-Z0-9]{3,}(?:-[A-Z0-9]+)*)\b/gi;
+  while ((m = qtyFirst.exec(t)) !== null) push(m[2], m[1]);
+
   // Bare style codes: letters then digits, or hyphenated part numbers.
   const bare = /\b(?:[A-Z]{2,4}\d{3,6}[A-Z0-9]{0,6}|[A-Z]{2,4}(?:-[A-Z0-9]{2,6}){1,3})\b/g;
   while ((m = bare.exec(t)) !== null) push(m[0], '');
@@ -456,6 +468,7 @@ function findWarehouse(t, order) {
 function suggestCase(t) {
   if (/\b(cancel|no longer needed|found it|turned up|arrived after all)\b/i.test(t)) return 'cancel';
   if (/\b(damaged|broken|shattered|cracked|smashed|dented)\b/i.test(t)) return 'damaged';
+  if (/(partially fulfilled|still unfulfilled|unfulfilled \(|balance of the order|rest was never shipped|never shipped the rest)/i.test(t)) return 'balance';
   if (/\b(missing|short|incomplete|only received|not received in full|came up short)\b/i.test(t)) return 'missing';
   if (/(received a return|return received|returned to the warehouse|came back to the warehouse|sent it back|we have received a return)/i.test(t)) return 'return';
   if (/(cannot track|can'?t track|unable to track|tracking[\s\S]{0,40}(invalid|not valid|wrong|incorrect|never scanned|no scans|not moving|no updates|stuck)|(invalid|bad|wrong|no)[\s\S]{0,20}tracking)/i.test(t)) return 'tracking';
@@ -562,6 +575,19 @@ function buildBody(wh) {
           : '') +
         sign;
 
+    case 'balance':
+      return 'Hi ' + greet + ',\n\n' +
+        (mk ? mk : '') + 'Order #' + ord + ' shows part of the order still unfulfilled,\n' +
+        'and the customer has only received what shipped so far.\n\n' +
+        'Still owed:\n\n' +
+        skuLines(state.skus, '  - ') + '\n\n' +
+        'Could you please confirm the balance is allocated and when it will ship?' +
+        (state.deadline && state.touched.has('deadline')
+          ? '\nThe customer needs it by ' + state.deadline + ', so if there is a stock issue\n' +
+            'on this style please tell me today and we will source it from another site.'
+          : '') +
+        sign;
+
     case 'tracking':
       return 'Hi ' + greet + ',\n\n' +
         'Could you please review ' + mk + 'Order #' + ord + ' and verify the tracking\n' +
@@ -618,6 +644,7 @@ function buildSubject(wh) {
   switch (state.caseType) {
     case 'reship':   return p + ' Request to Prioritize Replacement order # ' + rs;
     case 'missing':  return p + ' ' + mk + 'Order #' + ord + ' – Missing Units Verification';
+    case 'balance':  return p + ' ' + mk + 'Order #' + ord + ' – Unshipped Balance';
     case 'tracking': return p + ' ' + mk + 'Order #' + ord + ' – Tracking Verification';
     case 'cancel':   return p + ' Request to Cancel ' + rs;
     case 'return':   return p + ' Return ' + (state.tracking || ord) + ' – Disposition';
@@ -650,6 +677,11 @@ function missingFields(wh) {
     const val = { rs_order:state.rs, order:state.order, tracking:state.tracking,
                   skus:state.skus, deadline:state.deadline }[need];
     if (!val || !String(val).trim()) gaps.push('Add ' + labels[need] + '.');
+  }
+  if (needs.has('skus') && String(state.skus || '').trim()) {
+    const noQty = String(state.skus).split('\n').map(l => l.trim()).filter(Boolean)
+      .filter(l => !/(?:x|×)\s*\d/i.test(l));
+    if (noQty.length) gaps.push('Add a quantity to each SKU — "' + noQty[0] + '" has no number.');
   }
   if (!state.sender) gaps.push('Add your name so the warehouse knows who to reply to.');
   // Backstop: any unresolved placeholder means the email is not sendable, even
@@ -714,7 +746,7 @@ function field(key, label, opts) {
   } else {
     el = document.createElement('input');
     el.type = 'text';
-    el.value = state[key] || '';
+    el.value = (opts.value !== undefined ? opts.value : state[key]) || '';
     el.placeholder = opts.placeholder || '';
   }
   el.id = id;
@@ -750,11 +782,23 @@ function renderFields() {
     hint: 'Original number + RS' }));
   host.appendChild(field('marketplace', 'Marketplace', { placeholder: 'Shopify' }));
   host.appendChild(field('tracking', 'Tracking', { placeholder: '525499496652', need: needs.has('tracking') }));
+  const skuHint = {
+    balance: 'The quantity still UNFULFILLED, not the quantity ordered',
+    missing: 'The quantity the customer is missing, not the quantity ordered',
+  }[state.caseType] || 'One per line';
   host.appendChild(field('skus', 'SKUs & quantity', { multiline: true, placeholder: 'MW0808WH44 x 1\nMW1114WH57 x 2',
-    need: needs.has('skus'), hint: 'One per line' }));
+    need: needs.has('skus'), hint: skuHint }));
 
-  if (state.caseType === 'reship' || state.caseType === 'damaged') {
-    host.appendChild(field('deadline', 'Ship by', { placeholder: 'EOD today', need: needs.has('deadline') }));
+  if (state.caseType === 'reship' || state.caseType === 'damaged' || state.caseType === 'balance') {
+    const isBalance = state.caseType === 'balance';
+    host.appendChild(field('deadline',
+      isBalance ? 'Customer needs by' : 'Ship by',
+      {
+        placeholder: isBalance ? 'e.g. Saturday 8/29 — optional' : 'EOD today',
+        value: isBalance && !state.touched.has('deadline') ? '' : undefined,
+        need: needs.has('deadline'),
+        hint: isBalance ? 'Only included if you fill it in' : undefined,
+      }));
   }
   if (state.caseType === 'reship') {
     host.appendChild(field('packMode', 'Pick as', { options: [

@@ -87,6 +87,38 @@ for (const c of cases) {
   else { pass++; console.log('   [ok]'); }
 }
 
+// A shortage on a PARTIALLY FULFILLED order is not a short-ship: the balance was
+// never released. Routing it to the missing-units investigation sends the warehouse
+// hunting a discrepancy that does not exist. Mirrors the 23290 screenshot walkthrough.
+{
+  await page.click('#reset');
+  await page.fill('#paste', `Shopify order #23290 from Fontana, Partially fulfilled: Fulfilled (2), Unfulfilled (6).
+Customer Sarah Whitfield ordered 8 x MW1114WH57 and only received 2. Tracking 525499496652.
+Zendesk #48213 - she needs the rest by Saturday 8/29.`);
+  await page.waitForTimeout(120);
+  await page.fill('#f-sender', 'Nica Jordan');
+  await page.waitForTimeout(150);
+
+  const out = await page.evaluate(() => ({
+    active: [...document.querySelectorAll('.case')].find(b => b.getAttribute('aria-pressed') === 'true')?.textContent || '',
+    subject: document.getElementById('m-subject').textContent,
+    body: document.getElementById('m-body').textContent,
+  }));
+
+  console.log('\n=== Partially fulfilled -> balance chase ===');
+  console.log('case chip : ' + out.active.split('.')[0]);
+  console.log('Subject   : ' + out.subject);
+  console.log('--- body ---\n' + out.body);
+
+  const problems = [];
+  if (!/Unshipped balance/i.test(out.active)) problems.push('did not classify as an unshipped balance: ' + out.active);
+  if (!/Unshipped Balance/.test(out.subject)) problems.push('wrong subject: ' + out.subject);
+  if (/not received in full|physically shipped for each SKU/.test(out.body)) problems.push('sent the short-ship investigation instead');
+  if (/48213/.test(out.body) || /48213/.test(out.subject)) problems.push('Zendesk ticket number leaked to the warehouse');
+  if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
+  else { pass++; console.log('   [ok]'); }
+}
+
 // A reship ships either as a sealed master carton or as loose units. The wrong
 // instruction is followed literally by the warehouse, so both must hold.
 {

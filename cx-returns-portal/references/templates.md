@@ -1,6 +1,8 @@
 # Warehouse email templates
 
-Six templates, each lifted from a thread the warehouse actually replied to. Keep the
+Seven templates. Six are lifted from threads the warehouse actually replied to; the
+unshipped-balance one was added after a screenshot walkthrough showed the
+missing-units template being sent for orders that were never fully released. Keep the
 shape. The warehouses have learned to read these — a reformatted email gets a slower,
 vaguer answer.
 
@@ -97,7 +99,34 @@ Thank you,
 Otherwise omit the line entirely. Don't write "no replacement has been placed" — it
 reads as an instruction not to act.
 
-## 3 — Tracking verification
+## 3 — Unshipped balance
+
+**Subject:** `AMF x TS {{warehouse}} {{marketplace}} Order #{{order}} – Unshipped Balance`
+
+```
+Hi {{wh_greeting}},
+
+{{marketplace}} Order #{{order}} shows part of the order still unfulfilled,
+and the customer has only received what shipped so far.
+
+Still owed:
+
+  - {{sku}} x {{qty}}
+
+Could you please confirm the balance is allocated and when it will ship?
+The customer needs it by {{deadline}}, so if there is a stock issue on this style
+please tell me today and we will source it from another site.
+
+Thank you,
+{{sender_name}}
+```
+
+Use this instead of the missing-units investigation whenever Shopify shows
+`Partially fulfilled`. Nothing was mis-picked — the units were never released — so
+an investigation request only wastes a day. The offer to source from another site is
+what makes this email useful: it turns a status question into a decision.
+
+## 4 — Tracking verification
 
 **Subject:** `AMF x TS {{warehouse}} {{marketplace}} Order #{{order}} – Tracking Verification`
 
@@ -117,7 +146,7 @@ Thank you,
 {{sender_name}}
 ```
 
-## 4 — Cancel a replacement order
+## 5 — Cancel a replacement order
 
 **Subject:** `AMF x TS {{warehouse}} Request to Cancel {{rs_order}}`
 
@@ -134,7 +163,7 @@ Best,
 Send this the moment the customer says the original turned up. An RS order that
 ships after the customer is satisfied is pure loss — product, freight and a pick fee.
 
-## 5 — Return received at the warehouse: disposition
+## 6 — Return received at the warehouse: disposition
 
 **Subject:** `AMF x TS {{warehouse}} Return {{tracking_or_ref}} – Disposition`
 
@@ -168,7 +197,7 @@ Thank you,
 NL specifically hits this: they receive DHL/Amazon returns with a barcode that isn't
 in their WMS and will sit on it until someone maps it.
 
-## 6 — Damaged on arrival
+## 7 — Damaged on arrival
 
 **Subject:** `AMF x TS {{warehouse}} {{marketplace}} Order #{{order}} – Damaged on Arrival`
 

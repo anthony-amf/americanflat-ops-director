@@ -18,21 +18,22 @@ description: >-
 
 ## What this does
 
-A CX teammate pastes whatever they have — a Gorgias ticket, a forwarded customer
-email, a Shopify order screenshot's text, a marketplace message. This skill turns
-that into the **exact warehouse email the Ops team already sends**, with the right
-recipients, the right subject line, and the right body, and leaves it as a Gmail
-draft for a human to send.
+A CX teammate hands over whatever they have — most often **two screenshots, one of
+the Shopify order and one of the Zendesk ticket** — and this skill turns it into the
+**exact warehouse email the Ops team already sends**, with the right recipients, the
+right subject line, and the right body, left as a Gmail draft for a human to send.
 
 Two ways to use it:
 
-- **In Claude** (this skill) — paste the details, get a Gmail draft. Best when you
-  also want the order looked up, the case classified, or several cases handled at once.
+- **In Claude** (this skill) — drag the screenshots in, or paste the text, and get a
+  Gmail draft. This is the main path: Claude reads images directly, so nothing has to
+  be retyped, and the Zendesk thread comes along as context for free.
 - **In the portal** (`portal/cx-returns-portal.html`, published as an Artifact) —
-  a self-serve web page for CX teammates who aren't working inside Claude
-  (https://claude.ai/code/artifact/79ea6e85-567c-4b07-ba7a-c91fd58bf7f3). Paste on
-  the left, the finished email appears on the right, one click copies it into Gmail.
-  Same templates, same routing, no Claude session needed.
+  a self-serve web page for teammates without a Claude session
+  (https://claude.ai/code/artifact/79ea6e85-567c-4b07-ba7a-c91fd58bf7f3). Paste text
+  on the left, the finished email appears on the right, one click copies it into
+  Gmail. **The portal is text-only** — a published page has no way to read an image,
+  so screenshots go to Claude, not to the portal.
 
 Both produce identical output because both read from `references/templates.md` and
 `references/warehouses.md`.
@@ -55,10 +56,28 @@ Two things are also never done automatically:
 
 ## Workflow
 
-### 1. Parse the paste
+### 1. Read the input
 
-Pull out whatever is present. Nothing here is required except the order number —
-ask only for what you actually need for the chosen case type.
+**Screenshots are the normal case.** Read `references/screenshots.md` before
+extracting — it maps the field landmarks in both UIs and, more importantly, the two
+traps that produce wrong emails: Shopify's `× 2` is the quantity *ordered* (the
+missing quantity comes from the Zendesk ticket), and an order with two fulfillments
+may simply have had one parcel arrive late rather than a short-pick.
+
+Split of duties between the two screenshots:
+
+- **Shopify** — order number, SKUs, tracking, and the fulfillment **Location**, which
+  is how you know the warehouse.
+- **Zendesk** — what the customer actually says is wrong, and **how many units**.
+  Never put the Zendesk ticket number in the warehouse email; the warehouse can't
+  search it.
+
+If only one screenshot arrives, work with it and ask for what's missing. A Shopify
+screenshot alone can't tell you what the customer is complaining about; a Zendesk
+screenshot alone usually can't tell you the warehouse.
+
+Whatever the input, extract the same fields. Nothing is required except the order
+number — ask only for what the chosen case type actually needs.
 
 | Field | Looks like | Notes |
 |---|---|---|
@@ -67,24 +86,34 @@ ask only for what you actually need for the chosen case type.
 | `marketplace` | Shopify, Amazon DF, Amazon VC, Walmart 1P, Target, Michaels, Macy's, Wayfair, Faire, Kohl's | Drives the subject line wording |
 | `skus` | `MW0808WH44 x 1` | AF style codes; keep the exact casing |
 | `tracking` | `525499496652`, `9302210663600002221607` | FedEx = 12 or 15 digits; USPS/Stamps = 20–22 |
-| `issue` | damaged / missing units / wrong item / not delivered / short-ship / bad tracking | Maps to the case type |
-| `warehouse` | Fontana / NJ / SC / CA / NL | Infer from tracking + marketplace; **confirm if unsure** |
+| `issue` | damaged / missing units / wrong item / not delivered / short-ship / bad tracking | From the Zendesk thread; maps to the case type |
+| `warehouse` | Fontana / NJ / SC / CA / NL | Shopify fulfillment location; **confirm if unsure** |
+
+Then **restate what you extracted** in a few lines the operator can correct in one
+reply, before you draft anything. Getting a SKU wrong sends the wrong product to a
+customer who is already unhappy.
 
 If the warehouse can't be determined confidently, ask. Sending a Fontana request to
 the NJ team wastes a day and the customer is already unhappy.
 
 ### 2. Pick the case type
 
-Six real case types, each with a template in `references/templates.md`:
+Seven real case types, each with a template in `references/templates.md`:
 
 | # | Case type | When | Sends |
 |---|---|---|---|
 | 1 | **Reship — prioritize** | RS order already placed, needs to ship today | Prioritize request, full-carton **or** loose-unit |
-| 2 | **Missing units investigation** | Customer says the order came up short | Verification request |
-| 3 | **Tracking verification** | Tracking invalid or never scanned | Tracking check |
-| 4 | **Cancel replacement** | RS order no longer needed | Cancel request |
-| 5 | **Return received at WH** | A return landed at the warehouse; restock or discard | Disposition instruction |
-| 6 | **Damaged on arrival** | Product arrived broken | Reship + quality flag |
+| 2 | **Missing units investigation** | Order is **Fulfilled** and the customer came up short | Verification request |
+| 3 | **Unshipped balance** | Order is **Partially fulfilled** — the rest was never released | Chase the balance |
+| 4 | **Tracking verification** | Tracking invalid or never scanned | Tracking check |
+| 5 | **Cancel replacement** | RS order no longer needed | Cancel request |
+| 6 | **Return received at WH** | A return landed at the warehouse; restock or discard | Disposition instruction |
+| 7 | **Damaged on arrival** | Product arrived broken | Reship + quality flag |
+
+**Check the Shopify fulfillment status before choosing between 2 and 3.** A customer
+saying "I only got 2 of 8" reads identically in Zendesk whether the warehouse
+short-picked or the balance was never released — only the Shopify `Unfulfilled (n)`
+card tells them apart, and sending the wrong one of the two costs a day.
 
 Cases 1 and 2 very often go together: the replacement ships **now** (case 1) while
 the short-ship investigation runs in parallel (case 2). When the paste describes a
@@ -169,7 +198,8 @@ to the dead address.
 
 - `references/warehouses.md` — routing table, contacts, escalation paths
 - `references/routing.json` — the same contacts, machine-readable; what the portal reads
-- `references/templates.md` — the six email templates, verbatim
+- `references/screenshots.md` — how to read a Shopify order and a Zendesk ticket
+- `references/templates.md` — the seven email templates, verbatim
 - `references/playbook.md` — decision rules: reship vs. investigate vs. return
 - `scripts/build_portal.py` — regenerates the portal HTML from `routing.json`
 - `scripts/test_portal.mjs` — browser tests over five real case shapes
