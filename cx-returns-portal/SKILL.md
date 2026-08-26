@@ -58,6 +58,19 @@ Two things are also never done automatically:
 
 ### 1. Read the input
 
+**Have the order number? Look it up first.**
+
+```bash
+python3 scripts/lookup_order.py 22397
+```
+
+That returns the SKUs and quantities exactly as ordered, straight from BigQuery
+(~20 minutes behind Shopify), which removes the field most often mistyped. It
+deliberately does **not** answer three things — the warehouse, the tracking number,
+and whether the order is partially fulfilled — because none of them are in BigQuery.
+`references/data-sources.md` has the evidence for each. Take those from the Shopify
+screen, and the affected quantity from Zendesk.
+
 **Screenshots are the normal case.** Read `references/screenshots.md` before
 extracting — it maps the field landmarks in both UIs and, more importantly, the two
 traps that produce wrong emails: Shopify's `× 2` is the quantity *ordered* (the
@@ -199,6 +212,8 @@ to the dead address.
 - `references/warehouses.md` — routing table, contacts, escalation paths
 - `references/routing.json` — the same contacts, machine-readable; what the portal reads
 - `references/screenshots.md` — how to read a Shopify order and a Zendesk ticket
+- `references/data-sources.md` — what BigQuery can and can't answer, with evidence
+- `scripts/lookup_order.py` — order number → SKUs and quantities from BigQuery
 - `references/templates.md` — the seven email templates, verbatim
 - `references/playbook.md` — decision rules: reship vs. investigate vs. return
 - `scripts/build_portal.py` — regenerates the portal HTML from `routing.json`
