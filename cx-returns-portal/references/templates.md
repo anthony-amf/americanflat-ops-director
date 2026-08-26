@@ -18,8 +18,7 @@ Hi {{wh_greeting}},
 
 Please prioritize replacement order #{{rs_order}} for shipment by {{deadline}}.
 
-This replacement must ship as one full master carton. Please do not piece-pick
-individual units or split the shipment.
+{{pick_instruction}}
 
 We are currently dealing with an unhappy customer on the original order, so it's
 important that this replacement is processed correctly and leaves the warehouse today.
@@ -33,9 +32,35 @@ Best,
 {{sender_name}}
 ```
 
-Drop the master-carton paragraph when the replacement is genuinely a loose-unit pick
-(a single frame, a single print). Keep it whenever the original shipped as a set —
-split replacements are how the same complaint comes back twice.
+### The pick instruction is a choice, not a constant
+
+`{{pick_instruction}}` has two forms, and picking the wrong one costs a day. The
+warehouses follow this line literally.
+
+**Full master carton** — the original shipped as a set, or the replacement is a
+whole sealed case:
+
+> This replacement must ship as one full master carton. Please do not piece-pick
+> individual units or split the shipment.
+
+**Individual units** — the replacement is one frame, one print, or a few loose
+pieces out of a larger order:
+
+> This replacement is a loose-unit pick — please pick only the individual units
+> listed below. It does not need to ship as a full master carton.
+>
+>   - {{sku}} x {{qty}}
+
+Rules of thumb:
+
+- A replacement for a **short-shipped set** goes as a full carton. Splitting it is
+  how the same complaint comes back a second time.
+- A replacement for **one damaged piece** out of a multi-item order is a loose pick.
+  Asking for a sealed case ships the customer far more product than they need, at
+  full freight, and Fontana bills the pick either way.
+- On a loose pick the **SKU and quantity are mandatory**. "Send a replacement" with
+  no unit list cannot be actioned, and you'll get a question back instead of a
+  shipment.
 
 ## 2 — Missing units / short-ship investigation
 

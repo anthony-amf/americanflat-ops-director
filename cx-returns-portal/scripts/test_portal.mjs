@@ -87,6 +87,45 @@ for (const c of cases) {
   else { pass++; console.log('   [ok]'); }
 }
 
+// A reship ships either as a sealed master carton or as loose units. The wrong
+// instruction is followed literally by the warehouse, so both must hold.
+{
+  await page.click('#reset');
+  await page.fill('#paste', `Fontana Shopify order #22562. Customer got one broken frame out of a set order.
+Replacement 22562RS placed. Needs MW1114WH57 x 1 only.`);
+  await page.waitForTimeout(120);
+  await page.fill('#f-sender', 'Nica Jordan');
+  await page.waitForTimeout(120);
+  await page.evaluate(() => [...document.querySelectorAll('.case')].find(c => c.textContent.includes('Reship')).click());
+  await page.waitForTimeout(120);
+
+  const read = () => page.evaluate(() => ({
+    body: document.getElementById('m-body').textContent,
+    gaps: document.getElementById('gaps').textContent.trim(),
+  }));
+
+  console.log('\n=== Reship pick mode ===');
+  await page.selectOption('#f-packMode', 'carton');
+  await page.waitForTimeout(150);
+  const carton = await read();
+  await page.selectOption('#f-packMode', 'units');
+  await page.waitForTimeout(150);
+  const units = await read();
+  await page.fill('#f-skus', '');
+  await page.waitForTimeout(150);
+  const bare = await read();
+
+  const problems = [];
+  if (!/must ship as one full master carton/.test(carton.body)) problems.push('carton mode lost its instruction');
+  if (/piece-pick/.test(units.body)) problems.push('loose pick still says do-not-piece-pick');
+  if (!/loose-unit pick/.test(units.body)) problems.push('loose pick missing its instruction');
+  if (!/MW1114WH57 x 1/.test(units.body)) problems.push('loose pick does not list the units');
+  if (!/SKU and quantity/.test(bare.gaps)) problems.push('loose pick with no SKUs was not blocked');
+
+  if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
+  else { pass++; console.log('   [ok] carton and loose-unit variants both correct'); }
+}
+
 console.log('\n\n==== ' + pass + ' passed, ' + fail + ' failed ====');
 if (errors.length) console.log('JS ERRORS:\n' + errors.join('\n'));
 else console.log('no JS errors');

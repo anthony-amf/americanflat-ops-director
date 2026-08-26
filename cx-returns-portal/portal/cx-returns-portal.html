@@ -591,7 +591,7 @@ function parse(text) {
 const state = {
   caseType: '', warehouse: '', order: '', rs: '', tracking: '', carrier: '',
   marketplace: '', customer: '', skus: '', deadline: 'EOD today',
-  disposition: 'restock', sender: '', title: 'Customer Experience',
+  packMode: 'carton', disposition: 'restock', sender: '', title: 'Customer Experience',
   hasReplacement: false, touched: new Set(),
 };
 
@@ -627,15 +627,21 @@ function buildBody(wh) {
                (state.title ? '\n' + state.title : '') + '\namericanflat.com';
 
   switch (state.caseType) {
-    case 'reship':
+    case 'reship': {
+      const pick = state.packMode === 'units'
+        ? 'This replacement is a loose-unit pick — please pick only the individual units\n' +
+          'listed below. It does not need to ship as a full master carton.\n\n' +
+          skuLines(state.skus, '  - ') + '\n\n'
+        : 'This replacement must ship as one full master carton. Please do not piece-pick\n' +
+          'individual units or split the shipment.\n\n';
       return 'Hi ' + greet + ',\n\n' +
         'Please prioritize replacement order #' + rs + ' for shipment by ' + (state.deadline || 'EOD today') + '.\n\n' +
-        'This replacement must ship as one full master carton. Please do not piece-pick\n' +
-        'individual units or split the shipment.\n\n' +
+        pick +
         'We are currently dealing with an unhappy customer on the original order, so it’s\n' +
         'important that this replacement is processed correctly and leaves the warehouse today.\n\n' +
         'Once shipped, please send me the tracking number or ensure tracking is properly\n' +
         'placed on the order so my team can retrieve it.' + signWarm;
+    }
 
     case 'missing':
       return 'Hi ' + greet + ',\n\n' +
@@ -736,7 +742,9 @@ function missingFields(wh) {
   const labels = { rs_order:'the RS order number', order:'the order number',
                    tracking:'the tracking number', skus:'the SKU and quantity',
                    deadline:'a ship deadline' };
-  for (const need of (spec ? spec.needs : [])) {
+  const needs = new Set(spec ? spec.needs : []);
+  if (state.caseType === 'reship' && state.packMode === 'units') needs.add('skus');
+  for (const need of needs) {
     const val = { rs_order:state.rs, order:state.order, tracking:state.tracking,
                   skus:state.skus, deadline:state.deadline }[need];
     if (!val || !String(val).trim()) gaps.push('Add ' + labels[need] + '.');
@@ -830,6 +838,7 @@ function renderFields() {
   host.innerHTML = '';
   const spec = ROUTING.cases[state.caseType];
   const needs = new Set(spec ? spec.needs : []);
+  if (state.caseType === 'reship' && state.packMode === 'units') needs.add('skus');
 
   const whOpts = [['', 'Choose…']].concat(
     Object.entries(ROUTING.warehouses).map(([k, w]) => [k, w.label]));
@@ -844,6 +853,12 @@ function renderFields() {
 
   if (state.caseType === 'reship' || state.caseType === 'damaged') {
     host.appendChild(field('deadline', 'Ship by', { placeholder: 'EOD today', need: needs.has('deadline') }));
+  }
+  if (state.caseType === 'reship') {
+    host.appendChild(field('packMode', 'Pick as', { options: [
+      ['carton', 'Full master carton — do not split'],
+      ['units', 'Individual units — loose pick'],
+    ], hint: state.packMode === 'units' ? 'Units are listed in the email' : 'Sets shipped as one sealed case' }));
   }
   if (state.caseType === 'missing') {
     host.appendChild(field('hasReplacement', 'Replacement already placed', { checkbox: true }));
@@ -982,8 +997,8 @@ $('copy-prompt').addEventListener('click', () => copy($('claude-prompt').textCon
 $('reset').addEventListener('click', () => {
   $('paste').value = '';
   Object.assign(state, { caseType:'', warehouse:'', order:'', rs:'', tracking:'', carrier:'',
-    marketplace:'', customer:'', skus:'', deadline:'EOD today', disposition:'restock',
-    hasReplacement:false });
+    marketplace:'', customer:'', skus:'', deadline:'EOD today', packMode:'carton',
+    disposition:'restock', hasReplacement:false });
   state.touched = new Set();
   render();
   flash('Cleared.');

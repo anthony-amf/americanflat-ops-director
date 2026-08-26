@@ -79,7 +79,7 @@ Six real case types, each with a template in `references/templates.md`:
 
 | # | Case type | When | Sends |
 |---|---|---|---|
-| 1 | **Reship — prioritize** | RS order already placed, needs to ship today | Prioritize request |
+| 1 | **Reship — prioritize** | RS order already placed, needs to ship today | Prioritize request, full-carton **or** loose-unit |
 | 2 | **Missing units investigation** | Customer says the order came up short | Verification request |
 | 3 | **Tracking verification** | Tracking invalid or never scanned | Tracking check |
 | 4 | **Cancel replacement** | RS order no longer needed | Cancel request |
@@ -135,6 +135,11 @@ Body rules that make these emails work:
 - **One order per email** for customer-facing issues. Batch only for the daily
   shorted-orders sweep, which is a different workflow and not this skill's job.
 - **Ask for tracking back** on every reship. CX cannot close the ticket without it.
+- **Say how it should be picked.** A reship goes out either as a full sealed master
+  carton or as loose individual units, and the warehouse follows whichever line you
+  send. Full carton for a short-shipped set; loose units for one damaged piece out of
+  a bigger order. A loose pick must list the SKUs and quantities or it can't be
+  actioned.
 - **Say the customer is unhappy when they are.** It moves things. Don't overuse it.
 - Sign as the sending teammate, not as John, unless John is the one sending.
 
