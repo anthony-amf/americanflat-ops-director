@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.5.0 — 2026-08-18
+
+Closes the last open item: **the discretionary tally is now tracked.** Built the
+**CX Discretionary Spend Tracker** as a Google Sheet and linked it from the skill and from
+the Notion SOP, so a rep can see where they stand instead of guessing.
+
+- **One screen, no tabs.** The log occupies columns A–G (date, rep, ticket #, order #,
+  amount, what we did, why). The summary panel sits alongside in I–L: set the month and the
+  rep names once, and spent / remaining / percent-used calculate per rep. The
+  counts-against and does-not-count lists live in the same panel, so a rep never leaves the
+  sheet to check whether something belongs in it.
+- **A reconciliation guard.** An "all entries this month" figure sums by date regardless of
+  rep name. If it exceeds the team total, a rep name is misspelled and the spend is being
+  counted against nobody — the single most likely way this quietly stops working.
+- **It ships self-demonstrating.** The example row and the rep list are pre-matched, so on
+  first open the sheet shows real numbers (18.50 spent / 181.50 remaining) rather than a
+  grid of blanks a reader cannot distinguish from broken. Setup notes tell the rep to
+  replace the name, set the month, and delete the example row.
+
+Verification notes worth keeping, since both cost real time:
+
+- **LibreOffice cannot run in the cloud container** — `recalc.py` times out even on a
+  one-formula workbook, so the xlsx skill's mandatory recalc step is unavailable here.
+  Verified instead on the real target: uploaded, then read the Sheet's computed values back
+  through Drive and confirmed every figure.
+- **A text month like `2026-08` imports as a date, not text.** The first two attempts
+  parsed it with `LEFT`/`MID`/`VALUE` and silently produced empty cells — no error, just
+  blanks. Replaced with a real date in the month cell plus `EOMONTH`, which is simpler and
+  verified. If a future edit reintroduces text-month parsing, expect the same silent
+  failure.
+
+Tracker: <https://docs.google.com/spreadsheets/d/1VBFC13D0ywi08PooUUcbZ426xCDPqqJtAx2XlVZcj2Y/edit>
+
 ## 1.4.0 — 2026-08-17
 
 **The Notion SOPs were updated to match the decisions**, so the skill no longer carries

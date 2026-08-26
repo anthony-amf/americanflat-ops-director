@@ -191,15 +191,28 @@ approval, use the holding reply.
 
 ### Tracking it
 
-Log every discretionary decision with the **amount and the reason**, and keep a running
-total for the month. Shopify refunds already go in the **CX Refunds** tab; replacements go
-in the replacement log. The discretionary tally is the rep's own running count on top of
-those.
+Log every discretionary decision in the **CX Discretionary Spend Tracker**:
+<https://docs.google.com/spreadsheets/d/1VBFC13D0ywi08PooUUcbZ426xCDPqqJtAx2XlVZcj2Y/edit>
 
-⚠ **No system tracks this automatically today.** Until one does, it's a manual tally, and
-an untracked budget quietly becomes either unused or unbounded. A simple shared sheet with
-date / ticket / amount / reason would fix it, and would also feed the exception review
-below — worth setting up alongside the budget.
+- **Left side (columns A-G)** — one row per discretionary decision: date, rep, ticket #,
+  order #, amount, what you did, and why in one line.
+- **Right side (columns I-L)** — set the month (first day of the month) and the rep names
+  once; spent, remaining, and percent-used calculate themselves per rep.
+- The same panel carries the counts-against / does-not-count lists, so a rep never has to
+  leave the sheet to check whether something belongs in it.
+
+Only **discretionary** spend goes in. Policy-prescribed remedies stay out — they never
+touched the budget. Shopify refunds still go in the **CX Refunds** tab of the Replacement
+Orders sheet and replacements still go in the replacement log; this tracker is the
+discretionary tally on top of those, not a replacement for either.
+
+Rep names in the log must match the names in the summary panel **exactly**, or the spend
+isn't counted against anyone. The "all entries this month" figure catches that: if it
+exceeds the team total, a name is misspelled.
+
+**Read the "why" column monthly.** If reps keep bending the same rule for the same reason,
+the rule is wrong and should change — that feedback loop is the main point of logging at
+all. Bring those to whoever owns the SOP.
 
 ### What this resolves, and what it assumes
 

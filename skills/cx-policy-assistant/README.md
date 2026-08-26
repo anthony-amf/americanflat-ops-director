@@ -131,9 +131,10 @@ Open items worth resolving. The first three are SOP contradictions recorded in
 1. The three-way return-label conflict (who creates labels).
 2. The return-carrier conflict (Endicia/USPS vs. cheapest-of-Stamps-or-FedEx).
 3. Whether the 20% restocking fee and the flat $5 handling cost stack.
-4. **Nothing tracks the discretionary tally.** It's a manual running count today. A shared
-   sheet of date / ticket / amount / reason would fix it and feed the exception review.
-   This is the only substantive open item left.
+4. *(Resolved 2026-08-18)* The discretionary tally is tracked in the **CX Discretionary
+   Spend Tracker** — <https://docs.google.com/spreadsheets/d/1VBFC13D0ywi08PooUUcbZ426xCDPqqJtAx2XlVZcj2Y/edit> — one row per
+   decision, with per-rep spent/remaining calculating themselves. Linked from
+   `judgment-and-empathy.md` and from the Notion SOP.
 
 *Resolved:* rep spend authority — **$200 per agent per month** (2026-08-17). Post-30-day
 replacements — **the budget overrides the old manager gate**; rep's own call within budget

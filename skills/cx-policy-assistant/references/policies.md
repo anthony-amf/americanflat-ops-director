@@ -31,7 +31,8 @@ heading in Notion.
 - **When the budget is spent:** every policy-prescribed remedy is still available, and
   the rep should be just as warm and helpful. A discretionary ask they can no longer fund
   goes to their manager. **Never mention an internal budget to a customer.**
-- **Log what's spent and why.** Repeated bending of the same rule for the same reason
+- **Log what's spent and why** in the CX Discretionary Spend Tracker:
+  <https://docs.google.com/spreadsheets/d/1VBFC13D0ywi08PooUUcbZ426xCDPqqJtAx2XlVZcj2Y/edit>. Repeated bending of the same rule for the same reason
   means the rule is wrong and should change — the notes are how that surfaces.
 
 Full reasoning, pacing guidance, and the empathy craft are in `judgment-and-empathy.md`.

@@ -197,8 +197,14 @@ plain string replace will double-insert.
   decisions that outrun the SOP text, and must be walked on every snapshot refresh or
   a decision silently reverts. Note: **editing Notion via the MCP round-trips the
   page's markdown and can mangle untouched text nearby** (a `$________` placeholder
-  collapsed to `$__`), so re-fetch and diff the whole page after any write. Still
-  open: **nothing tracks the discretionary tally** (manual count today). Its reference
+  collapsed to `$__`), so re-fetch and diff the whole page after any write. The
+  discretionary tally is tracked in the **CX Discretionary Spend Tracker** Google Sheet
+  (`1VBFC13D0ywi08PooUUcbZ426xCDPqqJtAx2XlVZcj2Y`), linked from the skill and the Notion
+  SOP. Two traps found building it: **LibreOffice cannot run in the cloud container** (the
+  xlsx skill's `recalc.py` times out on even a one-formula file — verify formulas by
+  uploading and reading the Sheet's computed values back instead), and **a text month like
+  `2026-08` imports into Sheets as a date**, so `LEFT`/`MID`/`VALUE` parsing of it fails
+  silently to blanks — use a real date plus `EOMONTH`. Its reference
   files are a **dated snapshot of nine Notion SOPs**, so they go stale the same
   way the dashboard template does; `references/sources.md` holds the page IDs,
   the refresh procedure, and five real contradictions between the source SOPs
