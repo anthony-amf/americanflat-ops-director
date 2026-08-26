@@ -158,6 +158,60 @@ Replacement 22562RS placed. Needs MW1114WH57 x 1 only.`);
   else { pass++; console.log('   [ok] carton and loose-unit variants both correct'); }
 }
 
+// The ShipStation CSV replaces the email for cases that create a shipment, and
+// must stay unavailable for cases that ask the warehouse a question.
+{
+  await page.click('#reset');
+  await page.fill('#paste', `Fontana Shopify order #25402. Customer Sarah Whitfield reports it arrived damaged.
+Replacement 25402RS placed. ALU1114BLK0810 x 1 and VF1114BLK810 x 2 need replacing. Zendesk #48213.`);
+  await page.waitForTimeout(180);
+
+  console.log('\n=== ShipStation CSV ===');
+  const problems = [];
+  if (await page.isDisabled('#tab-csv')) problems.push('CSV tab disabled on a damaged case');
+
+  await page.click('#tab-csv');
+  await page.waitForTimeout(150);
+  if (!(await page.isDisabled('#save-csv'))) problems.push('save enabled before an address was entered');
+  if (await page.isVisible('#pane-email')) problems.push('email pane still visible in CSV mode');
+  if (!(await page.isVisible('#pane-csv'))) problems.push('CSV pane not visible in CSV mode');
+
+  for (const [sel, val] of [['#f-shipName', 'Sarah Whitfield'], ['#f-address1', '1842 Larkin St'],
+       ['#f-city', 'San Francisco'], ['#f-stateRegion', 'CA'], ['#f-postal', '94109'],
+       ['#f-reason', 'damaged on arrival'], ['#f-ticket', '#48213']]) {
+    await page.fill(sel, val);
+    await page.waitForTimeout(60);
+  }
+  await page.waitForTimeout(200);
+  if (await page.isDisabled('#save-csv')) problems.push('save still disabled with a complete address');
+
+  const csv = await page.evaluate(() => window.__csv && window.__csv.text);
+  const lines = (csv || '').trim().split('\r\n');
+  if (lines.length !== 3) problems.push('expected header + 2 item rows, got ' + lines.length);
+  if (!/^Order Number,/.test(lines[0] || '')) problems.push('header row wrong: ' + lines[0]);
+  if (!lines.slice(1).every(l => l.startsWith('25402RS,'))) problems.push('order-level fields not repeated per item row');
+  if (!/awaiting_shipment/.test(csv || '')) problems.push('order status missing');
+  if (!/,0\.00,/.test(csv || '')) problems.push('replacement not priced at 0.00');
+  if (!/48213/.test(csv || '')) problems.push('ticket reference missing from internal notes');
+  if ((csv || '').split('\r\n').length < 3) problems.push('not CRLF terminated');
+
+  // Saving must degrade, never throw, when the capability is absent.
+  await page.click('#save-csv');
+  await page.waitForTimeout(500);
+  const status = (await page.textContent('#status')).trim();
+  if (!/copied instead/i.test(status)) problems.push('no fallback when downloads capability is absent: ' + status);
+
+  // An investigative case cannot be a CSV.
+  await page.evaluate(() => [...document.querySelectorAll('.case')].find(c => c.textContent.includes('Missing units')).click());
+  await page.waitForTimeout(200);
+  if (!(await page.isDisabled('#tab-csv'))) problems.push('CSV offered for a missing-units investigation');
+  if (!(await page.isVisible('#pane-email'))) problems.push('did not fall back to the email pane');
+  if (await page.isVisible('#pane-csv')) problems.push('CSV pane still showing for an investigative case');
+
+  if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
+  else { pass++; console.log('   [ok] CSV builds, gates on address, degrades without downloads, hidden for questions'); }
+}
+
 console.log('\n\n==== ' + pass + ' passed, ' + fail + ' failed ====');
 if (errors.length) console.log('JS ERRORS:\n' + errors.join('\n'));
 else console.log('no JS errors');

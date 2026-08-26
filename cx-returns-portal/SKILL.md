@@ -165,7 +165,32 @@ Real examples from live threads:
 Note the en dash (`–`), not a hyphen, before the topic. Yusen Canada and NL drop
 the `TS` (they are not Taylored Services sites): `AMF x Yusen Canada – ...`.
 
-### 6. Draft it
+### 6a. Replacement? Build the CSV instead of an email
+
+For the two cases that **create a shipment** — a reship and the replacement half of
+a damaged-on-arrival — don't email the warehouse asking them to place an order.
+Build the ShipStation import CSV and load it: the warehouse picks from ShipStation,
+so an imported order becomes work without anyone reading an email.
+
+```bash
+python3 scripts/build_reship_csv.py 22397 --sku "MW1114WH57:6" \
+  --name "Sarah Whitfield" --address1 "1842 Larkin St" --address2 "Apt 4" \
+  --city "San Francisco" --state CA --postal 94109 \
+  --reason "damaged on arrival" --pick units --out reship-22397RS.csv
+```
+
+Item names come from BigQuery automatically. **The street address does not** — it
+isn't in BigQuery at all, so copy it off the Shopify order screen. The portal has
+the same output on its ShipStation CSV tab.
+
+Read `references/shipstation-csv.md` before the first real import: the column
+headers have not yet been validated against a live ShipStation import, and the file
+is a draft until someone does one test load.
+
+Everything else stays an email. A CSV creates a shipment; it cannot ask what
+physically shipped, when the balance will allocate, or whether to restock a return.
+
+### 6b. Draft it
 
 Use `mcp__Gmail__create_draft`. Show the operator the complete draft. Wait for
 confirmation before `mcp__Gmail__send_message`.
@@ -213,6 +238,9 @@ to the dead address.
 - `references/routing.json` — the same contacts, machine-readable; what the portal reads
 - `references/screenshots.md` — how to read a Shopify order and a Zendesk ticket
 - `references/data-sources.md` — what BigQuery can and can't answer, with evidence
+- `references/shipstation-csv.md` — the reship CSV, and why its headers need a test import
+- `references/shipstation-csv.json` — the CSV column map; edit here, not in the code
+- `scripts/build_reship_csv.py` — order + SKUs + address → ShipStation import CSV
 - `scripts/lookup_order.py` — order number → SKUs and quantities from BigQuery
 - `references/templates.md` — the seven email templates, verbatim
 - `references/playbook.md` — decision rules: reship vs. investigate vs. return

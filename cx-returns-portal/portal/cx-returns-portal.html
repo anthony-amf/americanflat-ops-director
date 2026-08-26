@@ -60,6 +60,9 @@
 }
 
 *,*::before,*::after { box-sizing:border-box; }
+/* .block sets display:flex, which outranks the UA [hidden] rule — without this
+   a hidden pane still renders. */
+[hidden] { display:none !important; }
 body {
   margin:0; background:var(--bg); color:var(--text);
   font-family:var(--font); font-size:15px; line-height:1.5;
@@ -158,6 +161,27 @@ textarea#paste::placeholder { color:var(--text-muted); }
 }
 .mail.incomplete { border-color:var(--alert); }
 
+.tabs { display:flex; gap:2px; padding:2px; border:1px solid var(--border-bold); border-radius:var(--r); width:fit-content; }
+.tabs button {
+  font-family:inherit; font-size:.75rem; font-weight:700; cursor:pointer;
+  padding:5px 12px; border:0; border-radius:2px; background:transparent; color:var(--text-muted);
+}
+.tabs button[aria-selected="true"] { background:var(--text); color:var(--bg); }
+.tabs button:disabled { opacity:.4; cursor:not-allowed; }
+
+.csvwrap { border:1px solid var(--border-bold); border-radius:var(--r-lg); background:var(--surface); overflow:hidden; }
+.csvwrap .hd {
+  padding:var(--s2) var(--s3); border-bottom:1px solid var(--border); background:var(--surface-sunk);
+  font-size:.6875rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted);
+  display:flex; justify-content:space-between; gap:var(--s2);
+}
+.csvtable { overflow-x:auto; }
+.csvtable table { border-collapse:collapse; font-family:var(--mono); font-size:.6875rem; white-space:nowrap; }
+.csvtable th, .csvtable td { padding:5px 10px; border-bottom:1px solid var(--border); text-align:left; }
+.csvtable th { font-weight:700; color:var(--text-muted); background:var(--surface-sunk); position:sticky; top:0; }
+.csvtable td { font-variant-numeric:tabular-nums; }
+.csvtable tr:last-child td { border-bottom:0; }
+
 .bar { display:flex; gap:var(--s2); flex-wrap:wrap; align-items:center; }
 button.act {
   font-family:inherit; font-size:.8125rem; font-weight:700; cursor:pointer;
@@ -208,7 +232,8 @@ footer.foot {
       </svg>
       <h1>Returns Desk</h1>
     </div>
-    <p>Paste what the customer sent. Pick the case. Copy the warehouse email.
+    <p>Paste what the customer sent, pick the case, and get either the warehouse
+       email or a ShipStation CSV that places the replacement.
        Nothing you paste leaves this page.</p>
   </header>
 
@@ -240,6 +265,13 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
 
     <section class="panel" aria-label="Generated warehouse email">
       <div class="block">
+        <div class="tabs" id="tabs" role="tablist" aria-label="Output">
+          <button type="button" id="tab-email" role="tab" aria-selected="true">Warehouse email</button>
+          <button type="button" id="tab-csv" role="tab" aria-selected="false">ShipStation CSV</button>
+        </div>
+      </div>
+
+      <div class="block" id="pane-email">
         <p class="eyebrow">The warehouse email</p>
         <div class="mail" id="mail">
           <div class="mail-head">
@@ -253,11 +285,22 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
         </div>
       </div>
 
+      <div class="block" id="pane-csv" hidden>
+        <p class="eyebrow">ShipStation order import</p>
+        <div class="csvwrap">
+          <div class="hd"><span id="csv-title">Replacement order</span><span id="csv-rows"></span></div>
+          <div class="csvtable" id="csv-preview"></div>
+        </div>
+        <p class="aside" id="csv-note"></p>
+      </div>
+
       <div id="gaps"></div>
 
       <div class="bar">
         <button class="act" id="copy-all" type="button">Copy email</button>
         <button class="act ghost" id="copy-rcpt" type="button">Copy recipients</button>
+        <button class="act" id="save-csv" type="button" hidden>Save CSV</button>
+        <button class="act ghost" id="copy-csv" type="button" hidden>Copy CSV</button>
         <button class="act ghost" id="reset" type="button">Clear</button>
         <span id="status" role="status" aria-live="polite" style="font-size:.8125rem;color:var(--text-muted)"></span>
       </div>
@@ -436,6 +479,113 @@ const ROUTING = {
     }
   }
 };
+const CSVCFG = {
+  "_comment": "Column map for the ShipStation order-import CSV. HEADERS ARE UNVERIFIED \u2014 see shipstation-csv.md. Change a header here, re-run build_portal.py, and both the portal and the CLI follow.",
+  "verified_against_real_import": false,
+  "columns": [
+    {
+      "header": "Order Number",
+      "field": "order_number"
+    },
+    {
+      "header": "Order Date",
+      "field": "order_date"
+    },
+    {
+      "header": "Order Status",
+      "field": "order_status"
+    },
+    {
+      "header": "Requested Shipping Service",
+      "field": "shipping_service"
+    },
+    {
+      "header": "Recipient Name",
+      "field": "ship_name"
+    },
+    {
+      "header": "Recipient Company",
+      "field": "ship_company"
+    },
+    {
+      "header": "Address Line 1",
+      "field": "address1"
+    },
+    {
+      "header": "Address Line 2",
+      "field": "address2"
+    },
+    {
+      "header": "City",
+      "field": "city"
+    },
+    {
+      "header": "State",
+      "field": "state"
+    },
+    {
+      "header": "Postal Code",
+      "field": "postal"
+    },
+    {
+      "header": "Country",
+      "field": "country"
+    },
+    {
+      "header": "Phone",
+      "field": "phone"
+    },
+    {
+      "header": "Item SKU",
+      "field": "sku"
+    },
+    {
+      "header": "Item Name",
+      "field": "item_name"
+    },
+    {
+      "header": "Item Quantity",
+      "field": "qty"
+    },
+    {
+      "header": "Item Unit Price",
+      "field": "unit_price"
+    },
+    {
+      "header": "Internal Notes",
+      "field": "notes"
+    }
+  ],
+  "defaults": {
+    "order_status": "awaiting_shipment",
+    "country": "US",
+    "unit_price": "0.00",
+    "shipping_service": ""
+  },
+  "observed_values": {
+    "_comment": "Real values from americanflat.shipstation.orders_raw, 2026-08-26.",
+    "order_status": [
+      "awaiting_shipment",
+      "shipped",
+      "cancelled",
+      "on_hold",
+      "awaiting_payment"
+    ],
+    "requested_shipping_service_shopify": [
+      "Free Shipping - $50+",
+      "Economy",
+      "Standard Shipping - $6.95 (under $50)",
+      "Free Shipping - $65+",
+      "Free Ground Shipping",
+      "FedEx Home Delivery",
+      "UPS\u00ae Ground"
+    ]
+  }
+};
+
+/* Cases that create a shipment. Everything else is a question, which a CSV
+   cannot ask, so those stay as warehouse emails. */
+const CSV_CASES = new Set(['reship', 'damaged']);
 
 /* ---------- parsing -------------------------------------------------- */
 /* Everything runs locally. Order of the checks matters: tracking numbers and
@@ -614,7 +764,11 @@ const state = {
   caseType: '', warehouse: '', order: '', rs: '', tracking: '', carrier: '',
   marketplace: '', customer: '', skus: '', deadline: 'EOD today',
   packMode: 'carton', disposition: 'restock', sender: '', title: 'Customer Experience',
-  hasReplacement: false, touched: new Set(),
+  hasReplacement: false, outputMode: 'email',
+  shipName: '', shipCompany: '', address1: '', address2: '',
+  city: '', stateRegion: '', postal: '', country: 'US', phone: '',
+  reason: '', ticket: '',
+  touched: new Set(),
 };
 
 try {
@@ -801,6 +955,119 @@ function missingFields(wh) {
   return gaps;
 }
 
+/* ---------- ShipStation CSV ------------------------------------------ */
+/* Mirrors scripts/build_reship_csv.py. Both read references/shipstation-csv.json,
+   so a corrected header only has to be fixed in one place. */
+
+function csvEscape(v) {
+  const s = v === undefined || v === null ? '' : String(v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function today() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+function skuPairs(raw) {
+  return (raw || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const m = line.match(/^(.+?)\s*(?:x|×)\s*(\d+)$/i);
+    return m ? { sku: m[1].trim().toUpperCase(), qty: m[2] }
+             : { sku: line.toUpperCase(), qty: '' };
+  });
+}
+
+function csvNotes() {
+  const bits = ['Replacement for #' + (state.order || '(order #)')];
+  if (state.reason) bits.push(state.reason);
+  if (state.ticket) bits.push('Zendesk ' + state.ticket);
+  bits.push(state.packMode === 'units'
+    ? 'Loose-unit pick - individual units only'
+    : 'PICK AS SEALED MASTER CARTON - do not split');
+  bits.push('No charge - replacement, do not invoice');
+  return bits.join(' | ');
+}
+
+function csvRows() {
+  const d = CSVCFG.defaults || {};
+  const shared = {
+    order_number: state.rs || ((state.order || '') && state.order + 'RS'),
+    order_date: today(),
+    order_status: d.order_status || 'awaiting_shipment',
+    shipping_service: d.shipping_service || '',
+    ship_name: state.shipName,
+    ship_company: state.shipCompany,
+    address1: state.address1,
+    address2: state.address2,
+    city: state.city,
+    state: state.stateRegion,
+    postal: state.postal,
+    country: state.country || d.country || 'US',
+    phone: state.phone,
+    unit_price: d.unit_price || '0.00',
+    notes: csvNotes(),
+  };
+  return skuPairs(state.skus).map(it =>
+    Object.assign({}, shared, { sku: it.sku, item_name: '', qty: it.qty }));
+}
+
+function csvText(rows) {
+  const cols = CSVCFG.columns;
+  const lines = [cols.map(c => csvEscape(c.header)).join(',')];
+  for (const r of rows) lines.push(cols.map(c => csvEscape(r[c.field])).join(','));
+  return lines.join('\r\n') + '\r\n';
+}
+
+function csvFilename() {
+  const n = (state.rs || state.order || 'reship').replace(/[^A-Za-z0-9-]/g, '');
+  return 'shipstation-' + (n || 'reship') + '.csv';
+}
+
+function renderCsv(rows) {
+  const cols = CSVCFG.columns;
+  const host = $('csv-preview');
+  const head = '<tr>' + cols.map(c => '<th>' + c.header + '</th>').join('') + '</tr>';
+  const body = rows.map(r => '<tr>' + cols.map(c => {
+    const v = r[c.field] === undefined || r[c.field] === null ? '' : String(r[c.field]);
+    const cell = v.length > 42 ? v.slice(0, 42) + '…' : v;
+    return '<td>' + cell.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td>';
+  }).join('') + '</tr>').join('');
+  host.innerHTML = '<table>' + head + (body || '') + '</table>';
+  $('csv-rows').textContent = rows.length + (rows.length === 1 ? ' line item' : ' line items');
+  $('csv-title').textContent = 'Order ' + (rows[0] ? rows[0].order_number : '—');
+
+  const notes = [];
+  if (!CSVCFG.verified_against_real_import) {
+    notes.push('Headers have not been checked against a real ShipStation import yet — do one test import first.');
+  }
+  notes.push('The picker sees the carton-or-loose instruction in Internal Notes; ShipStation has no field for it.');
+  if (rows.some(r => !r.item_name)) {
+    notes.push('Item Name is blank — this page has no catalogue access and ShipStation matches on SKU. ' +
+      'Run scripts/build_reship_csv.py if you need the names filled from BigQuery.');
+  }
+  $('csv-note').innerHTML = notes.join(' ');
+}
+
+function csvGaps() {
+  const gaps = [];
+  if (!state.rs && !state.order) gaps.push('Add the order number so the RS number can be built.');
+  const pairs = skuPairs(state.skus);
+  if (!pairs.length) gaps.push('Add the SKUs and quantities being replaced.');
+  else if (pairs.some(p => !p.qty)) gaps.push('Every SKU needs a quantity.');
+  const addr = [
+    [state.shipName, 'the recipient name'],
+    [state.address1, 'address line 1'],
+    [state.city, 'the city'],
+    [state.stateRegion, 'the state'],
+    [state.postal, 'the postal code'],
+  ].filter(([v]) => !String(v || '').trim()).map(([, label]) => label);
+  if (addr.length) {
+    gaps.push('Add ' + addr.join(', ') + ' — copy it from the Shopify order screen, it is not in BigQuery.');
+  }
+  return gaps;
+}
+
 /* ---------- rendering ------------------------------------------------ */
 
 const $ = id => document.getElementById(id);
@@ -907,7 +1174,7 @@ function renderFields() {
         hint: isBalance ? 'Only included if you fill it in' : undefined,
       }));
   }
-  if (state.caseType === 'reship') {
+  if (state.caseType === 'reship' || (state.outputMode === 'csv' && CSV_CASES.has(state.caseType))) {
     host.appendChild(field('packMode', 'Pick as', { options: [
       ['carton', 'Full master carton — do not split'],
       ['units', 'Individual units — loose pick'],
@@ -923,8 +1190,22 @@ function renderFields() {
       ['hold', 'Hold, send photos first'],
     ]}));
   }
-  host.appendChild(field('sender', 'Your name', { placeholder: 'Jane Doe', need: !state.sender }));
-  host.appendChild(field('title', 'Your title', { placeholder: 'Customer Experience' }));
+  if (state.outputMode === 'csv' && CSV_CASES.has(state.caseType)) {
+    // The street address exists on the Shopify screen and nowhere in BigQuery.
+    host.appendChild(field('shipName', 'Recipient', { placeholder: 'Sarah Whitfield', need: !state.shipName }));
+    host.appendChild(field('address1', 'Address 1', { placeholder: '1842 Larkin St', need: !state.address1 }));
+    host.appendChild(field('address2', 'Address 2', { placeholder: 'Apt 4' }));
+    host.appendChild(field('city', 'City', { placeholder: 'San Francisco', need: !state.city }));
+    host.appendChild(field('stateRegion', 'State', { placeholder: 'CA', need: !state.stateRegion }));
+    host.appendChild(field('postal', 'Postal code', { placeholder: '94109', need: !state.postal }));
+    host.appendChild(field('country', 'Country', { placeholder: 'US' }));
+    host.appendChild(field('phone', 'Phone', { placeholder: 'optional' }));
+    host.appendChild(field('reason', 'Reason', { placeholder: 'damaged on arrival', hint: 'Goes in Internal Notes' }));
+    host.appendChild(field('ticket', 'Zendesk ticket', { placeholder: '#48213', hint: 'Internal notes only' }));
+  } else {
+    host.appendChild(field('sender', 'Your name', { placeholder: 'Jane Doe', need: !state.sender }));
+    host.appendChild(field('title', 'Your title', { placeholder: 'Customer Experience' }));
+  }
 
   if (active) { const el = $(active); if (el) { el.focus();
     if (el.setSelectionRange && el.type === 'text') { const n = el.value.length; el.setSelectionRange(n, n); } } }
@@ -993,9 +1274,26 @@ function render(skipFields) {
   const body = buildBody(wh);
   const gaps = missingFields(wh);
 
+  const csvMode = state.outputMode === 'csv' && CSV_CASES.has(state.caseType);
   renderReadout(p);
   renderCases(p.suggested);
   if (!skipFields) renderFields();
+
+  // A CSV creates a shipment; it cannot ask a question, so the investigative
+  // cases stay on the email tab.
+  const csvAllowed = CSV_CASES.has(state.caseType);
+  $('tab-csv').disabled = !csvAllowed;
+  $('tab-csv').title = csvAllowed ? '' :
+    'A CSV creates a replacement order. This case asks the warehouse a question, so it goes by email.';
+  if (!csvAllowed && state.outputMode === 'csv') state.outputMode = 'email';
+  $('tab-email').setAttribute('aria-selected', String(!csvMode));
+  $('tab-csv').setAttribute('aria-selected', String(csvMode));
+  $('pane-email').hidden = csvMode;
+  $('pane-csv').hidden = !csvMode;
+  $('copy-all').hidden = csvMode;
+  $('copy-rcpt').hidden = csvMode;
+  $('save-csv').hidden = !csvMode;
+  $('copy-csv').hidden = !csvMode;
 
   $('m-to').textContent = rcpt.to.join(', ') || '—';
   $('m-cc').textContent = rcpt.cc.join(', ') || '—';
@@ -1005,7 +1303,18 @@ function render(skipFields) {
   $('copy-all').disabled = !state.caseType || !wh;
   $('copy-rcpt').disabled = !wh;
 
-  renderGaps(gaps);
+  if (csvMode) {
+    const rows = csvRows();
+    renderCsv(rows);
+    window.__csv = { text: csvText(rows), filename: csvFilename(), rows: rows.length };
+    const cg = csvGaps();
+    renderGaps(cg);
+    $('save-csv').disabled = cg.length > 0;
+    $('copy-csv').disabled = cg.length > 0;
+  } else {
+    renderGaps(gaps);
+    window.__csv = null;
+  }
   renderPrompt(wh, subject, body, rcpt);
 
   window.__mail = { to: rcpt.to.join(', '), cc: rcpt.cc.join(', '), subject, body };
@@ -1047,11 +1356,62 @@ $('copy-rcpt').addEventListener('click', () => {
   copy(m.to + (m.cc ? ', ' + m.cc : ''), 'Recipients copied.');
 });
 $('copy-prompt').addEventListener('click', () => copy($('claude-prompt').textContent, 'Prompt copied.'));
+
+$('tab-email').addEventListener('click', () => { state.outputMode = 'email'; render(); });
+$('tab-csv').addEventListener('click', () => { state.outputMode = 'csv'; render(); });
+$('copy-csv').addEventListener('click', () => {
+  if (window.__csv) copy(window.__csv.text, 'CSV copied. Paste into a file and import it.');
+});
+
+/* The viewer sandbox makes <a download> inert, so a real save has to go through
+   the downloads capability. It may be absent (page opened outside the viewer) and
+   .csv may not be enabled, so fall back in two steps before giving up. */
+let downloadsNs;
+async function getDownloads() {
+  if (downloadsNs === undefined) {
+    downloadsNs = (window.claude && window.claude.use)
+      ? await window.claude.use('downloads').catch(() => null)
+      : null;
+  }
+  return downloadsNs;
+}
+
+$('save-csv').addEventListener('click', async () => {
+  if (!window.__csv) return;
+  const { text, filename } = window.__csv;
+  const dl = await getDownloads();
+  if (!dl) {
+    await copy(text, 'Saving is not available here — CSV copied instead.');
+    return;
+  }
+  flash('Waiting for you to confirm the save…');
+  try {
+    await dl.save({ filename, data: text });
+    flash('Saved ' + filename + '. Import it in ShipStation.');
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 'declined') { flash('Save cancelled.'); return; }
+    if (code === 'extension_not_enabled' || code === 'rejected_extension') {
+      try {
+        const alt = filename.replace(/\.csv$/, '.txt');
+        await dl.save({ filename: alt, data: text });
+        flash('Saved as ' + alt + ' — rename it to .csv before importing.');
+        return;
+      } catch (e2) {
+        if (e2 && e2.code === 'declined') { flash('Save cancelled.'); return; }
+      }
+    }
+    if (code === 'rate_limited') { flash('Too many save prompts — wait a moment and try again.'); return; }
+    await copy(text, 'Could not save the file — CSV copied instead.');
+  }
+});
 $('reset').addEventListener('click', () => {
   $('paste').value = '';
   Object.assign(state, { caseType:'', warehouse:'', order:'', rs:'', tracking:'', carrier:'',
     marketplace:'', customer:'', skus:'', deadline:'EOD today', packMode:'carton',
-    disposition:'restock', hasReplacement:false });
+    disposition:'restock', hasReplacement:false, outputMode:'email',
+    shipName:'', shipCompany:'', address1:'', address2:'', city:'', stateRegion:'',
+    postal:'', country:'US', phone:'', reason:'', ticket:'' });
   state.touched = new Set();
   render();
   flash('Cleared.');

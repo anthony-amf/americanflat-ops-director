@@ -23,6 +23,19 @@ artifact people can't find:
 > Artifact tool → `file_path` = `cx-returns-portal/portal/cx-returns-portal.html`,
 > `url` = the link above.
 
+## Two outputs
+
+- **Warehouse email** — for the cases that ask a question (missing units, unshipped
+  balance, tracking, return disposition).
+- **ShipStation CSV** — for the cases that create a shipment (reship, damaged). The
+  file places the replacement order directly, so nobody has to read an email and
+  key it in. Saving goes through the viewer's download prompt; if `.csv` isn't
+  enabled for the view it falls back to `.txt`, and if saving isn't available at
+  all it copies the CSV instead.
+
+Headers for the CSV live in `../references/shipstation-csv.json` and are **not yet
+validated against a real ShipStation import** — see `../references/shipstation-csv.md`.
+
 ## What it does not do
 
 - **It does not send.** It produces the text; a human pastes it into Gmail and sends.
