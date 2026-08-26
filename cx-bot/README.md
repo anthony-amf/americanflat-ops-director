@@ -6,7 +6,7 @@ catalogue instead of from memory. Two ways in, one shared set of rules:
 | Surface | Who it's for | What it does |
 |---|---|---|
 | **Skill** — `.claude/skills/americanflat-cx-bot/` | anyone in Claude Code on this repo | ask a question in plain English, get a grounded answer or a drafted customer reply |
-| **Console** — `cx_console.html` | the CX team, in a browser | type a size, colour, UPC, SKU or product name and read the facts |
+| **Console** — [live page](https://claude.ai/code/artifact/5d418a97-62bc-48f9-ad2a-80c5ec0c5102) (`cx_console.html`) | the CX team, in a browser | type a size, colour, UPC, SKU or product name and read the facts |
 
 Both refuse to answer past what the catalogue supports, and both flag the
 listings that are unsafe to quote.
@@ -17,6 +17,9 @@ listings that are unsafe to quote.
 python3 cx-bot/build_kb.py --report --defects   # pull BigQuery -> product_kb.json
 python3 cx-bot/build_console.py                 # render cx_console.html
 ```
+
+The console is published at <https://claude.ai/code/artifact/5d418a97-62bc-48f9-ad2a-80c5ec0c5102>. Republishing **must** reuse that URL or a
+duplicate page gets minted — the same trap as the Yusen dashboard.
 
 `build_kb.py` reads BigQuery through the Mac's gcloud credentials if the
 `google-cloud-bigquery` package is importable, and otherwise through the cloud

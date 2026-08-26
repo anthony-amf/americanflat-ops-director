@@ -46,8 +46,10 @@ python3 cx-bot/build_kb.py --report --defects   # refresh + re-check the rules
 python3 cx-bot/build_console.py                 # refresh the CX team's page
 ```
 
-The CX team's browser version of this is `cx-bot/cx_console.html`. Point people
-there for self-serve lookups; it applies the same rules and needs no setup.
+The CX team's browser version of this is published at
+<https://claude.ai/code/artifact/5d418a97-62bc-48f9-ad2a-80c5ec0c5102> (built from `cx-bot/cx_console.html`). Point people there for self-serve
+lookups; it applies the same rules and needs no setup. Republish to that same
+URL or a duplicate page gets created.
 
 ## Rules that keep answers correct
 
