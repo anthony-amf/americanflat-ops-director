@@ -22,23 +22,40 @@ SKILL_DIR = Path(__file__).resolve().parent.parent
 ROUTING = SKILL_DIR / "references" / "routing.json"
 CSV_CONFIG = SKILL_DIR / "references" / "shipstation-csv.json"
 WAREHOUSE_DOC = SKILL_DIR / "references" / "warehouses.md"
+PLAYBOOK_DOC = SKILL_DIR / "references" / "playbook.md"
+TEMPLATES_DOC = SKILL_DIR / "references" / "templates.md"
 OUT = SKILL_DIR / "portal" / "cx-returns-portal.html"
 
 
 def check_drift(routing: dict) -> list:
-    """Warn when routing.json holds an address the human doc never mentions.
+    """Warn when the config and the human docs disagree.
 
-    The two files are maintained side by side; this catches the case where
-    someone updates one and forgets the other.
+    Two failure modes, both seen for real: a contact updated in one file and not
+    the other, and a case inserted into routing.json whose name never reaches the
+    playbook (the playbook then routes CX to the wrong template).
     """
-    if not WAREHOUSE_DOC.exists():
-        return ["warehouses.md not found — skipped drift check"]
-    doc = WAREHOUSE_DOC.read_text().lower()
     warnings = []
-    for key, wh in routing["warehouses"].items():
-        for addr in wh["to"] + wh["cc"] + wh.get("cc_inventory", []):
-            if addr.lower() not in doc:
-                warnings.append(f"{key}: {addr} is in routing.json but not warehouses.md")
+
+    if WAREHOUSE_DOC.exists():
+        doc = WAREHOUSE_DOC.read_text().lower()
+        for key, wh in routing["warehouses"].items():
+            for addr in wh["to"] + wh["cc"] + wh.get("cc_inventory", []):
+                if addr.lower() not in doc:
+                    warnings.append(f"{key}: {addr} is in routing.json but not warehouses.md")
+    else:
+        warnings.append("warehouses.md not found — skipped the contact drift check")
+
+    for doc_path in (PLAYBOOK_DOC, TEMPLATES_DOC):
+        if not doc_path.exists():
+            warnings.append(f"{doc_path.name} not found — skipped the case drift check")
+            continue
+        text = doc_path.read_text().lower()
+        for key, case in routing["cases"].items():
+            if case["label"].split("—")[0].strip().lower() not in text:
+                warnings.append(
+                    f"case '{case['label']}' ({key}) is in routing.json "
+                    f"but never named in {doc_path.name}")
+
     return warnings
 
 

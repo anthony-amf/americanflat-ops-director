@@ -146,7 +146,7 @@ Thank you,
 {{sender_name}}
 ```
 
-## 5 — Cancel a replacement order
+## 5 — Cancel replacement
 
 **Subject:** `AMF x TS {{warehouse}} Request to Cancel {{rs_order}}`
 
@@ -163,7 +163,7 @@ Best,
 Send this the moment the customer says the original turned up. An RS order that
 ships after the customer is satisfied is pure loss — product, freight and a pick fee.
 
-## 6 — Return received at the warehouse: disposition
+## 6 — Return disposition (a return landed at the warehouse)
 
 **Subject:** `AMF x TS {{warehouse}} Return {{tracking_or_ref}} – Disposition`
 

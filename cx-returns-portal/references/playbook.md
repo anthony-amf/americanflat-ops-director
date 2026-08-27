@@ -2,15 +2,19 @@
 
 What the warehouse email should be, given what the customer said.
 
+Cases are referred to **by name** here, not by the numbers in `templates.md` —
+those shift whenever a case is inserted, and silently pointed at the wrong
+templates once already.
+
 ## Check the fulfillment status before anything else
 
 **A customer reporting a shortage is not evidence of a short-ship.** Look at the
 Shopify order status first:
 
-- **Fulfilled** and the customer is short → a real discrepancy. Investigate (case 2).
+- **Fulfilled** and the customer is short → a real discrepancy. open a **Missing units verification**.
 - **Partially fulfilled** and the customer is short → the balance was **never
   shipped**. The warehouse picked exactly what was released to them and did nothing
-  wrong. Chase the balance (case 3), don't open an investigation.
+  wrong. send an **Unshipped balance** chase, not an investigation.
 
 Getting this backwards is expensive in both directions. An investigation email on a
 partially-fulfilled order has the warehouse count inventory for a discrepancy that
@@ -25,19 +29,19 @@ The Zendesk ticket alone will always read like a short-ship.
 
 | Customer says | Send | Also |
 |---|---|---|
-| "Arrived damaged" | Damaged on arrival (6) | Reship prioritize (1) if RS is placed |
-| "Missing items / came up short", order **Fulfilled** | Missing units verification (2) | Reship prioritize (1) — run both in parallel |
-| "Missing items / came up short", order **Partially fulfilled** | Unshipped balance (3) | No investigation — nothing was mis-picked |
-| "Never arrived", tracking shows delivered | Tracking verification (3) | Carrier claim, not a WH issue, if the scan is clean |
-| "Never arrived", tracking never scanned | Tracking verification (3) | The package likely never left — WH issue |
-| "Wrong item" | Missing units verification (2), reworded | Ask what SKU was physically picked |
-| "I want to return it" | Nothing to the WH yet | Wait for the return to physically land, then (5) |
-| Return landed at WH, they're asking | Return disposition (5) | Decide restock vs. discard before replying |
-| Customer found the original | Cancel replacement (4) | Immediately, if the RS hasn't shipped |
+| "Arrived damaged" | Damaged on arrival | Reship — prioritize, if the RS order is placed |
+| "Missing items / came up short", order **Fulfilled** | Missing units verification | Reship — prioritize; run both in parallel |
+| "Missing items / came up short", order **Partially fulfilled** | Unshipped balance | No investigation — nothing was mis-picked |
+| "Never arrived", tracking shows delivered | Tracking verification | Carrier claim, not a WH issue, if the scan is clean |
+| "Never arrived", tracking never scanned | Tracking verification | The package likely never left — WH issue |
+| "Wrong item" | Missing units verification, reworded | Ask what SKU was physically picked |
+| "I want to return it" | Nothing to the WH yet | Wait for the return to land, then Return disposition |
+| Return landed at WH, they're asking | Return disposition | Decide restock vs. discard before replying |
+| Customer found the original | Cancel replacement | Immediately, if the RS hasn't shipped |
 
 **The parallel case is the common one.** A short-ship means an unhappy customer *and*
-an inventory discrepancy. The replacement ships today (1) so the customer is fixed;
-the investigation (2) runs on its own clock so inventory gets corrected and we learn
+an inventory discrepancy. The replacement ships today so the customer is fixed;
+the investigation runs on its own clock so inventory gets corrected and we learn
 whether it was a warehouse short-pick. Don't hold the reship waiting on the answer.
 
 ## Before sending anything, check
