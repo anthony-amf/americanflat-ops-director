@@ -44,15 +44,21 @@ sys.path.insert(0, str(SKILL_DIR / "scripts"))
 from build_reship_csv import parse_sku, rs_number, lookup_titles  # noqa: E402
 
 
-def creds() -> str:
+def creds():
+    """Basic auth blob, or None when the egress proxy injects credentials.
+
+    Mac: export SHIPSTATION_API_KEY and SHIPSTATION_API_SECRET (never CLI args —
+    shell history keeps them). Cloud with proxy injection: no key present, and the
+    proxy attaches auth for ssapi.shipstation.com, as it already does for BigQuery.
+    """
     key = os.environ.get("SHIPSTATION_API_KEY", "").strip()
     secret = os.environ.get("SHIPSTATION_API_SECRET", "").strip()
-    if not key or not secret:
-        raise SystemExit(
-            "Set SHIPSTATION_API_KEY and SHIPSTATION_API_SECRET in the environment.\n"
-            "Do not pass them as arguments — shell history keeps them."
-        )
-    return base64.b64encode(f"{key}:{secret}".encode()).decode()
+    if key and secret:
+        return base64.b64encode(f"{key}:{secret}".encode()).decode()
+    if key or secret:
+        raise SystemExit("Only one of SHIPSTATION_API_KEY / SHIPSTATION_API_SECRET is set — "
+                         "set both, or neither to use proxy-injected credentials.")
+    return None
 
 
 def build_payload(args, items: list, titles: dict) -> dict:
@@ -109,20 +115,20 @@ def build_payload(args, items: list, titles: dict) -> dict:
     }
 
 
-def send(payload: dict, auth: str) -> dict:
+def send(payload: dict, auth) -> dict:
+    headers = {"Content-Type": "application/json"}
+    if auth:
+        headers["Authorization"] = f"Basic {auth}"
     req = urllib.request.Request(
-        ENDPOINT,
-        data=json.dumps(payload).encode(),
-        headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"},
-        method="POST",
-    )
+        ENDPOINT, data=json.dumps(payload).encode(), headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         body = e.read().decode()[:400]
         if e.code == 401:
-            raise SystemExit("401 — check the key/secret pair.")
+            raise SystemExit("401 — with a key/secret, check the pair; with proxy "
+                             "injection, the proxy is not attaching credentials yet.")
         if e.code == 403:
             raise SystemExit("403 — cloud sessions are blocked by policy; run from the Mac.")
         if e.code == 429:

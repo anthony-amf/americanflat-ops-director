@@ -29,30 +29,39 @@ BASE = "https://ssapi.shipstation.com"
 OUT = Path(__file__).resolve().parent.parent / "references" / "shipstation-discovered.json"
 
 
-def creds() -> str:
+def creds():
+    """Return a Basic auth blob, or None to let the proxy authenticate.
+
+    Two supported modes:
+      * Mac / local  — SHIPSTATION_API_KEY + SHIPSTATION_API_SECRET in the shell.
+      * Cloud session with proxy credential injection — no key present at all;
+        the egress proxy attaches auth, the same way BigQuery works here. In that
+        mode having no credentials is correct, not an error.
+    """
     key = os.environ.get("SHIPSTATION_API_KEY", "").strip()
     secret = os.environ.get("SHIPSTATION_API_SECRET", "").strip()
-    if not key or not secret:
-        raise SystemExit(
-            "Set SHIPSTATION_API_KEY and SHIPSTATION_API_SECRET in the environment.\n"
-            "Export them in your shell; do not pass them as arguments and do not put\n"
-            "them in a file inside this repo."
-        )
-    return base64.b64encode(f"{key}:{secret}".encode()).decode()
+    if key and secret:
+        return base64.b64encode(f"{key}:{secret}".encode()).decode()
+    if key or secret:
+        raise SystemExit("Only one of SHIPSTATION_API_KEY / SHIPSTATION_API_SECRET is set — "
+                         "set both, or neither to use proxy-injected credentials.")
+    return None
 
 
-def get(path: str, auth: str):
-    req = urllib.request.Request(
-        BASE + path,
-        headers={"Authorization": f"Basic {auth}", "Accept": "application/json"},
-    )
+def get(path: str, auth):
+    headers = {"Accept": "application/json"}
+    if auth:
+        headers["Authorization"] = f"Basic {auth}"
+    req = urllib.request.Request(BASE + path, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=45) as r:
             return json.loads(r.read().decode()), None
     except urllib.error.HTTPError as e:
         detail = e.read().decode()[:200]
         if e.code == 401:
-            return None, "401 unauthorized — check the key and secret pair."
+            return None, ("401 unauthorized — with a key/secret, check the pair; with "
+                          "proxy injection, the proxy is not attaching credentials for "
+                          "this host yet.")
         if e.code == 403:
             return None, ("403 — if this says CONNECT tunnel failed you are on a cloud "
                           "session; run this from the Mac.")
@@ -78,7 +87,8 @@ def main() -> int:
     found = {"_comment": "Read-only probe output. Shapes and IDs only — no customer data, no credentials."}
     problems = []
 
-    print("Probing ShipStation (read-only)…\n")
+    mode = "key + secret from the environment" if auth else "proxy-injected credentials (no key in session)"
+    print(f"Probing ShipStation (read-only) using {mode}…\n")
 
     stores, err = get("/stores", auth)
     if err:

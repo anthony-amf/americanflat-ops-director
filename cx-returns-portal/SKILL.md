@@ -206,6 +206,11 @@ Mac), and the create payload's field names have not been checked against a real
 request — run `scripts/shipstation_probe.py` first. Stedi *is* reachable from cloud,
 so `confirm_940.py` works anywhere.
 
+Both scripts already support **proxy-injected credentials**, so when
+`ssapi.shipstation.com` is allow-listed with injection they work from a cloud
+session with no key present — the pattern BigQuery already uses here. The request to
+make that change is written up in `references/shipstation-access-request.md`.
+
 ### 6b. Fallback: the CSV
 
 For the two cases that **create a shipment** — a reship and the replacement half of
@@ -280,6 +285,7 @@ to the dead address.
 - `references/screenshots.md` — how to read a Shopify order and a Zendesk ticket
 - `references/data-sources.md` — what BigQuery can and can't answer, with evidence
 - `references/edi-940.md` — the verified 940/945 EDI map, and a bug it exposed
+- `references/shipstation-access-request.md` — the egress change needed to run this from cloud
 - `references/shipstation-csv.md` — the reship CSV, and why its headers need a test import
 - `references/shipstation-csv.json` — the CSV column map; edit here, not in the code
 - `scripts/build_reship_csv.py` — order + SKUs + address → ShipStation import CSV
