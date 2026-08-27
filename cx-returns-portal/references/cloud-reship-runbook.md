@@ -48,10 +48,19 @@ to the environment can read them. Two things reduce the blast radius:
   Do **not** use `${SHIPSTATION_API_KEY:-no}` — that prints the value when set, and
   is exactly how `STEDI_API_KEY` leaked into a transcript on 2026-08-27.
 
-### 3. Start a new session
+### 3. Start a new session — for the variables only
 
-Running sessions copy environment values once at startup and never re-read them.
-Neither change reaches a session that was already open, so start a fresh one.
+The two settings behave differently, confirmed on 2026-08-27:
+
+- **Network access applies immediately**, including to sessions already running.
+  Allow-listing the domain moved a live session from `403 Forbidden` on CONNECT to
+  `401` from ShipStation itself, with no restart.
+- **Environment variables do not.** Each session copies them once at startup and
+  never re-reads them, so a session that predates the change sees nothing.
+
+So after setting the credentials, start a fresh session. A session that can reach
+ShipStation but has no key is the `401` state below — reachable, unauthenticated —
+which is easy to mistake for a bad key.
 
 ## Verify the setup landed
 
