@@ -285,7 +285,8 @@ to the dead address.
 - `references/screenshots.md` — how to read a Shopify order and a Zendesk ticket
 - `references/data-sources.md` — what BigQuery can and can't answer, with evidence
 - `references/edi-940.md` — the verified 940/945 EDI map, and a bug it exposed
-- `references/shipstation-access-request.md` — the egress change needed to run this from cloud
+- `references/cloud-reship-runbook.md` — **start here** to run a reship from cloud
+- `references/shipstation-access-request.md` — what the environment can and can't do
 - `references/shipstation-csv.md` — the reship CSV, and why its headers need a test import
 - `references/shipstation-csv.json` — the CSV column map; edit here, not in the code
 - `scripts/build_reship_csv.py` — order + SKUs + address → ShipStation import CSV

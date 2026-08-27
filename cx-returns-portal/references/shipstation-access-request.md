@@ -29,6 +29,15 @@ ShipStation key. `STEDI_API_KEY` is in this environment's variables against that
 guidance, and it leaked into a session transcript on 2026-08-27 — the failure mode
 is real, not hypothetical.
 
+## Decision: run it from the cloud anyway
+
+Anthony's call, 2026-08-27. The key goes in the environment's variables and the
+domain gets allow-listed. See `cloud-reship-runbook.md` for the setup, the
+verification, and the trade-offs that come with holding a credential there.
+
+The table below still describes where each piece *can* run today; it stops being
+accurate for the ShipStation rows once the environment is configured.
+
 ## What this means in practice
 
 | Operation | Where it should run |
