@@ -1,5 +1,17 @@
 # Running a reship from a cloud session
 
+**Full path:** `cx-returns-portal/references/cloud-reship-runbook.md`
+
+Ask for it by that path, not by name. Until this branch is merged the file does not
+exist on `main`, so a fresh cloud session clones a tree without it — and the repo
+already contains `docs/CLOUD-SWEEP-RUNBOOK.md`, which differs by one word and runs
+the Yusen invoice validation sweep, writing stamps to the production ledger. That
+substitution has happened once already (2026-08-27). Until PR #3 lands, start with:
+
+> check out `claude/cx-returns-portal-rkliqs`, then follow
+> `cx-returns-portal/references/cloud-reship-runbook.md`
+
+
 The decision (Anthony, 2026-08-27) is that reships run from the cloud, not the Mac.
 This is the setup and the handoff.
 
