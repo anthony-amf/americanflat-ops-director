@@ -28,6 +28,48 @@ Two things make this low-risk rather than reckless:
 `verified_against_real_import: true` once it lands correctly. Until someone does
 that, treat every generated file as a draft.
 
+## The API would be better than the CSV — here's where that stands
+
+Checked 2026-08-27. **Cloud sessions cannot reach ShipStation.** Both hosts are
+denied at the egress proxy by organization policy:
+
+```
+kind:   connect_rejected
+detail: gateway answered 403 to CONNECT (policy denial or upstream failure)
+host:   ssapi.shipstation.com:443   /   api.shipstation.com:443
+```
+
+That is a policy decision, not a transient failure, so there is nothing to retry
+here. An API key does **not** change it — the connection is refused before any
+credential is offered, which is why the key should not be pasted into a cloud
+session or committed anywhere.
+
+Two ways forward:
+
+1. **Run it from the Mac** — available today. A local session isn't behind this
+   proxy. `scripts/shipstation_probe.py` is a read-only probe: export
+   `SHIPSTATION_API_KEY` and `SHIPSTATION_API_SECRET` in your shell, run it, and it
+   lists stores and warehouses and captures the field names of a real order.
+   **This is what closes the open questions in this file** — real header names
+   instead of guessed ones, and the `warehouseId` → name mapping that BigQuery
+   couldn't provide (`data-sources.md`).
+
+2. **Have the domain allow-listed** for the cloud environment. `ssapi.shipstation.com`
+   added to the environment's allowed domains — ideally with proxy credential
+   injection, the way `api.airtable.com` and `bigquery.googleapis.com` already work,
+   so the key lives in the proxy and never in the repo, a transcript, or an env file.
+
+Once either is in place, replacement orders can be **created directly** rather than
+exported and imported by hand, and the CSV becomes the fallback for when the API is
+down.
+
+### Credential handling
+
+The probe reads both values from the environment only. Don't pass them as CLI
+arguments (shell history keeps them), don't put them in a file inside this repo, and
+note that its output file records field *names* and warehouse IDs — never customer
+data and never the credentials.
+
 ## What the CSV contains
 
 One row per item. Order-level fields repeat on every row of the same order — that's

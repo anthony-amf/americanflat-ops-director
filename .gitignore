@@ -71,3 +71,6 @@ Thumbs.db
 
 # Not a credential — the CX returns portal reads this warehouse routing table.
 !cx-returns-portal/references/routing.json
+
+# The CX portal reads its config from these; none contain credentials.
+!cx-returns-portal/references/*.json

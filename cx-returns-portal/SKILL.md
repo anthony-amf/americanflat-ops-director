@@ -241,6 +241,7 @@ to the dead address.
 - `references/shipstation-csv.md` — the reship CSV, and why its headers need a test import
 - `references/shipstation-csv.json` — the CSV column map; edit here, not in the code
 - `scripts/build_reship_csv.py` — order + SKUs + address → ShipStation import CSV
+- `scripts/shipstation_probe.py` — read-only API probe; **Mac only**, cloud is blocked by policy
 - `scripts/lookup_order.py` — order number → SKUs and quantities from BigQuery
 - `references/templates.md` — the seven email templates, verbatim
 - `references/playbook.md` — decision rules: reship vs. investigate vs. return

@@ -1,0 +1,38 @@
+{
+  "_comment": "Column map for the ShipStation order-import CSV. HEADERS ARE UNVERIFIED — see shipstation-csv.md. Change a header here, re-run build_portal.py, and both the portal and the CLI follow.",
+  "verified_against_real_import": false,
+  "columns": [
+    {"header": "Order Number",              "field": "order_number"},
+    {"header": "Order Date",                "field": "order_date"},
+    {"header": "Order Status",              "field": "order_status"},
+    {"header": "Requested Shipping Service","field": "shipping_service"},
+    {"header": "Recipient Name",            "field": "ship_name"},
+    {"header": "Recipient Company",         "field": "ship_company"},
+    {"header": "Address Line 1",            "field": "address1"},
+    {"header": "Address Line 2",            "field": "address2"},
+    {"header": "City",                      "field": "city"},
+    {"header": "State",                     "field": "state"},
+    {"header": "Postal Code",               "field": "postal"},
+    {"header": "Country",                   "field": "country"},
+    {"header": "Phone",                     "field": "phone"},
+    {"header": "Item SKU",                  "field": "sku"},
+    {"header": "Item Name",                 "field": "item_name"},
+    {"header": "Item Quantity",             "field": "qty"},
+    {"header": "Item Unit Price",           "field": "unit_price"},
+    {"header": "Internal Notes",            "field": "notes"}
+  ],
+  "defaults": {
+    "order_status": "awaiting_shipment",
+    "country": "US",
+    "unit_price": "0.00",
+    "shipping_service": ""
+  },
+  "observed_values": {
+    "_comment": "Real values from americanflat.shipstation.orders_raw, 2026-08-26.",
+    "order_status": ["awaiting_shipment", "shipped", "cancelled", "on_hold", "awaiting_payment"],
+    "requested_shipping_service_shopify": [
+      "Free Shipping - $50+", "Economy", "Standard Shipping - $6.95 (under $50)",
+      "Free Shipping - $65+", "Free Ground Shipping", "FedEx Home Delivery", "UPS® Ground"
+    ]
+  }
+}
