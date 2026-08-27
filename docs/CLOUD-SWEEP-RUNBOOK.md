@@ -24,7 +24,8 @@ POST https://bigquery.googleapis.com/bigquery/v2/projects/americanflat/queries
 
 ```sql
 SELECT invoice_number, type_of_invoice, warehouse, amount, date, bill_period,
-       notes, pdf_url, validation_status, validation_report
+       notes, pdf_url, validation_status, validation_report,
+       validated_by, paid_at, currency, supporting_doc_url
 FROM `americanflat.finance.yusen_invoices`
 WHERE IFNULL(validation_status,'') IN ('', 'needs_detail', 'error')
   AND NOT STARTS_WITH(invoice_number, 'CA2WFS')   -- Canada: separate contract
@@ -36,6 +37,11 @@ ORDER BY date DESC
 Set maxResults ≥ 500 (the bq 100-row truncation trap applies to the CLI, but
 be explicit anyway). Rows already `valid`/`disputed`/`paid` are settled — the
 WHERE clause excludes them; never re-judge them.
+
+`validated_by` and `paid_at` are not decoration: step 5's stickiness rules key
+off both (a stamp whose `validated_by` isn't `AUTO_WRITER` is a *human* verdict
+that an automated pass must not overwrite). Selecting them here avoids a second
+round-trip once you reach the write step.
 
 ## 2. Get the validator — MUST be v1.4.0 or newer, verify it
 
@@ -59,8 +65,22 @@ script; the older ones lack either the line pass or the stamp protections.
 
 ```bash
 pip install pypdf cryptography cffi 2>/dev/null   # container pypdf is broken without these
-apt-get install -y tesseract-ocr poppler-utils 2>/dev/null || true   # scanned SC VAS
+pip install --ignore-installed packaging google-cloud-bigquery   # validate_rate_card imports it at module level
+apt-get update && apt-get install -y tesseract-ocr poppler-utils   # scanned SC VAS
 ```
+
+Both installs are load-bearing, not optional:
+
+- **`google-cloud-bigquery`** — the script imports `google.cloud.bigquery` at the
+  top, so *importing* it fails without the library even though this sweep writes
+  over REST and never builds a client. Plain `pip install` aborts on the system
+  `packaging` ("Cannot uninstall packaging 24.0, RECORD file not found");
+  `--ignore-installed packaging` clears it.
+- **OCR** — `apt-get install` alone 404s on the pinned `poppler-utils` build, so
+  `apt-get update` first. Skipping OCR is not cosmetic: on 2026-08-27 the three
+  scanned SC VAS invoices (756671, 756631, 755390) came back "PDF has no
+  extractable text → needs_detail" without it and cleared to `valid` on the
+  re-run with it. Install OCR *before* the validation pass, not after.
 
 **Never run `validate_rate_card.py --list-all --write`.** That path writes
 with the script's own label and sweeps by invoice number descending, which
@@ -71,9 +91,18 @@ the functions and write via step 5 instead.
 
 For each work-list row, extract the Drive file id from `pdf_url`
 (`/file/d/<id>/` or `?id=<id>`), download via the Google Drive connector's
-`download_file_content`, base64-decode, and save to `/tmp/pdf-cache/<invoice_number>.pdf`.
+`download_file_content`, base64-decode, and save to `/tmp/pdf-cache/<invoice_number>.pdf`
+(the name the validator's cache lookup expects).
 Batch sensibly; a missing/failed PDF is not fatal — that row just degrades to
 the header-level result.
+
+Expect **every** download to come back as "result exceeds maximum allowed tokens"
+— an invoice PDF is ~0.5-4 MB, so its base64 always blows the tool-result cap.
+That is the normal path, not a failure: the payload is written to a file under
+`tool-results/` whose JSON is `{content, id, mimeType, title}`. Decode from those
+files with a script, matching each one's `id` back to the invoice by the Drive id
+from `pdf_url`; never read the base64 into the conversation. Fire the downloads in
+parallel batches of ~8 and decode them all in one pass at the end.
 
 ## 4. Validate
 
@@ -118,7 +147,11 @@ cards, `[MSA DISPUTE …]` specs and human notes alone.
   only.)
 - **Never stamp SP/LTL `valid`** (the engine already enforces this) and
   **never touch `paid_at`** (payment is human-confirmed only).
-- Escape single quotes out of report text (or avoid them); no free text after
+- Prefer **named query parameters** (`parameterMode: "NAMED"` + `queryParameters`
+  in the REST body, one UPDATE per row) over string-building the SQL. That is
+  what `write_result` does, and it removes the quote-escaping hazard entirely —
+  report cards routinely contain apostrophes. If you do build SQL by hand,
+  escape single quotes out of the report text. Either way: no free text after
   intl `notes` components.
 - Rows ingested <~90 min ago may reject UPDATE (streaming buffer) — skip on
   that error; tomorrow's sweep catches them.
