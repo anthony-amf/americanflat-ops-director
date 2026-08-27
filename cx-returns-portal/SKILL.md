@@ -165,7 +165,48 @@ Real examples from live threads:
 Note the en dash (`–`), not a hyphen, before the topic. Yusen Canada and NL drop
 the `TS` (they are not Taylored Services sites): `AMF x Yusen Canada – ...`.
 
-### 6a. Replacement? Build the CSV instead of an email
+### 6a. Replacement? Create the order, don't ask for one
+
+The target path for a reship or the replacement half of a damaged-on-arrival is
+**create the order in ShipStation**. It transmits to the 3PL as an EDI **940
+(Warehouse Shipping Order)** and the warehouse picks it — no email, no CSV, no
+re-keying. The 3PL answers with a **945** when it ships.
+
+```bash
+# prints the payload, sends nothing
+python3 scripts/create_reship_order.py 25402 --sku "VF1114BLK810:2" \
+  --name "Sarah Whitfield" --address1 "1842 Larkin St" \
+  --city "San Francisco" --state CA --postal 94109 --warehouse-id <id>
+
+# then, deliberately
+... --send
+```
+
+**This creates physical work.** A picker at Yusen acts on the 940: real product,
+real freight, billed. There is no undo — cancelling means emailing the warehouse and
+hoping it lands before the pick. Hence: dry-run by default, `--send` required, and
+`--send` makes you type the order number back.
+
+`--warehouse-id` decides **which 3PL receives the 940**. Omit it and ShipStation
+picks its default, which may be the wrong site.
+
+Then confirm it actually arrived — a healthy-looking ShipStation order is not proof
+the warehouse was told:
+
+```bash
+python3 scripts/confirm_940.py 25402RS
+```
+
+That reads Stedi and reports whether the 940 went out, to which warehouse, and
+whether a 945 has come back. **No 940 means the warehouse never saw it.**
+`references/edi-940.md` has the verified details.
+
+Two constraints today: ShipStation is unreachable from cloud sessions (run from the
+Mac), and the create payload's field names have not been checked against a real
+request — run `scripts/shipstation_probe.py` first. Stedi *is* reachable from cloud,
+so `confirm_940.py` works anywhere.
+
+### 6b. Fallback: the CSV
 
 For the two cases that **create a shipment** — a reship and the replacement half of
 a damaged-on-arrival — don't email the warehouse asking them to place an order.
@@ -190,7 +231,7 @@ is a draft until someone does one test load.
 Everything else stays an email. A CSV creates a shipment; it cannot ask what
 physically shipped, when the balance will allocate, or whether to restock a return.
 
-### 6b. Draft it
+### 6c. Draft it
 
 Use `mcp__Gmail__create_draft`. Show the operator the complete draft. Wait for
 confirmation before `mcp__Gmail__send_message`.
@@ -238,10 +279,13 @@ to the dead address.
 - `references/routing.json` — the same contacts, machine-readable; what the portal reads
 - `references/screenshots.md` — how to read a Shopify order and a Zendesk ticket
 - `references/data-sources.md` — what BigQuery can and can't answer, with evidence
+- `references/edi-940.md` — the verified 940/945 EDI map, and a bug it exposed
 - `references/shipstation-csv.md` — the reship CSV, and why its headers need a test import
 - `references/shipstation-csv.json` — the CSV column map; edit here, not in the code
 - `scripts/build_reship_csv.py` — order + SKUs + address → ShipStation import CSV
 - `scripts/shipstation_probe.py` — read-only API probe; **Mac only**, cloud is blocked by policy
+- `scripts/create_reship_order.py` — creates the order → 940 to the 3PL; dry-run by default
+- `scripts/confirm_940.py` — did the 940 actually reach the warehouse? works from cloud
 - `scripts/lookup_order.py` — order number → SKUs and quantities from BigQuery
 - `references/templates.md` — the seven email templates, verbatim
 - `references/playbook.md` — decision rules: reship vs. investigate vs. return
