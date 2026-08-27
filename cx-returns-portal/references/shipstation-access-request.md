@@ -1,8 +1,22 @@
 # Request: allow ShipStation through the agent proxy, with credential injection
 
-Hand this to whoever administers the Claude Code environment for this repo. It is
-an environment/egress-policy change — it cannot be made from inside a session, and
-sessions are required to report policy denials rather than route around them.
+## Who makes this change, and where
+
+This is the **network policy of the Claude Code environment** this repo's cloud
+sessions run in — a setting on claude.ai, not anything in Google Cloud. It does not
+touch BigQuery, the `americanflat` GCP project, or any dataset permission.
+
+Find it at **claude.ai → Claude Code → Environments**, on the environment this repo
+is attached to. The policy is chosen by whoever created that environment, so the
+owner may well be Anthony — in which case no one else is needed. If it belongs to
+someone else, the likely owner is Iván Calderón, who handled the comparable access
+change in August (the cloud service account's BigQuery write). Note those are
+different systems: that one was GCP dataset permissions, this one is the egress
+allow-list.
+
+It cannot be changed from inside a session, and sessions are required to report
+policy denials rather than route around them.
+
 
 ## The change
 
