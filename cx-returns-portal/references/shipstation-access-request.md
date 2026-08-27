@@ -1,91 +1,89 @@
-# Request: allow ShipStation through the agent proxy, with credential injection
+# Reaching ShipStation from a cloud session
 
-## Who makes this change, and where
+Checked against the Claude Code docs on 2026-08-27
+(`code.claude.com/docs/en/cloud-environments`). An earlier version of this file
+recommended "allow + inject credentials" — that is **not** something you can
+configure for ShipStation. Corrected below.
 
-This is the **network policy of the Claude Code environment** this repo's cloud
-sessions run in — a setting on claude.ai, not anything in Google Cloud. It does not
-touch BigQuery, the `americanflat` GCP project, or any dataset permission.
+## What the environment can and cannot do
 
-Find it at **claude.ai → Claude Code → Environments**, on the environment this repo
-is attached to. The policy is chosen by whoever created that environment, so the
-owner may well be Anthony — in which case no one else is needed. If it belongs to
-someone else, the likely owner is Iván Calderón, who handled the comparable access
-change in August (the cloud service account's BigQuery write). Note those are
-different systems: that one was GCP dataset permissions, this one is the egress
-allow-list.
+Anthony owns this environment, so no admin is involved. It is a **Claude Code
+cloud environment** setting on claude.ai — nothing in Google Cloud, and unrelated
+to BigQuery dataset permissions.
 
-It cannot be changed from inside a session, and sessions are required to report
-policy denials rather than route around them.
+**Can:** set network access to `Custom` and allow `ssapi.shipstation.com`. That
+fixes reachability — today the proxy denies it with a 403 on CONNECT.
 
+**Cannot:** attach a ShipStation credential to the proxy. The `api.airtable.com`
+and `bigquery.googleapis.com` injection this environment already has comes from
+Anthropic-side connector plumbing, not a per-host setting anyone can add. There is
+no ShipStation connector.
 
-## The change
+That matters because the docs are explicit about the alternative:
 
-| Field | Value |
+> Anyone who uses the environment can read the values, and cloud environments have
+> no dedicated secrets store, so don't add API keys or other credentials.
+
+So an allow-list alone does not give a cloud session a safe way to hold the
+ShipStation key. `STEDI_API_KEY` is in this environment's variables against that
+guidance, and it leaked into a session transcript on 2026-08-27 — the failure mode
+is real, not hypothetical.
+
+## What this means in practice
+
+| Operation | Where it should run |
 |---|---|
-| **Host** | `ssapi.shipstation.com` |
-| **Mode** | **Allow + inject credentials** (not allow-only) |
-| **Credential** | ShipStation API v1 key + secret, sent as HTTP Basic (`base64(key:secret)`) |
-| **Protocol** | HTTPS, REST |
+| `confirm_940.py` (Stedi, read-only) | Cloud — already works |
+| `lookup_order.py` (BigQuery, read-only) | Cloud — already works |
+| `shipstation_probe.py` (read-only) | **Mac** |
+| `create_reship_order.py --send` (creates real warehouse work) | **Mac** |
 
-Optional and **not** needed today: `api.shipstation.com` (their v2 API). Everything
-here uses v1. Leave it blocked unless something later needs it.
+The Mac is not behind this proxy and can hold credentials properly, so the
+credentialed half of the workflow belongs there. Both scripts already support
+either mode, so nothing needs rewriting if that changes later.
 
-## Why credential injection rather than allow-only
+## If you still want the domain allowed
 
-This environment already does exactly this for two hosts:
+Reasonable — it lets a cloud session at least reach ShipStation, and pairs with the
+env-var trade-off if you decide to accept it.
 
-```
-api.airtable.com          — Allow + inject Airtable
-bigquery.googleapis.com   — Allow + inject Data Warehouse
-```
+1. Go to **claude.ai/code**. In the row above the message box, click the **cloud
+   icon** showing the current environment's name. There is no settings page or
+   direct URL for this.
+2. Hover the environment and click the **settings icon** on the right.
+3. Set **Network access** to **Custom**.
+4. In **Allowed domains**, one per line:
 
-which is why BigQuery queries work here with no key anywhere in the repo. Same
-mechanism, same benefit: the ShipStation key lives in the proxy, so it never
-appears in the repository, an environment variable, a shell history, or a session
-transcript. Allow-only would work but would put the key back in the session — and
-an environment secret was leaked into a transcript in this project on 2026-08-27,
-so the weaker option has a demonstrated failure mode here.
+   ```
+   ssapi.shipstation.com
+   *.frame.claudeusercontent.com
+   core.us.stedi.com
+   bigquery.googleapis.com
+   ```
 
-## What the sessions will call
+5. Tick **"Also include default list of common package managers."**
+6. Save, then start a **new** session — running sessions keep the config they
+   started with.
 
-Read-only (`scripts/shipstation_probe.py`):
+### Two things that will break if you skip them
 
-- `GET /stores` — store IDs; reships live in **Manual Shopify Orders** (`438065`)
-- `GET /warehouses` — the `warehouseId` → site mapping, which decides **which 3PL
-  receives the EDI 940**. This is the field we cannot safely guess.
-- `GET /orders?pageSize=1` — field shapes only; no customer data is written out
+- **`*.frame.claudeusercontent.com`** — Claude Code fetches artifact content from
+  that host. Leave it out and sessions in this environment can no longer read
+  artifacts, which includes this project's returns portal.
+- **The "include defaults" checkbox** — unticked, `Custom` allows *only* what you
+  list, so package installs and GitHub tooling lose access.
 
-Write (`scripts/create_reship_order.py`):
+Stedi and BigQuery are listed because this skill uses both; confirm anything else
+you rely on before switching off `Trusted`.
 
-- `POST /orders/createorder` — creates one replacement order
-
-**The write has physical consequences.** A created order is transmitted to the 3PL
-as an EDI 940 and a picker acts on it: real product, real freight, billed. The
-script is dry-run by default, requires `--send`, and makes the operator type the
-order number back before it posts. Rate limit is 40 requests/minute.
-
-## Verifying it landed
-
-One command, read-only, from a cloud session:
+## Verifying
 
 ```bash
 python3 cx-returns-portal/scripts/shipstation_probe.py
 ```
 
-- **Working:** prints `using proxy-injected credentials (no key in session)` and
-  lists stores and warehouses.
-- **Still blocked:** `Tunnel connection failed: 403 Forbidden`.
-- **Allowed but not injecting:** reaches ShipStation and returns `401`.
+- Still blocked → `Tunnel connection failed: 403 Forbidden`
+- Reachable, no credential → `401`
+- Working → prints the mode it used, then stores and warehouses
 
-Those three are distinguishable on purpose, so a half-finished change is obvious.
-
-## After it lands
-
-1. Run the probe; commit the `warehouseId` → site mapping into
-   `references/shipstation-discovered.json`.
-2. Reconcile the create payload's field names against a real order and clear the
-   "unverified" warnings in `shipstation-csv.md` and the scripts.
-3. Reships can then be created and confirmed end to end from a cloud session:
-   create → 940 to the 3PL → `confirm_940.py` verifies it arrived.
-
-Until then reships run from the Mac, where the proxy does not apply.
+Distinguishable on purpose, so a half-finished change is obvious.
