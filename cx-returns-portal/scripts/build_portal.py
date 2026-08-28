@@ -335,8 +335,8 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
     <section class="panel" aria-label="Generated warehouse email">
       <div class="block">
         <div class="tabs" id="tabs" role="tablist" aria-label="Output">
-          <button type="button" id="tab-email" role="tab" aria-selected="true">Warehouse email</button>
-          <button type="button" id="tab-csv" role="tab" aria-selected="false">Replacement row</button>
+          <button type="button" id="tab-csv" role="tab" aria-selected="true">Replacement row</button>
+          <button type="button" id="tab-email" role="tab" aria-selected="false">Warehouse email</button>
         </div>
       </div>
 
@@ -386,7 +386,7 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
 
   <footer class="foot">
     <span>Contacts verified <strong id="verified"></strong>. Update <code>references/routing.json</code> and re-run <code>build_portal.py</code> when a warehouse contact changes.</span>
-    <span>Replacement orders are the original number + <strong>RS</strong>.</span>
+    <span>Sheet rows get an <strong>RPL-</strong> key from the automation; warehouse emails use <strong>RS</strong>.</span>
   </footer>
 </div>
 
@@ -575,7 +575,7 @@ const state = {
   caseType: '', warehouse: '', order: '', rs: '', tracking: '', carrier: '',
   marketplace: '', customer: '', skus: '', deadline: 'EOD today',
   packMode: 'carton', disposition: 'restock', sender: '', title: 'Customer Experience',
-  hasReplacement: false, outputMode: 'email',
+  hasReplacement: false, outputMode: 'row',
   shipName: '', shipCompany: '', address1: '', address2: '',
   city: '', stateRegion: '', postal: '', country: 'US', phone: '',
   reason: '', ticket: '', channel: '', email: '', submittedBy: '', notes: '',
@@ -966,15 +966,22 @@ function renderFields() {
   const active = document.activeElement ? document.activeElement.id : null;
   host.innerHTML = '';
   const spec = ROUTING.cases[state.caseType];
+  const rowMode = state.outputMode === 'row' && CSV_CASES.has(state.caseType);
   const needs = new Set(spec ? spec.needs : []);
   if (state.caseType === 'reship' && state.packMode === 'units') needs.add('skus');
+  if (rowMode) {
+    // csvGaps() owns validation here, driven by the sheet's own required columns.
+    needs.delete('rs_order');
+    needs.delete('tracking');
+    needs.delete('deadline');
+  }
 
   const whOpts = [['', 'Choose…']].concat(
     Object.entries(ROUTING.warehouses).map(([k, w]) => [k, w.label]));
   host.appendChild(field('warehouse', 'Warehouse', { options: whOpts, need: !state.warehouse }));
   host.appendChild(field('order', 'Order #', { placeholder: '22397', need: needs.has('order') }));
   host.appendChild(field('rs', 'Replacement (RS) #', { placeholder: '22397RS', need: needs.has('rs_order'),
-    hint: 'Original number + RS' }));
+    hint: rowMode ? 'Email only — the sheet generates RPL-…' : 'Original number + RS' }));
   host.appendChild(field('marketplace', 'Marketplace', { placeholder: 'Shopify' }));
   host.appendChild(field('tracking', 'Tracking', { placeholder: '525499496652', need: needs.has('tracking') }));
   const skuHint = {
@@ -986,7 +993,7 @@ function renderFields() {
 
   if (state.caseType === 'reship' || state.caseType === 'damaged' || state.caseType === 'balance') {
     const isBalance = state.caseType === 'balance';
-    host.appendChild(field('deadline',
+    if (!rowMode) host.appendChild(field('deadline',
       isBalance ? 'Customer needs by' : 'Ship by',
       {
         placeholder: isBalance ? 'e.g. Saturday 8/29 — optional' : 'EOD today',
@@ -995,7 +1002,7 @@ function renderFields() {
         hint: isBalance ? 'Only included if you fill it in' : undefined,
       }));
   }
-  if (state.caseType === 'reship' || (state.outputMode === 'csv' && CSV_CASES.has(state.caseType))) {
+  if (state.caseType === 'reship' || (state.outputMode === 'row' && CSV_CASES.has(state.caseType))) {
     host.appendChild(field('packMode', 'Pick as', { options: [
       ['carton', 'Full master carton — do not split'],
       ['units', 'Individual units — loose pick'],
@@ -1011,7 +1018,7 @@ function renderFields() {
       ['hold', 'Hold, send photos first'],
     ]}));
   }
-  if (state.outputMode === 'csv' && CSV_CASES.has(state.caseType)) {
+  if (state.outputMode === 'row' && CSV_CASES.has(state.caseType)) {
     host.appendChild(field('channel', 'Channel', {
       options: [['', 'Choose…']].concat((SHEET.channels || []).map(c => [c.channel, c.channel])),
       need: !state.channel, hint: 'Sets the ShipStation store' }));
@@ -1102,7 +1109,10 @@ function render(skipFields) {
   const body = buildBody(wh);
   const gaps = missingFields(wh);
 
-  const csvMode = state.outputMode === 'csv' && CSV_CASES.has(state.caseType);
+  // Fall back to the email for cases that ask a question, but only for this
+  // render — mutating outputMode here would destroy the 'row' preference on the
+  // first paint, before any case is picked, and never restore it.
+  const csvMode = state.outputMode === 'row' && CSV_CASES.has(state.caseType);
   renderReadout(p);
   renderCases(p.suggested);
   if (!skipFields) renderFields();
@@ -1113,7 +1123,6 @@ function render(skipFields) {
   $('tab-csv').disabled = !csvAllowed;
   $('tab-csv').title = csvAllowed ? '' :
     'A CSV creates a replacement order. This case asks the warehouse a question, so it goes by email.';
-  if (!csvAllowed && state.outputMode === 'csv') state.outputMode = 'email';
   $('tab-email').setAttribute('aria-selected', String(!csvMode));
   $('tab-csv').setAttribute('aria-selected', String(csvMode));
   $('pane-email').hidden = csvMode;
@@ -1185,7 +1194,7 @@ $('copy-rcpt').addEventListener('click', () => {
 $('copy-prompt').addEventListener('click', () => copy($('claude-prompt').textContent, 'Prompt copied.'));
 
 $('tab-email').addEventListener('click', () => { state.outputMode = 'email'; render(); });
-$('tab-csv').addEventListener('click', () => { state.outputMode = 'csv'; render(); });
+$('tab-csv').addEventListener('click', () => { state.outputMode = 'row'; render(); });
 $('copy-row').addEventListener('click', () => {
   if (!window.__row) return;
   const n = window.__row.rows;
@@ -1202,7 +1211,7 @@ $('reset').addEventListener('click', () => {
   $('paste').value = '';
   Object.assign(state, { caseType:'', warehouse:'', order:'', rs:'', tracking:'', carrier:'',
     marketplace:'', customer:'', skus:'', deadline:'EOD today', packMode:'carton',
-    disposition:'restock', hasReplacement:false, outputMode:'email',
+    disposition:'restock', hasReplacement:false, outputMode:'row',
     shipName:'', shipCompany:'', address1:'', address2:'', city:'', stateRegion:'',
     postal:'', country:'US', phone:'', reason:'', ticket:'', channel:'',
     email:'', submittedBy:'', notes:'' });

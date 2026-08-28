@@ -51,7 +51,13 @@ let pass = 0, fail = 0;
 for (const c of cases) {
   await page.click('#reset');
   await page.fill('#paste', c.paste);
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(150);
+  // Shipment-creating cases now open on the replacement row; these checks are
+  // about the email, so switch to it.
+  if (!(await page.isDisabled('#tab-email'))) {
+    await page.click('#tab-email');
+    await page.waitForTimeout(120);
+  }
   await page.fill('#f-sender', 'Nica Jordan');
   await page.waitForTimeout(120);
 
@@ -126,9 +132,11 @@ Zendesk #48213 - she needs the rest by Saturday 8/29.`);
   await page.fill('#paste', `Fontana Shopify order #22562. Customer got one broken frame out of a set order.
 Replacement 22562RS placed. Needs MW1114WH57 x 1 only.`);
   await page.waitForTimeout(120);
-  await page.fill('#f-sender', 'Nica Jordan');
-  await page.waitForTimeout(120);
   await page.evaluate(() => [...document.querySelectorAll('.case')].find(c => c.textContent.includes('Reship')).click());
+  await page.waitForTimeout(150);
+  await page.click('#tab-email');          // a reship opens on the replacement row
+  await page.waitForTimeout(150);
+  await page.fill('#f-sender', 'Nica Jordan');
   await page.waitForTimeout(120);
 
   const read = () => page.evaluate(() => ({
@@ -172,6 +180,12 @@ Customer Landon Beard needs WB2436LWOODPC x 2 replaced.`);
   console.log('\n=== Replacements sheet row ===');
   const problems = [];
   if (await page.isDisabled('#tab-csv')) problems.push('row tab disabled on a reship');
+
+  // The replacement row is the default for a reship — no click needed to reach it.
+  if (!(await page.isVisible('#pane-csv'))) problems.push('row pane is not the default view for a reship');
+  if (await page.isVisible('#pane-email')) problems.push('email pane showing by default on a reship');
+  const tabs = await page.evaluate(() => [...document.querySelectorAll('#tabs button')].map(b => b.textContent));
+  if (tabs[0] !== 'Replacement row') problems.push('replacement row is not the first tab: ' + JSON.stringify(tabs));
 
   await page.click('#tab-csv');
   await page.waitForTimeout(150);
@@ -249,7 +263,7 @@ Landon Beard needs WB2436LWOODPC x 2 and LEDGE_BK14_3PK x 1 replaced.`);
   if (!(await page.isVisible('#pane-email'))) problems.push('did not fall back to the email pane');
 
   if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
-  else { pass++; console.log('   [ok] stops at Notes, one row per SKU, nothing written past column P'); }
+  else { pass++; console.log('   [ok] leads the tabs, stops at Notes, one row per SKU'); }
 }
 
 console.log('\n\n==== ' + pass + ' passed, ' + fail + ' failed ====');
