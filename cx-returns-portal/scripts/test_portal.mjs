@@ -214,6 +214,38 @@ Customer Landon Beard needs WB2436LWOODPC x 2 replaced.`);
   // A stray tab or newline in any value would shift every later column.
   if (cells.some(c => /[\t\r\n]/.test(c))) problems.push('a value contains a tab or newline');
 
+  // Underscored SKUs are real — LEDGE_BK14_3PK is in the live sheet — and must
+  // survive the PASTE PARSER, not just a hand-filled field. An earlier version
+  // dropped them silently, losing a line item from the replacement.
+  await page.fill('#paste', `Shopify order #23280. Wrong item sent.
+Landon Beard needs WB2436LWOODPC x 2 and LEDGE_BK14_3PK x 1 replaced.`);
+  await page.waitForTimeout(250);
+  const parsed = await page.inputValue('#f-skus');
+  if (!/LEDGE_BK14_3PK/.test(parsed)) problems.push('parser dropped the underscored SKU: ' + JSON.stringify(parsed));
+  if (!/WB2436LWOODPC/.test(parsed)) problems.push('parser dropped the plain SKU: ' + JSON.stringify(parsed));
+
+  // A multi-SKU replacement is one row per SKU with the order fields repeated
+  // (confirmed 2026-08-28), not one row with the items concatenated.
+  await page.fill('#f-skus', 'WB2436LWOODPC x 2\nLEDGE_BK14_3PK x 1');
+  await page.waitForTimeout(250);
+  const multi = await page.evaluate(() => window.__row && window.__row.text);
+  const rows2 = (multi || '').split('\n');
+  if (rows2.length !== 2) problems.push('2 SKUs should emit 2 rows, got ' + rows2.length);
+  else {
+    const a = rows2[0].split('\t'), b = rows2[1].split('\t');
+    if (a.length !== 22 || b.length !== 22) problems.push('multi-SKU rows are not 22 columns');
+    if (a[3] !== 'WB2436LWOODPC' || a[4] !== '2') problems.push('row 1 SKU/Qty wrong: ' + a[3] + '/' + a[4]);
+    if (b[3] !== 'LEDGE_BK14_3PK' || b[4] !== '1') problems.push('row 2 SKU/Qty wrong: ' + b[3] + '/' + b[4]);
+    // Order-level fields must repeat, or the second row is orphaned.
+    for (const [i, name] of [[0, 'Original Order #'], [1, 'Channel'], [5, 'Ship To Name'],
+                             [7, 'Street 1'], [11, 'Postal Code'], [19, 'Submitted By']]) {
+      if (a[i] !== b[i]) problems.push(name + ' should repeat on every row: ' + a[i] + ' vs ' + b[i]);
+    }
+    if (/;/.test(a[3])) problems.push('SKUs were concatenated instead of split across rows');
+  }
+  await page.fill('#f-skus', 'WB2436LWOODPC x 2');
+  await page.waitForTimeout(150);
+
   // An investigative case cannot be a sheet row.
   await page.evaluate(() => [...document.querySelectorAll('.case')].find(c => c.textContent.includes('Missing units')).click());
   await page.waitForTimeout(200);
@@ -221,7 +253,7 @@ Customer Landon Beard needs WB2436LWOODPC x 2 replaced.`);
   if (!(await page.isVisible('#pane-email'))) problems.push('did not fall back to the email pane');
 
   if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
-  else { pass++; console.log('   [ok] 22 columns aligned, automation columns untouched, hidden for questions'); }
+  else { pass++; console.log('   [ok] 22 columns aligned, one row per SKU, automation columns untouched'); }
 }
 
 console.log('\n\n==== ' + pass + ' passed, ' + fail + ' failed ====');

@@ -1,5 +1,6 @@
 {
   "_comment": "Structure of the Replacements tab, read from the live sheet 2026-08-28. The form emits a tab-separated row matching `columns` exactly, in order, for pasting into the next empty row.",
+  "multi_sku": "one row per SKU, order-level fields repeated (confirmed by Anthony, 2026-08-28)",
   "sheet_url": "https://docs.google.com/spreadsheets/d/1OzF8inTsmtegKUWjWtbLLzdFTuI-Nba26jO8dY8Br9I/edit?gid=1268836353#gid=1268836353",
   "sheet_id": "1OzF8inTsmtegKUWjWtbLLzdFTuI-Nba26jO8dY8Br9I",
   "tab": "Replacements",

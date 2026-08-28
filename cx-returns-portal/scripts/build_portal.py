@@ -481,16 +481,16 @@ function findSkus(t, exclude) {
   };
 
   // Strongest signal: "MW0808WH44 x 2" — the shape the ops emails already use.
-  const withQty = /\b([A-Z][A-Z0-9]{3,}(?:-[A-Z0-9]+)*)\s*(?:x|×)\s*(\d{1,3})\b/gi;
+  const withQty = /\b([A-Z][A-Z0-9_]{3,}(?:[-_][A-Z0-9]+)*)\s*(?:x|×)\s*(\d{1,3})\b/gi;
   let m;
   while ((m = withQty.exec(t)) !== null) push(m[1], m[2]);
 
   // ...and the other way round: "8 x MW1114WH57".
-  const qtyFirst = /\b(\d{1,3})\s*(?:x|×)\s*([A-Z][A-Z0-9]{3,}(?:-[A-Z0-9]+)*)\b/gi;
+  const qtyFirst = /\b(\d{1,3})\s*(?:x|×)\s*([A-Z][A-Z0-9_]{3,}(?:[-_][A-Z0-9]+)*)\b/gi;
   while ((m = qtyFirst.exec(t)) !== null) push(m[2], m[1]);
 
   // Bare style codes: letters then digits, or hyphenated part numbers.
-  const bare = /\b(?:[A-Z]{2,4}\d{3,6}[A-Z0-9]{0,6}|[A-Z]{2,4}(?:-[A-Z0-9]{2,6}){1,3})\b/g;
+  const bare = /\b(?:[A-Z]{2,4}\d{3,6}[A-Z0-9]{0,6}|[A-Z]{2,6}(?:[-_][A-Z0-9]{2,6}){1,3})\b/g;
   while ((m = bare.exec(t)) !== null) push(m[0], '');
 
   // EANs, which NL needs to identify a return.
@@ -787,7 +787,7 @@ function stamp() {
 
 function skuPairs(raw) {
   return (raw || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
-    const m = line.match(/^(.+?)\s*(?:x|×)\s*(\d+)$/i);
+    const m = line.match(/^(.+?)\s*(?:x|×)\s*(\d+)$/i);  // SKU may contain - or _
     return m ? { sku: m[1].trim().toUpperCase(), qty: m[2] }
              : { sku: line.toUpperCase(), qty: '' };
   });
@@ -804,9 +804,9 @@ function sheetNotes() {
   return bits.join(' | ');
 }
 
-/* One row per SKU, order-level fields repeated. The live tab has a single SKU
-   and Qty column and only one example row, so a multi-SKU replacement's shape
-   there is unconfirmed — see references/replacements-sheet.md. */
+/* One row per SKU, order-level fields repeated (confirmed 2026-08-28). The
+   activity log concatenates items into one entry instead — that is the log's
+   format, not this tab's. */
 function sheetRows() {
   const at = stamp();
   const shared = {
@@ -860,9 +860,9 @@ function renderSheet(rows) {
   const notes = ['Paste into the next empty row of the <strong>Replacements</strong> tab. ' +
                  'The greyed columns are filled by the automation \u2014 leave them alone.'];
   if (rows.length > 1) {
-    notes.push('This replacement has ' + rows.length + ' SKUs and emits one row each, ' +
-               'with the order details repeated. Only single-SKU rows exist in the sheet ' +
-               'so far \u2014 worth confirming that is how multi-item replacements are recorded.');
+    notes.push('<strong>' + rows.length + ' SKUs \u2192 ' + rows.length + ' rows</strong>, ' +
+               'order details repeated on each. Copy once and paste once \u2014 they fill downward ' +
+               'from the row you click.');
   }
   $('csv-note').innerHTML = notes.join(' ');
 }

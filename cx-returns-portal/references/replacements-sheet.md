@@ -63,17 +63,19 @@ From its config tab, for reference — the form does not set these:
 - Default country `US`
 - Require second approver: `FALSE`
 
-## Open question: multi-SKU replacements
+## Multi-SKU replacements: one row per SKU
 
-The tab has one `SKU` and one `Qty` column, and every row in it so far is a single
-SKU. The activity log records multi-item replacements as one entry with the items
-concatenated (`LX2430BLKNOMAT x1; LEDGE_BK14_3PK x2`), so how the Replacements tab
-itself represents them is **unconfirmed**.
+A replacement covering more than one SKU gets **one row per SKU**, with the
+order-level fields repeated on each — same Original Order #, same address, same
+Submitted By. Confirmed by Anthony, 2026-08-28.
 
-The portal currently emits **one row per SKU** with the order details repeated, and
-says so in the preview when there is more than one. If the automation instead
-expects a single row per replacement, that is a one-line change in
-`sheetRows()` — confirm before the first multi-item replacement goes through.
+The portal emits them together, so copying once and pasting once fills all the rows.
+It shows the count above the preview so a three-SKU replacement is obviously three
+rows before it goes in.
+
+Note the activity log records the same replacement differently, as a single entry
+with the items concatenated (`LX2430BLKNOMAT x1; LEDGE_BK14_3PK x2`). That is the
+log's own format; it does not describe the Replacements tab.
 
 ## Verifying it worked
 
