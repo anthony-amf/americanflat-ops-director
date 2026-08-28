@@ -2,14 +2,15 @@
 
 **Full path:** `cx-returns-portal/references/cloud-reship-runbook.md`
 
-Ask for it by that path, not by name. Until this branch is merged the file does not
-exist on `main`, so a fresh cloud session clones a tree without it — and the repo
-already contains `docs/CLOUD-SWEEP-RUNBOOK.md`, which differs by one word and runs
-the Yusen invoice validation sweep, writing stamps to the production ledger. That
-substitution has happened once already (2026-08-27). Until PR #3 lands, start with:
+Ask for it by that path, not by name, and confirm the file exists before starting.
+A session that cannot find it must stop, not substitute. That has already gone
+wrong once: on 2026-08-27 a session given the name rather than the path matched
+`docs/CLOUD-SWEEP-RUNBOOK.md` in a different repo — one word apart, and the Yusen
+invoice validation sweep — and wrote 32 stamps to the production invoice ledger.
 
-> check out `claude/cx-returns-portal-rkliqs`, then follow
-> `cx-returns-portal/references/cloud-reship-runbook.md`
+Home: `americanflat/Ops`, so the whole ops team can reach it. It was developed in
+`anthony-amf/americanflat-ops-director` on branch `claude/cx-returns-portal-rkliqs`;
+that copy is history, not the source of truth.
 
 
 The decision (Anthony, 2026-08-27) is that reships run from the cloud, not the Mac.
