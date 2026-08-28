@@ -19,15 +19,14 @@ Structure read from the live sheet on 2026-08-28 and held in
 `replacements-sheet.json`. **Column order is load-bearing** — a row pasted with the
 wrong number of cells puts every later value under the wrong header.
 
-| # | Column | Filled by |
+| Columns | | Filled by |
 |---|---|---|
-| 1–16 | Original Order # · Channel · Reason · SKU · Qty · Ship To Name · Company · Street 1 · Street 2 · City · State · Postal Code · Country · Phone · Email · Notes | the form |
-| 17–19 | Status · SS Order # · Order Key | **the automation** |
-| 20–21 | Submitted By · Submitted At | the form |
-| 22 | Message | **the automation** |
+| **A–P** | Original Order # · Channel · Reason · SKU · Qty · Ship To Name · Company · Street 1 · Street 2 · City · State · Postal Code · Country · Phone · Email · Notes | the form |
+| **Q–V** | Status · SS Order # · Order Key · Submitted By · Submitted At · Message | **the automation** |
 
-The four automation columns are emitted empty and shown greyed in the preview.
-Filling them by hand risks colliding with whatever the script writes back.
+**The row stops at column P.** It does not emit trailing empty cells for Q onward:
+pasting empties would write blanks over whatever the automation has put there, and
+`Submitted By` / `Submitted At` are its columns too, not the form's.
 
 ## Channel decides the ShipStation store
 

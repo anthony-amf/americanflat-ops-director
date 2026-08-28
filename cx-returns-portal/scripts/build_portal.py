@@ -778,12 +778,6 @@ function cellSafe(v) {
     .trim();
 }
 
-function stamp() {
-  const d = new Date();
-  const p = n => String(n).padStart(2, '0');
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
-         ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
-}
 
 function skuPairs(raw) {
   return (raw || '').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
@@ -808,7 +802,6 @@ function sheetNotes() {
    activity log concatenates items into one entry instead — that is the log's
    format, not this tab's. */
 function sheetRows() {
-  const at = stamp();
   const shared = {
     order: state.order,
     channel: state.channel,
@@ -825,21 +818,28 @@ function sheetRows() {
     email: state.email,
     notes: sheetNotes(),
     status: '', ssOrder: '', orderKey: '', message: '',
-    submittedBy: state.submittedBy,
-    submittedAt: at,
+    submittedBy: '', submittedAt: '',
   };
   const pairs = skuPairs(state.skus);
   if (!pairs.length) return [Object.assign({}, shared, { sku: '', qty: '' })];
   return pairs.map(it => Object.assign({}, shared, { sku: it.sku, qty: it.qty }));
 }
 
-function sheetText(rows) {
+function lastFormColumn() {
   const cols = SHEET.columns;
+  for (let i = cols.length - 1; i >= 0; i--) if (cols[i].owner === 'form') return i;
+  return cols.length - 1;
+}
+
+function sheetText(rows) {
+  // Stop after the last form-owned column. Trailing empty cells would paste
+  // blanks over the automation's own columns.
+  const cols = SHEET.columns.slice(0, lastFormColumn() + 1);
   return rows.map(r => cols.map(c => cellSafe(r[c.field])).join('\t')).join('\n');
 }
 
 function renderSheet(rows) {
-  const cols = SHEET.columns;
+  const cols = SHEET.columns.slice(0, lastFormColumn() + 1);
   const host = $('csv-preview');
   const head = '<tr>' + cols.map(c =>
     '<th' + (c.owner === 'script' ? ' class="script-owned"' : '') + '>' + c.header + '</th>').join('') + '</tr>';
@@ -857,8 +857,11 @@ function renderSheet(rows) {
     ? state.channel + ' \u2192 store ' + ch.storeId + ' (' + ch.storeName + ')'
     : 'Replacements tab';
 
+  const lastCol = String.fromCharCode(65 + lastFormColumn());
   const notes = ['Paste into the next empty row of the <strong>Replacements</strong> tab. ' +
-                 'The greyed columns are filled by the automation \u2014 leave them alone.'];
+                 'The row ends at column <strong>' + lastCol + '</strong> \u2014 everything from ' +
+                 String.fromCharCode(65 + lastFormColumn() + 1) + ' onward belongs to the automation ' +
+                 'and is deliberately not written.'];
   if (rows.length > 1) {
     notes.push('<strong>' + rows.length + ' SKUs \u2192 ' + rows.length + ' rows</strong>, ' +
                'order details repeated on each. Copy once and paste once \u2014 they fill downward ' +
@@ -1027,8 +1030,6 @@ function renderFields() {
     host.appendChild(field('email', 'Email', { placeholder: 'optional' }));
     host.appendChild(field('ticket', 'Zendesk ticket', { placeholder: '#48213', hint: 'Goes into Notes' }));
     host.appendChild(field('notes', 'Extra notes', { placeholder: 'optional', hint: 'Appended to Notes' }));
-    host.appendChild(field('submittedBy', 'Submitted by', {
-      placeholder: 'you@americanflat.com', need: !state.submittedBy }));
   } else {
     host.appendChild(field('sender', 'Your name', { placeholder: 'Jane Doe', need: !state.sender }));
     host.appendChild(field('title', 'Your title', { placeholder: 'Customer Experience' }));

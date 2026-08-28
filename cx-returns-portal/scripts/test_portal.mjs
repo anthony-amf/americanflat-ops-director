@@ -181,8 +181,7 @@ Customer Landon Beard needs WB2436LWOODPC x 2 replaced.`);
 
   for (const [sel, val] of [['#f-shipName', 'Landon Beard'], ['#f-address1', '17704 Knox Farm Rd'],
        ['#f-city', 'Edmond'], ['#f-stateRegion', 'OK'], ['#f-postal', '73012'],
-       ['#f-phone', '501-281-0258'], ['#f-email', 'landon.k.beard@gmail.com'],
-       ['#f-submittedBy', 'anthony@americanflat.com']]) {
+       ['#f-phone', '501-281-0258'], ['#f-email', 'landon.k.beard@gmail.com']]) {
     await page.fill(sel, val);
     await page.waitForTimeout(60);
   }
@@ -194,22 +193,19 @@ Customer Landon Beard needs WB2436LWOODPC x 2 replaced.`);
   const row = await page.evaluate(() => window.__row && window.__row.text);
   const cells = (row || '').split('\t');
 
-  // Column count and position must match the live tab exactly, or a paste
-  // lands values under the wrong headers.
-  if (cells.length !== 22) problems.push('expected 22 columns, got ' + cells.length);
+  // The row must stop at Notes (column P). Writing past it would paste blanks
+  // over the automation's own columns.
+  if (cells.length !== 16) problems.push('expected 16 columns, stopping at Notes; got ' + cells.length);
   if (cells[0] !== '23280') problems.push('col 1 should be the original order #, got ' + cells[0]);
   if (cells[1] !== 'Shopify') problems.push('col 2 should be Channel, got ' + cells[1]);
   if (cells[3] !== 'WB2436LWOODPC') problems.push('col 4 should be SKU, got ' + cells[3]);
   if (cells[4] !== '2') problems.push('col 5 should be Qty, got ' + cells[4]);
   if (cells[10] !== 'OK') problems.push('col 11 should be State, got ' + cells[10]);
   if (cells[12] !== 'US') problems.push('col 13 should default Country to US, got ' + cells[12]);
-  if (cells[19] !== 'anthony@americanflat.com') problems.push('col 20 should be Submitted By, got ' + cells[19]);
-  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(cells[20])) problems.push('col 21 timestamp malformed: ' + cells[20]);
-
-  // The automation owns these four; the form must never fill them.
-  for (const [i, name] of [[16, 'Status'], [17, 'SS Order #'], [18, 'Order Key'], [21, 'Message']]) {
-    if (cells[i] !== '') problems.push(name + ' should be left for the automation, got ' + cells[i]);
-  }
+  if (cells[15] === undefined) problems.push('Notes (col 16) missing');
+  // Nothing may be emitted for Q onward — Status, SS Order #, Order Key,
+  // Submitted By, Submitted At and Message are all the automation's.
+  if (cells.length > 16) problems.push('emitted ' + (cells.length - 16) + ' cell(s) past Notes');
 
   // A stray tab or newline in any value would shift every later column.
   if (cells.some(c => /[\t\r\n]/.test(c))) problems.push('a value contains a tab or newline');
@@ -233,12 +229,12 @@ Landon Beard needs WB2436LWOODPC x 2 and LEDGE_BK14_3PK x 1 replaced.`);
   if (rows2.length !== 2) problems.push('2 SKUs should emit 2 rows, got ' + rows2.length);
   else {
     const a = rows2[0].split('\t'), b = rows2[1].split('\t');
-    if (a.length !== 22 || b.length !== 22) problems.push('multi-SKU rows are not 22 columns');
+    if (a.length !== 16 || b.length !== 16) problems.push('multi-SKU rows are not 16 columns');
     if (a[3] !== 'WB2436LWOODPC' || a[4] !== '2') problems.push('row 1 SKU/Qty wrong: ' + a[3] + '/' + a[4]);
     if (b[3] !== 'LEDGE_BK14_3PK' || b[4] !== '1') problems.push('row 2 SKU/Qty wrong: ' + b[3] + '/' + b[4]);
     // Order-level fields must repeat, or the second row is orphaned.
     for (const [i, name] of [[0, 'Original Order #'], [1, 'Channel'], [5, 'Ship To Name'],
-                             [7, 'Street 1'], [11, 'Postal Code'], [19, 'Submitted By']]) {
+                             [7, 'Street 1'], [11, 'Postal Code'], [15, 'Notes']]) {
       if (a[i] !== b[i]) problems.push(name + ' should repeat on every row: ' + a[i] + ' vs ' + b[i]);
     }
     if (/;/.test(a[3])) problems.push('SKUs were concatenated instead of split across rows');
@@ -253,7 +249,7 @@ Landon Beard needs WB2436LWOODPC x 2 and LEDGE_BK14_3PK x 1 replaced.`);
   if (!(await page.isVisible('#pane-email'))) problems.push('did not fall back to the email pane');
 
   if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
-  else { pass++; console.log('   [ok] 22 columns aligned, one row per SKU, automation columns untouched'); }
+  else { pass++; console.log('   [ok] stops at Notes, one row per SKU, nothing written past column P'); }
 }
 
 console.log('\n\n==== ' + pass + ' passed, ' + fail + ' failed ====');
