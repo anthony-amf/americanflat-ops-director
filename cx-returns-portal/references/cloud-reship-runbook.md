@@ -90,6 +90,31 @@ On success, commit the `warehouseId` → site mapping into
 `references/shipstation-discovered.json`. That mapping decides which 3PL receives
 the 940 and is the last unverified input.
 
+## Scope, and when to stop
+
+This runbook covers exactly one thing: creating a replacement order and confirming
+it reached the warehouse. It touches ShipStation (create), Stedi (read) and
+BigQuery (read).
+
+**Do not run any other runbook in this repo.** `docs/CLOUD-SWEEP-RUNBOOK.md` and
+`docs/STEDI-NIGHTLY-RUNBOOK.md` belong to the Yusen invoice validator and write to
+the production invoice ledger. If this file is not found, stop and say so — do not
+substitute a similarly named one.
+
+**Never write to BigQuery.** Order lookup is read-only. No stamps, no `paid_at`,
+no validation status.
+
+Stop and report, rather than improvising, if:
+
+- the probe returns `403` — the domain allow-list is not in effect for this session
+- the probe returns `401` — credentials are missing or wrong
+- the probe cannot name a warehouse ID for the target site
+- the order already has an `RS` order in ShipStation
+- ShipStation rejects the create
+
+A rejected create is harmless. A create that succeeds against the wrong warehouse
+ships a real customer's replacement from the wrong building, and there is no undo.
+
 ## Running a reship
 
 1. **Look up the order** — `python3 scripts/lookup_order.py <order>` for SKUs and
