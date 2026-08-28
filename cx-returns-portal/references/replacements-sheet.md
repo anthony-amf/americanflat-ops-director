@@ -82,3 +82,28 @@ The automation writes back `Status`, `SS Order #` and `Message`. Once it has,
 `scripts/confirm_940.py <SS Order #>` checks whether the order actually reached the
 warehouse as an EDI 940 — the sheet saying `CREATED` means ShipStation accepted it,
 not that the 3PL was told.
+
+## Step 3 fills itself from the paste
+
+The reply pasted into step 1 is read for everything the row needs, so step 3
+opens already filled in rather than empty. What gets read:
+
+| Field | Read from |
+|---|---|
+| Ship To Name | the line above the street, when it reads like a person's name; or a `Customer:` / `Ship to:` label |
+| Street 1 / Street 2 | a line starting with a house number, or ending in a street word (`Lane`, `Blvd`, `Ct`…). `Apt`/`Suite`/`Unit` lines go to Street 2 |
+| City · State · Postal Code | `Fredericksburg VA 22407`, `Fredericksburg, Virginia, 22407`, and `Edmond, OK, 73012` all work — full state names are converted to the two-letter code |
+| Country | `United States` / `USA` → `US`, `Canada` → `CA` |
+| Phone | a 10-digit number (or `+1` and 10). A 10-digit run inside a longer number is treated as a tracking number, not a phone |
+| Email | the first address that isn't ours or a warehouse's |
+| Channel | a channel named in the text, otherwise inferred from the marketplace — always one of the sheet's own values |
+| Reason | "wrong item"/"sent the wrong…" → **Wrong Item Sent**; "damaged"/"broken"/"cracked"/"dented" → **Damaged in Transit** |
+| Pick mode | "loose units", "individual", "piece pick" → loose; "full case", "sealed carton" → carton |
+
+Commas and newlines are treated the same way, so a one-line address typed into a
+ticket parses like a block address pasted from Shopify.
+
+**Hand edits win.** Anything typed into a field is remembered as touched, and a
+later re-paste will not overwrite it. Only still-empty fields get filled. Anything
+the paste didn't cover stays blank and is flagged by the same missing-field check
+as before — autofill removes typing, not the review.

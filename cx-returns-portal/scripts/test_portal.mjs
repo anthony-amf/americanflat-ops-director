@@ -266,6 +266,60 @@ Landon Beard needs WB2436LWOODPC x 2 and LEDGE_BK14_3PK x 1 replaced.`);
   else { pass++; console.log('   [ok] leads the tabs, stops at Notes, one row per SKU'); }
 }
 
+// Step 3 fills itself from the paste. Two shapes turn up in practice: a Shopify
+// address block on separate lines, and a comma run typed into a ticket.
+{
+  const shapes = [
+    ['comma run', `Shopify order #24235 damaged in transit. WB2436PBRASSPC x 1, loose unit.
+Sarah Imler, 6126 Three Cedars Lane, Fredericksburg Virginia 22407, United States, +15408483483`,
+     { shipName:'Sarah Imler', address1:'6126 Three Cedars Lane', city:'Fredericksburg',
+       stateRegion:'VA', postal:'22407', country:'US', channel:'Shopify', reason:'Damaged in Transit' }],
+    ['address block', `Order #23280 — wrong item sent, Shopify. WB2436LWOODPC x 2
+Landon Beard
+17704 Knox Farm Rd
+Edmond OK 73012
+United States
+501-281-0258
+landon.k.beard@gmail.com`,
+     { shipName:'Landon Beard', address1:'17704 Knox Farm Rd', city:'Edmond', stateRegion:'OK',
+       postal:'73012', country:'US', email:'landon.k.beard@gmail.com', channel:'Shopify',
+       reason:'Wrong Item Sent' }],
+    ['apartment line', `Shopify #22397, frame arrived broken. MW1114WH57 x 1
+Sarah Whitfield
+1842 Larkin St
+Apt 4
+San Francisco, CA 94109`,
+     { shipName:'Sarah Whitfield', address1:'1842 Larkin St', address2:'Apt 4',
+       city:'San Francisco', stateRegion:'CA', postal:'94109' }],
+  ];
+
+  console.log('\n=== Step 3 autofill ===');
+  const problems = [];
+  for (const [label, paste, want] of shapes) {
+    await page.click('#reset');
+    await page.fill('#paste', paste);
+    await page.waitForTimeout(300);
+    for (const [field, expected] of Object.entries(want)) {
+      const got = await page.evaluate(f => {
+        const e = document.getElementById('f-' + f);
+        return e ? (e.value ?? '') : '(field not rendered)';
+      }, field);
+      if (got !== expected) problems.push(label + ': ' + field + ' = ' + JSON.stringify(got) + ', wanted ' + JSON.stringify(expected));
+    }
+  }
+
+  // A hand edit must survive a re-parse, or corrections get clobbered.
+  await page.fill('#f-city', 'Manassas');
+  await page.waitForTimeout(120);
+  await page.fill('#paste', 'Shopify order #24235. Sarah Imler, 6126 Three Cedars Lane, Fredericksburg Virginia 22407, US');
+  await page.waitForTimeout(300);
+  const city = await page.evaluate(() => document.getElementById('f-city').value);
+  if (city !== 'Manassas') problems.push('a hand-edited field was overwritten by a re-parse: ' + city);
+
+  if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
+  else { pass++; console.log('   [ok] name, street, city, state, zip, country, phone, email, channel, reason'); }
+}
+
 console.log('\n\n==== ' + pass + ' passed, ' + fail + ' failed ====');
 if (errors.length) console.log('JS ERRORS:\n' + errors.join('\n'));
 else console.log('no JS errors');

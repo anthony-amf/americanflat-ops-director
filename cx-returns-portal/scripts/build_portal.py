@@ -535,6 +535,9 @@ function findWarehouse(t, order) {
 
 function suggestCase(t) {
   if (/\b(cancel|no longer needed|found it|turned up|arrived after all)\b/i.test(t)) return 'cancel';
+  // Wrong item is one of the sheet's three reasons and always needs a replacement,
+  // so it opens on the row rather than falling through to no case at all.
+  if (/\b(wrong|incorrect)\s+(item|product|sku|frame|colou?r|size|one)|sent the wrong|not what (i|they|she|he) ordered/i.test(t)) return 'reship';
   if (/\b(damaged|broken|shattered|cracked|smashed|dented)\b/i.test(t)) return 'damaged';
   if (/(partially fulfilled|still unfulfilled|unfulfilled \(|balance of the order|rest was never shipped|never shipped the rest)/i.test(t)) return 'balance';
   if (/\b(missing|short|incomplete|only received|not received in full|came up short)\b/i.test(t)) return 'missing';
@@ -564,6 +567,10 @@ function parse(text) {
     customer: findName(t),
     warehouse: findWarehouse(t, order),
     suggested: suggestCase(t),
+    address: parseAddress(t),
+    channel: parseChannel(t, findMarketplace(t)),
+    reason: parseReason(t),
+    packMode: parsePickMode(t),
     hasReplacement: !!rs || /replacement[\s\S]{0,30}(already )?(placed|created|opened|raised)/i.test(t),
     pii: findPII(t),
   };
@@ -764,6 +771,152 @@ function missingFields(wh) {
     gaps.push('The draft still has a blank in it — fill the fields above.');
   }
   return gaps;
+}
+
+
+/* ---------- address & replacement-field parsing ---------------------- */
+/* Pulls the ship-to block out of whatever CX pasted. Handles the two shapes
+   that actually turn up: a Shopify address block on separate lines, and a
+   comma-run typed into a ticket. Both reduce to the same segment list. */
+
+const US_STATES = {
+  'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA','colorado':'CO',
+  'connecticut':'CT','delaware':'DE','district of columbia':'DC','florida':'FL','georgia':'GA',
+  'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA','kansas':'KS','kentucky':'KY',
+  'louisiana':'LA','maine':'ME','maryland':'MD','massachusetts':'MA','michigan':'MI','minnesota':'MN',
+  'mississippi':'MS','missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV','new hampshire':'NH',
+  'new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC','north dakota':'ND',
+  'ohio':'OH','oklahoma':'OK','oregon':'OR','pennsylvania':'PA','rhode island':'RI',
+  'south carolina':'SC','south dakota':'SD','tennessee':'TN','texas':'TX','utah':'UT','vermont':'VT',
+  'virginia':'VA','washington':'WA','west virginia':'WV','wisconsin':'WI','wyoming':'WY',
+};
+const STATE_CODES = new Set(Object.values(US_STATES));
+
+const STREET_WORD = /\b(st|street|rd|road|ave|avenue|dr|drive|ln|lane|blvd|boulevard|ct|court|cir|circle|way|pl|place|ter|terrace|pkwy|parkway|hwy|highway|trl|trail|loop|run|path|row|sq|square)\b\.?$/i;
+const UNIT_WORD = /^(apt|apartment|ste|suite|unit|#|bldg|building|fl|floor|rm|room)\b/i;
+
+function segments(t) {
+  // Newlines and commas both separate fields in the wild; treat them the same.
+  return (t || '').split(/\n|,/).map(x => x.trim()).filter(Boolean);
+}
+
+function parseAddress(t) {
+  const out = { shipName:'', address1:'', address2:'', city:'', stateRegion:'',
+                postal:'', country:'', phone:'', email:'' };
+  const segs = segments(t);
+
+  // Email — never ours or a warehouse's.
+  const em = (t || '').match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || [];
+  const theirs = em.find(e => !/americanflat\.com|yusen-logistics|tpservices|bnl\./i.test(e));
+  if (theirs) out.email = theirs;
+
+  // Phone — 10 digits, optionally +1 and any separators.
+  const ph = (t || '').match(/(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}\b/);
+  if (ph) {
+    const digits = ph[0].replace(/\D/g, '');
+    // A 10-digit run inside a longer number is a tracking number, not a phone.
+    if (digits.length === 10 || (digits.length === 11 && digits[0] === '1')) out.phone = ph[0].trim();
+  }
+
+  // Country.
+  if (/\b(united states|u\.?s\.?a\.?|^us$)\b/i.test(t)) out.country = 'US';
+  else if (/\bcanada\b/i.test(t)) out.country = 'CA';
+
+  // State + postal. Try "VA 22407" and "Virginia 22407" and a bare ZIP.
+  let stateIdx = -1;
+  for (let i = 0; i < segs.length; i++) {
+    const seg = segs[i];
+    let m = seg.match(/\b([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b/);
+    if (m && STATE_CODES.has(m[1])) {
+      out.stateRegion = m[1]; out.postal = m[2]; stateIdx = i;
+      const before = seg.slice(0, m.index).trim();
+      if (before) out.city = before;
+      break;
+    }
+    m = seg.match(new RegExp('\\b(' + Object.keys(US_STATES).join('|') + ')\\s+(\\d{5}(?:-\\d{4})?)\\b', 'i'));
+    if (m) {
+      out.stateRegion = US_STATES[m[1].toLowerCase()]; out.postal = m[2]; stateIdx = i;
+      const before = seg.slice(0, m.index).trim();
+      if (before) out.city = before;
+      break;
+    }
+  }
+  if (!out.stateRegion) {
+    // "Edmond, OK, 73012" — city, state and ZIP split across segments.
+    for (let i = 0; i < segs.length; i++) {
+      const code = segs[i].toUpperCase();
+      if (STATE_CODES.has(code) && /^\d{5}(-\d{4})?$/.test(segs[i + 1] || '')) {
+        out.stateRegion = code; out.postal = segs[i + 1]; stateIdx = i;
+        if (i > 0) out.city = segs[i - 1];
+        break;
+      }
+    }
+  }
+  if (!out.city && stateIdx > 0) out.city = segs[stateIdx - 1];
+
+  // Street lines — a leading house number, or a street-suffix word.
+  const streets = [];
+  for (let i = 0; i < segs.length; i++) {
+    if (i === stateIdx) continue;
+    const seg = segs[i];
+    if (seg === out.city) continue;
+    if (/^\d+\s+\S/.test(seg) || STREET_WORD.test(seg) || UNIT_WORD.test(seg)) streets.push({ i, seg });
+  }
+  for (const { seg } of streets) {
+    if (UNIT_WORD.test(seg) && out.address1) { if (!out.address2) out.address2 = seg; }
+    else if (!out.address1) out.address1 = seg;
+    else if (!out.address2) out.address2 = seg;
+  }
+
+  // Name — the segment before the first street line, if it reads like a person.
+  const firstStreet = streets.length ? streets[0].i : -1;
+  const looksLikeName = x => /^[A-Z][a-z'’\-]+(?:\s+[A-Z][a-zA-Z'’\-.]+){1,3}$/.test(x) &&
+                             !STREET_WORD.test(x) && !/\d/.test(x);
+  if (firstStreet > 0) {
+    for (let i = firstStreet - 1; i >= 0; i--) {
+      if (looksLikeName(segs[i])) { out.shipName = segs[i]; break; }
+    }
+  }
+  if (!out.shipName) {
+    const labelled = (t || '').match(/(?:customer|ship\s*to|recipient|name)\s*[:\-]\s*([A-Z][a-z'’\-]+(?:\s+[A-Z][a-zA-Z'’\-.]+){1,3})/i);
+    if (labelled) out.shipName = labelled[1].trim();
+  }
+  return out;
+}
+
+/* The pick instruction is often in the paste; it decides what the warehouse does. */
+function parsePickMode(t) {
+  if (/\b(loose|individual|single)\s*(unit|units|piece|pieces|item|items)?\b|piece[- ]?pick|do not send a (full|whole) case/i.test(t || '')) return 'units';
+  if (/\b(full|whole|sealed|master)\s*(case|carton)|full case pick/i.test(t || '')) return 'carton';
+  return '';
+}
+
+/* Channel must be one of the sheet's values — the automation resolves a store
+   from it — so map what was read rather than passing prose through. */
+function parseChannel(t, marketplace) {
+  const names = (SHEET.channels || []).map(c => c.channel);
+  const direct = names.find(n => new RegExp('\\b' + n.replace(/[^A-Za-z]/g, '') + '\\b', 'i').test(t || ''));
+  if (direct) return direct;
+  const m = (marketplace || '').toLowerCase();
+  if (/shopify/.test(m)) return 'Shopify';
+  if (/walmart/.test(m)) return 'Walmart';
+  if (/macy/.test(m)) return 'Macys';
+  if (/kohl/.test(m)) return 'Kohls';
+  if (/michael/.test(m)) return 'Michaels';
+  if (/wayfair/.test(m)) return 'Wayfair';
+  if (/faire/.test(m)) return 'Faire';
+  if (/target|etsy|ebay|amazon|overstock/.test(m)) {
+    return names.find(n => m.includes(n.toLowerCase())) || 'Other';
+  }
+  return '';
+}
+
+/* Reason likewise — only the values the sheet already uses. */
+function parseReason(t) {
+  const s = t || '';
+  if (/\b(wrong|incorrect)\s+(item|product|sku|frame|colou?r|size)|sent the wrong|not what (i|they) ordered\b/i.test(s)) return 'Wrong Item Sent';
+  if (/\b(damag|broken|shatter|crack|smash|dent|bent|scratch)/i.test(s)) return 'Damaged in Transit';
+  return '';
 }
 
 /* ---------- the Replacements sheet row -------------------------------- */
@@ -1052,9 +1205,14 @@ function renderReadout(p) {
   if (p.order) bits.push('order ' + p.order);
   if (p.rs) bits.push('replacement ' + p.rs);
   if (p.customer) bits.push(p.customer);
-  if (p.marketplace) bits.push(p.marketplace);
+  if (p.marketplace && p.marketplace !== p.channel) bits.push(p.marketplace);
   if (p.skus.length) bits.push(p.skus.length + ' SKU' + (p.skus.length > 1 ? 's' : ''));
   if (p.tracking) bits.push(p.carrier + ' ' + p.tracking);
+  if (p.address.shipName) bits.push(p.address.shipName);
+  if (p.address.city && p.address.stateRegion) bits.push(p.address.city + ' ' + p.address.stateRegion);
+  if (p.channel) bits.push(p.channel);
+  if (p.packMode) bits.push(p.packMode === 'units' ? 'loose units' : 'full carton');
+  if (p.reason) bits.push(p.reason);
 
   host.className = 'flag quiet';
   if (p.pii.length) {
@@ -1100,6 +1258,15 @@ function render(skipFields) {
   if (p.skus.length && !state.touched.has('skus')) {
     state.skus = p.skus.map(s => s.sku + (s.qty ? ' x ' + s.qty : '')).join('\n');
   }
+  // Ship-to block, channel and reason — same rule: fill only what has not been
+  // edited by hand, so a correction is never clobbered by a re-parse.
+  for (const k of ['shipName', 'address1', 'address2', 'city', 'stateRegion',
+                   'postal', 'country', 'phone', 'email']) {
+    adopt(k, p.address[k]);
+  }
+  adopt('channel', p.channel);
+  adopt('reason', p.reason);
+  adopt('packMode', p.packMode);
   if (p.hasReplacement && !state.touched.has('hasReplacement')) state.hasReplacement = true;
   if (!state.caseType && p.suggested) state.caseType = p.suggested;
 

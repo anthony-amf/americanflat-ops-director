@@ -34,7 +34,7 @@ The Zendesk ticket alone will always read like a short-ship.
 | "Missing items / came up short", order **Partially fulfilled** | Unshipped balance | No investigation — nothing was mis-picked |
 | "Never arrived", tracking shows delivered | Tracking verification | Carrier claim, not a WH issue, if the scan is clean |
 | "Never arrived", tracking never scanned | Tracking verification | The package likely never left — WH issue |
-| "Wrong item" | Missing units verification, reworded | Ask what SKU was physically picked |
+| "Wrong item" | **Replacement row**, reason `Wrong Item Sent` | Missing units verification if you also want to know what was picked |
 | "I want to return it" | Nothing to the WH yet | Wait for the return to land, then Return disposition |
 | Return landed at WH, they're asking | Return disposition | Decide restock vs. discard before replying |
 | Customer found the original | Cancel replacement | Immediately, if the RS hasn't shipped |
