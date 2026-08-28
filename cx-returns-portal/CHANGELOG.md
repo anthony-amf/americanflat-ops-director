@@ -2,6 +2,30 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [0.2.0] - 2026-08-28
+
+### Changed
+- **Replacements now go into the Replacements tab of the replacements sheet**
+  rather than being created directly in ShipStation. An automation that already
+  existed reads that tab and creates the order, so this skill no longer connects to
+  ShipStation at all — and needs no ShipStation credentials.
+- The portal's second output tab emits a 22-column tab-separated row matching the
+  live sheet, with the four automation-owned columns left empty and shown greyed.
+  Channel is constrained to the sheet's own values, because the automation resolves
+  a ShipStation store from it.
+
+### Removed
+- The direct ShipStation path — order creation, the read-only probe, the CSV
+  fallback, and the environment/egress write-ups — moved to `retired/`, not
+  deleted. Nothing live refers to them; `retired/README.md` says what each is still
+  good for.
+
+### Kept
+- `scripts/confirm_940.py`, which matters more now, not less: the sheet reaching
+  `CREATED` means ShipStation accepted the order, not that the 3PL was told. Only
+  the EDI 940 shows that, and the order is now created by something this skill
+  cannot see.
+
 ## [0.1.0] - 2026-08-27
 
 ### Added

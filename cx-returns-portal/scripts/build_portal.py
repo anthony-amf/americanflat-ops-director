@@ -20,7 +20,7 @@ from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 ROUTING = SKILL_DIR / "references" / "routing.json"
-CSV_CONFIG = SKILL_DIR / "references" / "shipstation-csv.json"
+SHEET_CONFIG = SKILL_DIR / "references" / "replacements-sheet.json"
 WAREHOUSE_DOC = SKILL_DIR / "references" / "warehouses.md"
 PLAYBOOK_DOC = SKILL_DIR / "references" / "playbook.md"
 TEMPLATES_DOC = SKILL_DIR / "references" / "templates.md"
@@ -59,11 +59,11 @@ def check_drift(routing: dict) -> list:
     return warnings
 
 
-def build(routing: dict, csv_config: dict) -> str:
+def build(routing: dict, sheet: dict) -> str:
     # The template carries literal braces (CSS, JS), so substitute rather than format.
     return (TEMPLATE
             .replace("__ROUTING_JSON__", json.dumps(routing, indent=2))
-            .replace("__CSV_CONFIG_JSON__", json.dumps(csv_config, indent=2)))
+            .replace("__SHEET_JSON__", json.dumps(sheet, indent=2)))
 
 
 TEMPLATE = r"""<title>Returns Desk</title>
@@ -249,6 +249,7 @@ textarea#paste::placeholder { color:var(--text-muted); }
 .csvtable th { font-weight:700; color:var(--text-muted); background:var(--surface-sunk); position:sticky; top:0; }
 .csvtable td { font-variant-numeric:tabular-nums; }
 .csvtable tr:last-child td { border-bottom:0; }
+.csvtable th.script-owned, .csvtable td.script-owned { color:var(--text-muted); background:var(--surface-sunk); font-style:italic; }
 
 .bar { display:flex; gap:var(--s2); flex-wrap:wrap; align-items:center; }
 button.act {
@@ -301,7 +302,7 @@ footer.foot {
       <h1>Returns Desk</h1>
     </div>
     <p>Paste what the customer sent, pick the case, and get either the warehouse
-       email or a ShipStation CSV that places the replacement.
+       email, or the row to paste into the Replacements sheet.
        Nothing you paste leaves this page.</p>
   </header>
 
@@ -335,7 +336,7 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
       <div class="block">
         <div class="tabs" id="tabs" role="tablist" aria-label="Output">
           <button type="button" id="tab-email" role="tab" aria-selected="true">Warehouse email</button>
-          <button type="button" id="tab-csv" role="tab" aria-selected="false">ShipStation CSV</button>
+          <button type="button" id="tab-csv" role="tab" aria-selected="false">Replacement row</button>
         </div>
       </div>
 
@@ -354,7 +355,7 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
       </div>
 
       <div class="block" id="pane-csv" hidden>
-        <p class="eyebrow">ShipStation order import</p>
+        <p class="eyebrow">Replacements tab row</p>
         <div class="csvwrap">
           <div class="hd"><span id="csv-title">Replacement order</span><span id="csv-rows"></span></div>
           <div class="csvtable" id="csv-preview"></div>
@@ -367,8 +368,8 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
       <div class="bar">
         <button class="act" id="copy-all" type="button">Copy email</button>
         <button class="act ghost" id="copy-rcpt" type="button">Copy recipients</button>
-        <button class="act" id="save-csv" type="button" hidden>Save CSV</button>
-        <button class="act ghost" id="copy-csv" type="button" hidden>Copy CSV</button>
+        <button class="act" id="copy-row" type="button" hidden>Copy row</button>
+        <button class="act ghost" id="open-sheet" type="button" hidden>Open sheet</button>
         <button class="act ghost" id="reset" type="button">Clear</button>
         <span id="status" role="status" aria-live="polite" style="font-size:.8125rem;color:var(--text-muted)"></span>
       </div>
@@ -391,10 +392,10 @@ MW0808WH44 x 1 and MW1114WH57 x 2. Tracking 525499496652."></textarea>
 
 <script>
 const ROUTING = __ROUTING_JSON__;
-const CSVCFG = __CSV_CONFIG_JSON__;
+const SHEET = __SHEET_JSON__;
 
-/* Cases that create a shipment. Everything else is a question, which a CSV
-   cannot ask, so those stay as warehouse emails. */
+/* Cases that put a replacement into the sheet. Everything else asks the warehouse
+   a question, which a spreadsheet row cannot do, so those stay as emails. */
 const CSV_CASES = new Set(['reship', 'damaged']);
 
 /* ---------- parsing -------------------------------------------------- */
@@ -577,7 +578,7 @@ const state = {
   hasReplacement: false, outputMode: 'email',
   shipName: '', shipCompany: '', address1: '', address2: '',
   city: '', stateRegion: '', postal: '', country: 'US', phone: '',
-  reason: '', ticket: '',
+  reason: '', ticket: '', channel: '', email: '', submittedBy: '', notes: '',
   touched: new Set(),
 };
 
@@ -765,19 +766,23 @@ function missingFields(wh) {
   return gaps;
 }
 
-/* ---------- ShipStation CSV ------------------------------------------ */
-/* Mirrors scripts/build_reship_csv.py. Both read references/shipstation-csv.json,
-   so a corrected header only has to be fixed in one place. */
+/* ---------- the Replacements sheet row -------------------------------- */
+/* Emits one tab-separated row per column in references/replacements-sheet.json,
+   in order, for pasting into the next empty row of the Replacements tab. Tabs
+   are what make a paste land across columns, so any tab or newline inside a
+   value has to go. */
 
-function csvEscape(v) {
-  const s = v === undefined || v === null ? '' : String(v);
-  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+function cellSafe(v) {
+  return String(v === undefined || v === null ? '' : v)
+    .replace(/[\t\r\n]+/g, ' ')
+    .trim();
 }
 
-function today() {
+function stamp() {
   const d = new Date();
   const p = n => String(n).padStart(2, '0');
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+         ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
 }
 
 function skuPairs(raw) {
@@ -788,97 +793,100 @@ function skuPairs(raw) {
   });
 }
 
-function csvNotes() {
-  const bits = ['Replacement for #' + (state.order || '(order #)')];
-  if (state.reason) bits.push(state.reason);
-  if (state.ticket) bits.push('Zendesk ' + state.ticket);
+function sheetNotes() {
+  const bits = [];
+  if (state.order) bits.push('Replacement for #' + state.order);
   bits.push(state.packMode === 'units'
     ? 'Loose-unit pick - individual units only'
     : 'PICK AS SEALED MASTER CARTON - do not split');
-  bits.push('No charge - replacement, do not invoice');
+  if (state.ticket) bits.push('Zendesk ' + state.ticket);
+  if (state.notes) bits.push(state.notes);
   return bits.join(' | ');
 }
 
-function csvRows() {
-  const d = CSVCFG.defaults || {};
+/* One row per SKU, order-level fields repeated. The live tab has a single SKU
+   and Qty column and only one example row, so a multi-SKU replacement's shape
+   there is unconfirmed — see references/replacements-sheet.md. */
+function sheetRows() {
+  const at = stamp();
   const shared = {
-    order_number: state.rs || ((state.order || '') && state.order + 'RS'),
-    order_date: today(),
-    order_status: d.order_status || 'awaiting_shipment',
-    shipping_service: d.shipping_service || '',
-    ship_name: state.shipName,
-    ship_company: state.shipCompany,
+    order: state.order,
+    channel: state.channel,
+    reason: state.reason,
+    shipName: state.shipName,
+    company: state.company,
     address1: state.address1,
     address2: state.address2,
     city: state.city,
-    state: state.stateRegion,
+    stateRegion: state.stateRegion,
     postal: state.postal,
-    country: state.country || d.country || 'US',
+    country: state.country || SHEET.settings.default_country,
     phone: state.phone,
-    unit_price: d.unit_price || '0.00',
-    notes: csvNotes(),
+    email: state.email,
+    notes: sheetNotes(),
+    status: '', ssOrder: '', orderKey: '', message: '',
+    submittedBy: state.submittedBy,
+    submittedAt: at,
   };
-  return skuPairs(state.skus).map(it =>
-    Object.assign({}, shared, { sku: it.sku, item_name: '', qty: it.qty }));
+  const pairs = skuPairs(state.skus);
+  if (!pairs.length) return [Object.assign({}, shared, { sku: '', qty: '' })];
+  return pairs.map(it => Object.assign({}, shared, { sku: it.sku, qty: it.qty }));
 }
 
-function csvText(rows) {
-  const cols = CSVCFG.columns;
-  const lines = [cols.map(c => csvEscape(c.header)).join(',')];
-  for (const r of rows) lines.push(cols.map(c => csvEscape(r[c.field])).join(','));
-  return lines.join('\r\n') + '\r\n';
+function sheetText(rows) {
+  const cols = SHEET.columns;
+  return rows.map(r => cols.map(c => cellSafe(r[c.field])).join('\t')).join('\n');
 }
 
-function csvFilename() {
-  const n = (state.rs || state.order || 'reship').replace(/[^A-Za-z0-9-]/g, '');
-  return 'shipstation-' + (n || 'reship') + '.csv';
-}
-
-function renderCsv(rows) {
-  const cols = CSVCFG.columns;
+function renderSheet(rows) {
+  const cols = SHEET.columns;
   const host = $('csv-preview');
-  const head = '<tr>' + cols.map(c => '<th>' + c.header + '</th>').join('') + '</tr>';
+  const head = '<tr>' + cols.map(c =>
+    '<th' + (c.owner === 'script' ? ' class="script-owned"' : '') + '>' + c.header + '</th>').join('') + '</tr>';
   const body = rows.map(r => '<tr>' + cols.map(c => {
-    const v = r[c.field] === undefined || r[c.field] === null ? '' : String(r[c.field]);
-    const cell = v.length > 42 ? v.slice(0, 42) + '…' : v;
-    return '<td>' + cell.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td>';
+    const v = cellSafe(r[c.field]);
+    const cell = v.length > 30 ? v.slice(0, 30) + '…' : v;
+    return '<td' + (c.owner === 'script' ? ' class="script-owned"' : '') + '>' +
+           cell.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td>';
   }).join('') + '</tr>').join('');
-  host.innerHTML = '<table>' + head + (body || '') + '</table>';
-  $('csv-rows').textContent = rows.length + (rows.length === 1 ? ' line item' : ' line items');
-  $('csv-title').textContent = 'Order ' + (rows[0] ? rows[0].order_number : '—');
+  host.innerHTML = '<table>' + head + body + '</table>';
+  $('csv-rows').textContent = rows.length + (rows.length === 1 ? ' row' : ' rows');
 
-  const notes = [];
-  if (!CSVCFG.verified_against_real_import) {
-    notes.push('Headers have not been checked against a real ShipStation import yet — do one test import first.');
-  }
-  notes.push('The picker sees the carton-or-loose instruction in Internal Notes; ShipStation has no field for it.');
-  if (rows.some(r => !r.item_name)) {
-    notes.push('Item Name is blank — this page has no catalogue access and ShipStation matches on SKU. ' +
-      'Run scripts/build_reship_csv.py if you need the names filled from BigQuery.');
+  const ch = (SHEET.channels || []).find(c => c.channel === state.channel);
+  $('csv-title').textContent = ch
+    ? state.channel + ' \u2192 store ' + ch.storeId + ' (' + ch.storeName + ')'
+    : 'Replacements tab';
+
+  const notes = ['Paste into the next empty row of the <strong>Replacements</strong> tab. ' +
+                 'The greyed columns are filled by the automation \u2014 leave them alone.'];
+  if (rows.length > 1) {
+    notes.push('This replacement has ' + rows.length + ' SKUs and emits one row each, ' +
+               'with the order details repeated. Only single-SKU rows exist in the sheet ' +
+               'so far \u2014 worth confirming that is how multi-item replacements are recorded.');
   }
   $('csv-note').innerHTML = notes.join(' ');
 }
 
 function csvGaps() {
   const gaps = [];
-  if (!state.rs && !state.order) gaps.push('Add the order number so the RS number can be built.');
-  const pairs = skuPairs(state.skus);
-  if (!pairs.length) gaps.push('Add the SKUs and quantities being replaced.');
-  else if (pairs.some(p => !p.qty)) gaps.push('Every SKU needs a quantity.');
-  const addr = [
-    [state.shipName, 'the recipient name'],
-    [state.address1, 'address line 1'],
-    [state.city, 'the city'],
-    [state.stateRegion, 'the state'],
-    [state.postal, 'the postal code'],
-  ].filter(([v]) => !String(v || '').trim()).map(([, label]) => label);
-  if (addr.length) {
-    gaps.push('Add ' + addr.join(', ') + ' — copy it from the Shopify order screen, it is not in BigQuery.');
+  const rows = sheetRows();
+  const r = rows[0];
+  const missing = SHEET.columns
+    .filter(c => c.owner === 'form' && c.required)
+    .filter(c => !cellSafe(r[c.field]))
+    .map(c => c.header);
+  // SKU and Qty are per-row, so check every row rather than only the first.
+  if (rows.some(x => !cellSafe(x.qty)) && !missing.includes('Qty')) missing.push('Qty');
+  if (missing.length) gaps.push('Fill in: ' + missing.join(', ') + '.');
+  if (state.channel && !(SHEET.channels || []).some(c => c.channel === state.channel)) {
+    gaps.push('"' + state.channel + '" is not one of the sheet\'s channels — the automation ' +
+              'looks up a store ID from it.');
   }
   return gaps;
 }
 
 /* ---------- rendering ------------------------------------------------ */
+
 
 const $ = id => document.getElementById(id);
 
@@ -1001,8 +1009,14 @@ function renderFields() {
     ]}));
   }
   if (state.outputMode === 'csv' && CSV_CASES.has(state.caseType)) {
+    host.appendChild(field('channel', 'Channel', {
+      options: [['', 'Choose…']].concat((SHEET.channels || []).map(c => [c.channel, c.channel])),
+      need: !state.channel, hint: 'Sets the ShipStation store' }));
+    host.appendChild(field('reason', 'Reason', {
+      options: [['', 'Choose…']].concat((SHEET.reasons_observed || []).map(r => [r, r])),
+      need: !state.reason, hint: 'Values seen in the sheet' }));
     // The street address exists on the Shopify screen and nowhere in BigQuery.
-    host.appendChild(field('shipName', 'Recipient', { placeholder: 'Sarah Whitfield', need: !state.shipName }));
+    host.appendChild(field('shipName', 'Ship to name', { placeholder: 'Sarah Whitfield', need: !state.shipName }));
     host.appendChild(field('address1', 'Address 1', { placeholder: '1842 Larkin St', need: !state.address1 }));
     host.appendChild(field('address2', 'Address 2', { placeholder: 'Apt 4' }));
     host.appendChild(field('city', 'City', { placeholder: 'San Francisco', need: !state.city }));
@@ -1010,8 +1024,11 @@ function renderFields() {
     host.appendChild(field('postal', 'Postal code', { placeholder: '94109', need: !state.postal }));
     host.appendChild(field('country', 'Country', { placeholder: 'US' }));
     host.appendChild(field('phone', 'Phone', { placeholder: 'optional' }));
-    host.appendChild(field('reason', 'Reason', { placeholder: 'damaged on arrival', hint: 'Goes in Internal Notes' }));
-    host.appendChild(field('ticket', 'Zendesk ticket', { placeholder: '#48213', hint: 'Internal notes only' }));
+    host.appendChild(field('email', 'Email', { placeholder: 'optional' }));
+    host.appendChild(field('ticket', 'Zendesk ticket', { placeholder: '#48213', hint: 'Goes into Notes' }));
+    host.appendChild(field('notes', 'Extra notes', { placeholder: 'optional', hint: 'Appended to Notes' }));
+    host.appendChild(field('submittedBy', 'Submitted by', {
+      placeholder: 'you@americanflat.com', need: !state.submittedBy }));
   } else {
     host.appendChild(field('sender', 'Your name', { placeholder: 'Jane Doe', need: !state.sender }));
     host.appendChild(field('title', 'Your title', { placeholder: 'Customer Experience' }));
@@ -1102,8 +1119,8 @@ function render(skipFields) {
   $('pane-csv').hidden = !csvMode;
   $('copy-all').hidden = csvMode;
   $('copy-rcpt').hidden = csvMode;
-  $('save-csv').hidden = !csvMode;
-  $('copy-csv').hidden = !csvMode;
+  $('copy-row').hidden = !csvMode;
+  $('open-sheet').hidden = !csvMode;
 
   $('m-to').textContent = rcpt.to.join(', ') || '—';
   $('m-cc').textContent = rcpt.cc.join(', ') || '—';
@@ -1114,16 +1131,15 @@ function render(skipFields) {
   $('copy-rcpt').disabled = !wh;
 
   if (csvMode) {
-    const rows = csvRows();
-    renderCsv(rows);
-    window.__csv = { text: csvText(rows), filename: csvFilename(), rows: rows.length };
+    const rows = sheetRows();
+    renderSheet(rows);
+    window.__row = { text: sheetText(rows), rows: rows.length };
     const cg = csvGaps();
     renderGaps(cg);
-    $('save-csv').disabled = cg.length > 0;
-    $('copy-csv').disabled = cg.length > 0;
+    $('copy-row').disabled = cg.length > 0;
   } else {
     renderGaps(gaps);
-    window.__csv = null;
+    window.__row = null;
   }
   renderPrompt(wh, subject, body, rcpt);
 
@@ -1169,59 +1185,26 @@ $('copy-prompt').addEventListener('click', () => copy($('claude-prompt').textCon
 
 $('tab-email').addEventListener('click', () => { state.outputMode = 'email'; render(); });
 $('tab-csv').addEventListener('click', () => { state.outputMode = 'csv'; render(); });
-$('copy-csv').addEventListener('click', () => {
-  if (window.__csv) copy(window.__csv.text, 'CSV copied. Paste into a file and import it.');
+$('copy-row').addEventListener('click', () => {
+  if (!window.__row) return;
+  const n = window.__row.rows;
+  copy(window.__row.text,
+       n === 1 ? 'Row copied. Paste into the next empty row of the Replacements tab.'
+               : n + ' rows copied. Paste into the next empty row — they fill downward.');
 });
 
-/* The viewer sandbox makes <a download> inert, so a real save has to go through
-   the downloads capability. It may be absent (page opened outside the viewer) and
-   .csv may not be enabled, so fall back in two steps before giving up. */
-let downloadsNs;
-async function getDownloads() {
-  if (downloadsNs === undefined) {
-    downloadsNs = (window.claude && window.claude.use)
-      ? await window.claude.use('downloads').catch(() => null)
-      : null;
-  }
-  return downloadsNs;
-}
-
-$('save-csv').addEventListener('click', async () => {
-  if (!window.__csv) return;
-  const { text, filename } = window.__csv;
-  const dl = await getDownloads();
-  if (!dl) {
-    await copy(text, 'Saving is not available here — CSV copied instead.');
-    return;
-  }
-  flash('Waiting for you to confirm the save…');
-  try {
-    await dl.save({ filename, data: text });
-    flash('Saved ' + filename + '. Import it in ShipStation.');
-  } catch (e) {
-    const code = e && e.code;
-    if (code === 'declined') { flash('Save cancelled.'); return; }
-    if (code === 'extension_not_enabled' || code === 'rejected_extension') {
-      try {
-        const alt = filename.replace(/\.csv$/, '.txt');
-        await dl.save({ filename: alt, data: text });
-        flash('Saved as ' + alt + ' — rename it to .csv before importing.');
-        return;
-      } catch (e2) {
-        if (e2 && e2.code === 'declined') { flash('Save cancelled.'); return; }
-      }
-    }
-    if (code === 'rate_limited') { flash('Too many save prompts — wait a moment and try again.'); return; }
-    await copy(text, 'Could not save the file — CSV copied instead.');
-  }
+$('open-sheet').addEventListener('click', () => {
+  window.open(SHEET.sheet_url, '_blank', 'noopener');
 });
+
 $('reset').addEventListener('click', () => {
   $('paste').value = '';
   Object.assign(state, { caseType:'', warehouse:'', order:'', rs:'', tracking:'', carrier:'',
     marketplace:'', customer:'', skus:'', deadline:'EOD today', packMode:'carton',
     disposition:'restock', hasReplacement:false, outputMode:'email',
     shipName:'', shipCompany:'', address1:'', address2:'', city:'', stateRegion:'',
-    postal:'', country:'US', phone:'', reason:'', ticket:'' });
+    postal:'', country:'US', phone:'', reason:'', ticket:'', channel:'',
+    email:'', submittedBy:'', notes:'' });
   state.touched = new Set();
   render();
   flash('Cleared.');
@@ -1235,14 +1218,14 @@ render();
 
 def main() -> int:
     routing = json.loads(ROUTING.read_text())
-    csv_config = json.loads(CSV_CONFIG.read_text())
+    sheet = json.loads(SHEET_CONFIG.read_text())
     for w in check_drift(routing):
         print(f"  warning: {w}", file=sys.stderr)
-    if not csv_config.get("verified_against_real_import"):
-        print("  note: ShipStation CSV headers are still unverified "
-              "(references/shipstation-csv.md)", file=sys.stderr)
+    form_cols = [c["header"] for c in sheet["columns"] if c["owner"] == "form"]
+    print(f"  sheet: {len(sheet['columns'])} columns, {len(form_cols)} filled by the form",
+          file=sys.stderr)
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    html = build(routing, csv_config)
+    html = build(routing, sheet)
     OUT.write_text(html)
     print(f"wrote {OUT.relative_to(SKILL_DIR)} ({len(html):,} bytes)")
     return 0

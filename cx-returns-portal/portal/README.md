@@ -27,14 +27,13 @@ artifact people can't find:
 
 - **Warehouse email** — for the cases that ask a question (missing units, unshipped
   balance, tracking, return disposition).
-- **ShipStation CSV** — for the cases that create a shipment (reship, damaged). The
-  file places the replacement order directly, so nobody has to read an email and
-  key it in. Saving goes through the viewer's download prompt; if `.csv` isn't
-  enabled for the view it falls back to `.txt`, and if saving isn't available at
-  all it copies the CSV instead.
+- **Replacement row** — for the cases that create a shipment (reship, damaged).
+  Emits a tab-separated row for the Replacements tab of the replacements sheet;
+  copy it and paste into the next empty row. An automation reads that tab and
+  creates the ShipStation order.
 
-Headers for the CSV live in `../references/shipstation-csv.json` and are **not yet
-validated against a real ShipStation import** — see `../references/shipstation-csv.md`.
+Columns come from `../references/replacements-sheet.json`, read from the live sheet.
+Order is load-bearing — see `../references/replacements-sheet.md`.
 
 ## What it does not do
 

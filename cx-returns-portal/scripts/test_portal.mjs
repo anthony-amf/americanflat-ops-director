@@ -158,58 +158,70 @@ Replacement 22562RS placed. Needs MW1114WH57 x 1 only.`);
   else { pass++; console.log('   [ok] carton and loose-unit variants both correct'); }
 }
 
-// The ShipStation CSV replaces the email for cases that create a shipment, and
-// must stay unavailable for cases that ask the warehouse a question.
+// The Replacements-tab row replaces the email for cases that create a shipment,
+// and must stay unavailable for cases that ask the warehouse a question.
+// Reproduces order 23280, which already exists in the live sheet.
 {
   await page.click('#reset');
-  await page.fill('#paste', `Fontana Shopify order #25402. Customer Sarah Whitfield reports it arrived damaged.
-Replacement 25402RS placed. ALU1114BLK0810 x 1 and VF1114BLK810 x 2 need replacing. Zendesk #48213.`);
+  await page.fill('#paste', `Shopify order #23280 from Fontana. Wrong item sent.
+Customer Landon Beard needs WB2436LWOODPC x 2 replaced.`);
   await page.waitForTimeout(180);
+  await page.evaluate(() => [...document.querySelectorAll('.case')].find(c => c.textContent.includes('Reship')).click());
+  await page.waitForTimeout(150);
 
-  console.log('\n=== ShipStation CSV ===');
+  console.log('\n=== Replacements sheet row ===');
   const problems = [];
-  if (await page.isDisabled('#tab-csv')) problems.push('CSV tab disabled on a damaged case');
+  if (await page.isDisabled('#tab-csv')) problems.push('row tab disabled on a reship');
 
   await page.click('#tab-csv');
   await page.waitForTimeout(150);
-  if (!(await page.isDisabled('#save-csv'))) problems.push('save enabled before an address was entered');
-  if (await page.isVisible('#pane-email')) problems.push('email pane still visible in CSV mode');
-  if (!(await page.isVisible('#pane-csv'))) problems.push('CSV pane not visible in CSV mode');
+  if (!(await page.isDisabled('#copy-row'))) problems.push('copy enabled before the row was complete');
+  if (await page.isVisible('#pane-email')) problems.push('email pane still visible in row mode');
+  if (!(await page.isVisible('#pane-csv'))) problems.push('row pane not visible in row mode');
 
-  for (const [sel, val] of [['#f-shipName', 'Sarah Whitfield'], ['#f-address1', '1842 Larkin St'],
-       ['#f-city', 'San Francisco'], ['#f-stateRegion', 'CA'], ['#f-postal', '94109'],
-       ['#f-reason', 'damaged on arrival'], ['#f-ticket', '#48213']]) {
+  for (const [sel, val] of [['#f-shipName', 'Landon Beard'], ['#f-address1', '17704 Knox Farm Rd'],
+       ['#f-city', 'Edmond'], ['#f-stateRegion', 'OK'], ['#f-postal', '73012'],
+       ['#f-phone', '501-281-0258'], ['#f-email', 'landon.k.beard@gmail.com'],
+       ['#f-submittedBy', 'anthony@americanflat.com']]) {
     await page.fill(sel, val);
     await page.waitForTimeout(60);
   }
-  await page.waitForTimeout(200);
-  if (await page.isDisabled('#save-csv')) problems.push('save still disabled with a complete address');
+  await page.selectOption('#f-channel', 'Shopify');
+  await page.selectOption('#f-reason', 'Wrong Item Sent');
+  await page.waitForTimeout(250);
+  if (await page.isDisabled('#copy-row')) problems.push('copy still disabled with a complete row');
 
-  const csv = await page.evaluate(() => window.__csv && window.__csv.text);
-  const lines = (csv || '').trim().split('\r\n');
-  if (lines.length !== 3) problems.push('expected header + 2 item rows, got ' + lines.length);
-  if (!/^Order Number,/.test(lines[0] || '')) problems.push('header row wrong: ' + lines[0]);
-  if (!lines.slice(1).every(l => l.startsWith('25402RS,'))) problems.push('order-level fields not repeated per item row');
-  if (!/awaiting_shipment/.test(csv || '')) problems.push('order status missing');
-  if (!/,0\.00,/.test(csv || '')) problems.push('replacement not priced at 0.00');
-  if (!/48213/.test(csv || '')) problems.push('ticket reference missing from internal notes');
-  if ((csv || '').split('\r\n').length < 3) problems.push('not CRLF terminated');
+  const row = await page.evaluate(() => window.__row && window.__row.text);
+  const cells = (row || '').split('\t');
 
-  // Saving must degrade, never throw, when the capability is absent.
-  await page.click('#save-csv');
-  await page.waitForTimeout(500);
-  const status = (await page.textContent('#status')).trim();
-  if (!/copied instead/i.test(status)) problems.push('no fallback when downloads capability is absent: ' + status);
+  // Column count and position must match the live tab exactly, or a paste
+  // lands values under the wrong headers.
+  if (cells.length !== 22) problems.push('expected 22 columns, got ' + cells.length);
+  if (cells[0] !== '23280') problems.push('col 1 should be the original order #, got ' + cells[0]);
+  if (cells[1] !== 'Shopify') problems.push('col 2 should be Channel, got ' + cells[1]);
+  if (cells[3] !== 'WB2436LWOODPC') problems.push('col 4 should be SKU, got ' + cells[3]);
+  if (cells[4] !== '2') problems.push('col 5 should be Qty, got ' + cells[4]);
+  if (cells[10] !== 'OK') problems.push('col 11 should be State, got ' + cells[10]);
+  if (cells[12] !== 'US') problems.push('col 13 should default Country to US, got ' + cells[12]);
+  if (cells[19] !== 'anthony@americanflat.com') problems.push('col 20 should be Submitted By, got ' + cells[19]);
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(cells[20])) problems.push('col 21 timestamp malformed: ' + cells[20]);
 
-  // An investigative case cannot be a CSV.
+  // The automation owns these four; the form must never fill them.
+  for (const [i, name] of [[16, 'Status'], [17, 'SS Order #'], [18, 'Order Key'], [21, 'Message']]) {
+    if (cells[i] !== '') problems.push(name + ' should be left for the automation, got ' + cells[i]);
+  }
+
+  // A stray tab or newline in any value would shift every later column.
+  if (cells.some(c => /[\t\r\n]/.test(c))) problems.push('a value contains a tab or newline');
+
+  // An investigative case cannot be a sheet row.
   await page.evaluate(() => [...document.querySelectorAll('.case')].find(c => c.textContent.includes('Missing units')).click());
   await page.waitForTimeout(200);
-  if (!(await page.isDisabled('#tab-csv'))) problems.push('CSV offered for a missing-units investigation');
+  if (!(await page.isDisabled('#tab-csv'))) problems.push('row offered for a missing-units investigation');
   if (!(await page.isVisible('#pane-email'))) problems.push('did not fall back to the email pane');
-  if (await page.isVisible('#pane-csv')) problems.push('CSV pane still showing for an investigative case');
 
   if (problems.length) { fail++; console.log('!! ' + problems.join('\n!! ')); }
-  else { pass++; console.log('   [ok] CSV builds, gates on address, degrades without downloads, hidden for questions'); }
+  else { pass++; console.log('   [ok] 22 columns aligned, automation columns untouched, hidden for questions'); }
 }
 
 console.log('\n\n==== ' + pass + ' passed, ' + fail + ' failed ====');
