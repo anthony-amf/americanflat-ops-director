@@ -1,0 +1,18 @@
+[skill]
+name = "skill-cx-returns-portal"
+version = "0.2.0"
+description = "Turns a customer complaint into the right warehouse action for Americanflat CX — returns, reships and replacements. Reads a pasted ticket or dragged Shopify/Zendesk screenshots into structured fields, classifies the case, routes to the correct 3PL (Fontana, New Jersey, South Carolina, Yusen Canada, Yusen NL), and produces either the house-format warehouse email or a row for the Replacements sheet, which an existing automation turns into a ShipStation order. Confirms via Stedi that the resulting EDI 940 actually reached the warehouse. Never sends anything itself."
+owner = "Anthony Armstrong <anthony@americanflat.com>"
+tier = 1  # read-and-draft: produces a warehouse email for a person to send and a sheet row for a person to paste. Creates nothing itself — the ShipStation order is made by a separate automation reading the sheet. Reads BigQuery and Stedi.
+department = "operations"
+language = "python"
+
+[environment]
+requires_network = true    # Stedi (940/945 confirmation) and BigQuery (order lookup) — both read-only
+requires_secrets = true    # STEDI_API_KEY, for 940 confirmation only. Read from the environment; never a CLI argument, never committed.
+stdlib_only = true         # scripts use only the Python standard library plus curl; the browser tests need playwright-core, which is dev-only
+python = ">=3.9"
+
+[compatibility]
+platforms = ["macos", "linux"]
+providers = ["claude-code"]

@@ -1,0 +1,65 @@
+{
+  "_comment": "Structure of the Replacements tab, read from the live sheet 2026-08-28. The form emits a tab-separated row matching `columns` exactly, in order, for pasting into the next empty row.",
+  "multi_sku": "one row per SKU, order-level fields repeated (confirmed by Anthony, 2026-08-28)",
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1OzF8inTsmtegKUWjWtbLLzdFTuI-Nba26jO8dY8Br9I/edit?gid=1268836353#gid=1268836353",
+  "sheet_id": "1OzF8inTsmtegKUWjWtbLLzdFTuI-Nba26jO8dY8Br9I",
+  "tab": "Replacements",
+  "verified": "2026-08-28",
+
+  "columns": [
+    {"header": "Original Order #", "field": "order",        "owner": "form", "required": true},
+    {"header": "Channel",          "field": "channel",      "owner": "form", "required": true},
+    {"header": "Reason",           "field": "reason",       "owner": "form", "required": true},
+    {"header": "SKU",              "field": "sku",          "owner": "form", "required": true},
+    {"header": "Qty",              "field": "qty",          "owner": "form", "required": true},
+    {"header": "Ship To Name",     "field": "shipName",     "owner": "form", "required": true},
+    {"header": "Company",          "field": "company",      "owner": "form", "required": false},
+    {"header": "Street 1",         "field": "address1",     "owner": "form", "required": true},
+    {"header": "Street 2",         "field": "address2",     "owner": "form", "required": false},
+    {"header": "City",             "field": "city",         "owner": "form", "required": true},
+    {"header": "State",            "field": "stateRegion",  "owner": "form", "required": true},
+    {"header": "Postal Code",      "field": "postal",       "owner": "form", "required": true},
+    {"header": "Country",          "field": "country",      "owner": "form", "required": true},
+    {"header": "Phone",            "field": "phone",        "owner": "form", "required": false},
+    {"header": "Email",            "field": "email",        "owner": "form", "required": false},
+    {"header": "Notes",            "field": "notes",        "owner": "form", "required": false},
+    {"header": "Status",           "field": "status",       "owner": "script", "required": false},
+    {"header": "SS Order #",       "field": "ssOrder",      "owner": "script", "required": false},
+    {"header": "Order Key",        "field": "orderKey",     "owner": "script", "required": false},
+    {"header": "Submitted By",     "field": "submittedBy",  "owner": "script", "required": false},
+    {"header": "Submitted At",     "field": "submittedAt",  "owner": "script", "required": false},
+    {"header": "Message",          "field": "message",      "owner": "script", "required": false}
+  ],
+
+  "_script_owned": "Columns Q onward — Status, SS Order #, Order Key, Submitted By, Submitted At and Message — are written by the automation that reads this tab. The row STOPS at Notes (column P): emitting trailing empty cells would paste blanks over whatever the automation has written there.",
+
+  "channels": [
+    {"channel": "Shopify",   "storeId": 438065, "storeName": "Manual Shopify Orders"},
+    {"channel": "Wayfair",   "storeId": 438064, "storeName": "Manual Wayfair Orders"},
+    {"channel": "Walmart",   "storeId": 438063, "storeName": "Manual Walmart Orders"},
+    {"channel": "Macys",     "storeId": 438069, "storeName": "Manual Macys Orders"},
+    {"channel": "Kohls",     "storeId": 438068, "storeName": "Manual Kohls Orders"},
+    {"channel": "Michaels",  "storeId": 438105, "storeName": "Manual Michaels Orders"},
+    {"channel": "Faire",     "storeId": 438066, "storeName": "Manual Faire Orders"},
+    {"channel": "Overstock", "storeId": 438067, "storeName": "Manual Overstock Orders"},
+    {"channel": "Amazon",    "storeId": 194231, "storeName": "Manual Orders"},
+    {"channel": "Target",    "storeId": 194231, "storeName": "Manual Orders"},
+    {"channel": "Etsy",      "storeId": 194231, "storeName": "Manual Orders"},
+    {"channel": "eBay",      "storeId": 194231, "storeName": "Manual Orders"},
+    {"channel": "Other",     "storeId": 194231, "storeName": "Manual Orders"}
+  ],
+
+  "reasons_observed": [
+    "Wrong Item Sent",
+    "Damaged in Transit",
+    "Other"
+  ],
+  "_reasons_note": "Only these three appear in the live data. The field stays editable so an unseen value is not blocked, but prefer an existing one — a new string may not match whatever the automation expects.",
+
+  "settings": {
+    "default_country": "US",
+    "order_number_prefix": "RPL",
+    "custom_field_1_tag": "REPLACEMENT",
+    "require_second_approver": false
+  }
+}

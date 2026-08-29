@@ -1,0 +1,162 @@
+# Running a reship from a cloud session
+
+**Full path:** `cx-returns-portal/references/cloud-reship-runbook.md`
+
+Ask for it by that path, not by name, and confirm the file exists before starting.
+A session that cannot find it must stop, not substitute. That has already gone
+wrong once: on 2026-08-27 a session given the name rather than the path matched
+`docs/CLOUD-SWEEP-RUNBOOK.md` in a different repo — one word apart, and the Yusen
+invoice validation sweep — and wrote 32 stamps to the production invoice ledger.
+
+Home: `americanflat/Ops`, so the whole ops team can reach it. It was developed in
+`anthony-amf/americanflat-ops-director` on branch `claude/cx-returns-portal-rkliqs`;
+that copy is history, not the source of truth.
+
+
+The decision (Anthony, 2026-08-27) is that reships run from the cloud, not the Mac.
+This is the setup and the handoff.
+
+## One-time environment setup
+
+Both steps are on the environment at **claude.ai/code** → the **cloud icon**
+showing the environment name, in the row above the message box → hover the
+environment → **settings icon**. There is no settings page or direct URL.
+
+### 1. Network access → Custom
+
+In **Allowed domains**, one per line:
+
+```
+ssapi.shipstation.com
+*.frame.claudeusercontent.com
+core.us.stedi.com
+bigquery.googleapis.com
+```
+
+Tick **"Also include default list of common package managers."**
+
+Two things break if you skip them: without `*.frame.claudeusercontent.com`
+sessions can no longer read artifacts (including this project's portal), and
+without the defaults checkbox `Custom` allows *only* the list, cutting off package
+managers and tooling.
+
+### 2. Environment variables
+
+```
+SHIPSTATION_API_KEY=<key>
+SHIPSTATION_API_SECRET=<secret>
+```
+
+Set these in the environment dialog. **Do not paste them into a chat message** —
+that puts them in a transcript.
+
+Known trade-off, accepted deliberately: the docs say cloud environments have no
+secrets store and advise against putting API keys in variables. Anyone with access
+to the environment can read them. Two things reduce the blast radius:
+
+- **Use a ShipStation API key created for this purpose**, not one shared with other
+  systems, so it can be rotated without breaking anything else.
+- **Never echo the variable.** To check it exists, use
+  `[ -n "${SHIPSTATION_API_KEY:-}" ] && echo set || echo missing`.
+  Do **not** use `${SHIPSTATION_API_KEY:-no}` — that prints the value when set, and
+  is exactly how `STEDI_API_KEY` leaked into a transcript on 2026-08-27.
+
+### 3. Start a new session — for the variables only
+
+The two settings behave differently, confirmed on 2026-08-27:
+
+- **Network access applies immediately**, including to sessions already running.
+  Allow-listing the domain moved a live session from `403 Forbidden` on CONNECT to
+  `401` from ShipStation itself, with no restart.
+- **Environment variables do not.** Each session copies them once at startup and
+  never re-reads them, so a session that predates the change sees nothing.
+
+So after setting the credentials, start a fresh session. A session that can reach
+ShipStation but has no key is the `401` state below — reachable, unauthenticated —
+which is easy to mistake for a bad key.
+
+## Verify the setup landed
+
+```bash
+python3 cx-returns-portal/scripts/shipstation_probe.py
+```
+
+| Output | Meaning |
+|---|---|
+| `Tunnel connection failed: 403 Forbidden` | Domain not allowed yet, or session predates the change |
+| `401 unauthorized` | Domain allowed, credentials missing or wrong |
+| Mode line, then stores and warehouses | Working |
+
+On success, commit the `warehouseId` → site mapping into
+`references/shipstation-discovered.json`. That mapping decides which 3PL receives
+the 940 and is the last unverified input.
+
+## Scope, and when to stop
+
+This runbook covers exactly one thing: creating a replacement order and confirming
+it reached the warehouse. It touches ShipStation (create), Stedi (read) and
+BigQuery (read).
+
+**Do not run any other runbook in this repo.** `docs/CLOUD-SWEEP-RUNBOOK.md` and
+`docs/STEDI-NIGHTLY-RUNBOOK.md` belong to the Yusen invoice validator and write to
+the production invoice ledger. If this file is not found, stop and say so — do not
+substitute a similarly named one.
+
+**Never write to BigQuery.** Order lookup is read-only. No stamps, no `paid_at`,
+no validation status.
+
+Stop and report, rather than improvising, if:
+
+- the probe returns `403` — the domain allow-list is not in effect for this session
+- the probe returns `401` — credentials are missing or wrong
+- the probe cannot name a warehouse ID for the target site
+- the order already has an `RS` order in ShipStation
+- ShipStation rejects the create
+
+A rejected create is harmless. A create that succeeds against the wrong warehouse
+ships a real customer's replacement from the wrong building, and there is no undo.
+
+## Running a reship
+
+1. **Look up the order** — `python3 scripts/lookup_order.py <order>` for SKUs and
+   quantities as ordered. The shortfall comes from the customer, not the order.
+2. **Check no RS already exists**, so the API create is not a second shipment.
+3. **Check stock** in `Demand_Planning.Warehouse_Inventory` before choosing a
+   warehouse — routing to a site with zero on hand just stalls.
+4. **Dry run** `create_reship_order.py` and read the payload.
+5. **Send** with `--send --warehouse-id <id>`, typing the order number to confirm.
+6. **Confirm the 940** a few minutes later with `confirm_940.py <order>RS`. No 940
+   means the warehouse never received it, whatever ShipStation shows.
+
+## Live case waiting to run: 24235RS
+
+Verified 2026-08-27, ready once the environment is configured.
+
+| | |
+|---|---|
+| Original order | 24235 — `PAID / FULFILLED`, 2026-08-15 |
+| Item | `WB2436PBRASSPC` × 1 — Epic Poster Frame |
+| Customer | Sarah Imler |
+| Ship to | 6126 Three Cedars Lane, Fredericksburg, VA 22407, US |
+| Phone | +15408483483 |
+| Warehouse | Fontana (Taylored West) — 920 on hand; SC has 0, NJ does not stock it |
+| Pick | Loose unit |
+| New order | 24235RS — confirmed not already in ShipStation |
+
+```bash
+python3 scripts/create_reship_order.py 24235 \
+  --sku "WB2436PBRASSPC:1" \
+  --name "Sarah Imler" \
+  --address1 "6126 Three Cedars Lane" \
+  --city "Fredericksburg" --state VA --postal 22407 --country US \
+  --phone "+15408483483" \
+  --pick units --reason "reship" \
+  --warehouse-id <Fontana, from the probe> \
+  --send
+```
+
+Then `python3 scripts/confirm_940.py 24235RS`.
+
+Note: the payload's field names have not been checked against a real ShipStation
+request. Run the probe first and reconcile them; a rejection is harmless, but a
+create that succeeds with the wrong warehouse is not.

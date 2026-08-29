@@ -1,0 +1,29 @@
+{
+  "_comment": "Verified ShipStation facts. BigQuery-sourced entries are confirmed; warehouses are still UNKNOWN and must come from scripts/shipstation_probe.py (GET /warehouses) before any live send — warehouseId decides which 3PL receives the 940.",
+  "verified": "2026-08-27",
+  "stores": [
+    {"storeId": 438065, "storeName": "Manual Shopify Orders", "use": "Replacement (RS) orders live here", "source": "bigquery shipstation.orders_raw"},
+    {"storeId": 416598, "storeName": "Shopify", "use": "Normal Shopify order sync — do NOT create reships here", "source": "bigquery shipstation.orders_raw"}
+  ],
+  "reship_conventions_observed": {
+    "_comment": "Read off real RS orders, e.g. 24669RS. Our generated payload matches these.",
+    "storeId": 438065,
+    "orderStatus": "awaiting_shipment",
+    "unitPrice": 0.0,
+    "requestedShippingService": null,
+    "orderNumber": "<original>RS"
+  },
+  "warehouses": {
+    "_comment": "UNKNOWN — run scripts/shipstation_probe.py. shipments_raw showed IDs 512455, 93230, 167512, 93228 but that table stopped in Oct 2023 and the IDs are unmapped to sites.",
+    "ids_seen_stale": [512455, 93230, 167512, 93228]
+  },
+  "edi_confirmed": {
+    "_comment": "Manually-created RS orders already produce 940s and receive 945s. Verified live via Stedi 2026-08-27.",
+    "examples": [
+      {"order": "24669RS", "940_to": "Fontana", "945_back": false},
+      {"order": "23742RS", "940_to": "Fontana", "945_back": true},
+      {"order": "24758RS", "940_to": "New Jersey", "945_back": true},
+      {"order": "22347RS", "940_to": "New Jersey", "945_back": true}
+    ]
+  }
+}

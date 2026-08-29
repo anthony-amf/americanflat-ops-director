@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+node_modules/
+# Probe output is committed deliberately (warehouse IDs, no secrets) — see
+# references/shipstation-discovered.json
