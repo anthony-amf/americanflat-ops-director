@@ -24,9 +24,11 @@ Usage:
 """
 
 import argparse
+import csv
 import datetime as dt
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -287,6 +289,144 @@ def norm_status(raw, ship_date):
     return raw.strip().title()
 
 
+# --------------------------------------------------------------------------
+# Parcel charges — what the carrier billed us, keyed by tracking number
+# --------------------------------------------------------------------------
+# No feed carries this: acenda's fulfillment cost is 0.00 on every row and
+# ShipStation's shipment feed (which had shipmentCost) died in Oct 2023. The
+# real number is on the FedEx and Stamps.com invoices, which is why the weekly
+# shipping-cost report matches them to orders by tracking number. Same join here.
+#
+# Four layouts are accepted: the two consolidated Drive sheets, and the raw
+# exports the weekly download drops in the uploads folder.
+COST_LAYOUTS = [
+    # (tracking column, amount column, carrier column or fixed carrier, date column)
+    ("Tracking Number", "Net Charge", "FedEx", "Invoice Date"),               # AMF FedEx Invoices sheet
+    ("Tracking Number", "Amount Paid", ("col", "Carrier"), "Ship Date"),      # AMF Stamps.com Invoices sheet
+    ("Express or Ground Tracking ID", "Net Charge Amount", "FedEx", "Invoice Date"),  # FedEx Billing Online
+    ("Tracking #", "Amount Paid", ("col", "Carrier"), "Ship Date"),           # Stamps.com print history
+]
+
+
+def norm_tracking(value):
+    return re.sub(r"[\s-]", "", str(value or "")).upper()
+
+
+def parse_amount(value):
+    try:
+        return float(str(value).replace("$", "").replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _cost_rows(path):
+    """Yield (tracking, amount, carrier, charge date) from one invoice export."""
+    if path.lower().endswith((".xlsx", ".xls")):
+        rows = _read_xlsx(path)
+    else:
+        with open(path, newline="", encoding="utf-8-sig", errors="replace") as fh:
+            rows = list(csv.DictReader(fh))
+    if not rows:
+        return
+    header = set(rows[0].keys())
+    for tcol, acol, carrier, dcol in COST_LAYOUTS:
+        if tcol in header and acol in header:
+            break
+    else:
+        print("  skipped %s (no tracking/amount columns)" % os.path.basename(path),
+              file=sys.stderr)
+        return
+    for r in rows:
+        tracking = norm_tracking(r.get(tcol))
+        amount = parse_amount(r.get(acol))
+        # The consolidated sheets are several exports stacked, so a repeated
+        # header row shows up as data. A non-numeric amount is that, not a charge.
+        if not tracking or amount is None:
+            continue
+        name = r.get(carrier[1]) if isinstance(carrier, tuple) else carrier
+        yield tracking, amount, norm_carrier(name) or "Other", str(r.get(dcol, "") or "")
+
+
+def _read_xlsx(path):
+    try:
+        from openpyxl import load_workbook
+    except ImportError:
+        sys.exit("openpyxl is needed to read %s — pass the CSV export instead." % path)
+    ws = load_workbook(path, read_only=True, data_only=True).active
+    rows = ws.iter_rows(values_only=True)
+    header = [str(c) if c is not None else "" for c in next(rows)]
+    return [dict(zip(header, r)) for r in rows]
+
+
+def load_costs(paths):
+    """(tracking -> {"cost", "source"}, list of the distinct charge lines).
+
+    Two rules, and both matter:
+
+    1. Charges are SUMMED per tracking number. FedEx bills a shipment again when
+       it re-rates one (a dimensional-weight correction, an address surcharge),
+       and what we pay is the sum of those lines.
+
+    2. A charge is counted ONCE per (tracking, date, amount). The consolidated
+       Drive sheets are weekly exports stacked on top of each other and the
+       downloads overlap, so the same invoice line is physically present two or
+       three times — 4,266 of the FedEx sheet's 7,963 rows are repeats. Summing
+       them raw put Target's FedEx cost per unit at $35.92 against a known ~$13.
+    """
+    files = []
+    for p in paths:
+        if os.path.isdir(p):
+            files += [os.path.join(p, f) for f in sorted(os.listdir(p))
+                      if f.lower().endswith((".csv", ".xlsx", ".xls"))]
+        else:
+            files.append(p)
+    seen, costs, lines, repeats = set(), {}, [], 0
+    for path in files:
+        n = 0
+        for tracking, amount, carrier, date in _cost_rows(path):
+            key = (tracking, date, amount)
+            if key in seen:
+                repeats += 1
+                continue
+            seen.add(key)
+            entry = costs.setdefault(tracking, {"cost": 0.0, "source": carrier})
+            entry["cost"] = round(entry["cost"] + amount, 2)
+            lines.append({"tracking": tracking, "amount": round(amount, 2),
+                          "carrier": carrier, "charge_date": iso_date(date)})
+            n += 1
+        print("  %-46s %6d charges" % (os.path.basename(path)[:46], n), file=sys.stderr)
+    if repeats:
+        print("  %6d repeated invoice lines ignored" % repeats, file=sys.stderr)
+    return costs, lines
+
+
+def iso_date(value):
+    """Invoice dates arrive as 20260202 or 01/05/2026 depending on the export."""
+    v = str(value or "").strip()
+    for fmt in ("%Y%m%d", "%m/%d/%Y", "%Y-%m-%d", "%m/%d/%y"):
+        try:
+            return dt.datetime.strptime(v, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return ""
+
+
+COST_TABLE_SQL = r"""
+SELECT tracking, SUM(amount) AS cost, ANY_VALUE(carrier) AS source
+FROM `%s`
+GROUP BY tracking
+"""
+
+
+def attach_costs(rows, costs):
+    """Put the carrier charge on each order, by its tracking number."""
+    for r in rows:
+        hit = costs.get(norm_tracking(r["tracking"])) if r["tracking"] else None
+        r["ship_cost"] = round(hit["cost"], 2) if hit else None
+        r["cost_source"] = hit["source"] if hit else ""
+    return rows
+
+
 def title_case(name):
     """3PL and marketplace feeds mix ALL CAPS with Mixed Case; even them out."""
     if not name:
@@ -361,7 +501,7 @@ def day_num(iso):
 def encode(rows):
     """Dictionary-encode everything repetitive: 40k orders and 50k line items go
     into the page as arrays of small integers plus one products table."""
-    mkts, carriers, statuses, states, products = [], [], [], [], []
+    mkts, carriers, statuses, states, products, sources = [], [], [], [], [], [""]
     pidx = {}
 
     def idx(pool, val):
@@ -386,27 +526,41 @@ def encode(rows):
             r["city"], idx(states, r["state"]), r["units"], r["skus"],
             idx(carriers, r["carrier"]), r["tracking"], idx(statuses, r["status"]),
             r["value"], items,
+            # null, not 0: no invoice for this shipment is a different fact from a
+            # shipment that cost nothing, and the page has to show them differently.
+            r.get("ship_cost"), idx(sources, r.get("cost_source") or ""),
         ])
     return {"rows": data, "mkt": mkts, "carrier": carriers, "status": statuses,
-            "state": states, "products": products, "epoch": EPOCH.isoformat()}
+            "state": states, "products": products, "source": sources,
+            "epoch": EPOCH.isoformat()}
 
 
 def kpi_block(rows, days):
     dates = sorted(d for d in (r["ship_date"] or r["order_date"] for r in rows) if d)
+    # The window the invoices actually cover, so the page can say so rather than
+    # leaving a half-empty column unexplained.
+    cost_dates = sorted(r["ship_date"] for r in rows
+                        if r.get("ship_cost") is not None and r["ship_date"])
     by_m = {}
     for r in rows:
         m = by_m.setdefault(r["marketplace"],
-                            {"n": 0, "units": 0, "tracked": 0, "shipdate": 0, "value": 0.0})
+                            {"n": 0, "units": 0, "tracked": 0, "shipdate": 0,
+                             "value": 0.0, "costed": 0, "cost": 0.0})
         m["n"] += 1
         m["units"] += r["units"]
         m["value"] = round(m["value"] + r["value"], 2)
         m["tracked"] += 1 if r["tracking"] else 0
         m["shipdate"] += 1 if r["ship_date"] else 0
+        if r.get("ship_cost") is not None:
+            m["costed"] += 1
+            m["cost"] = round(m["cost"] + r["ship_cost"], 2)
     return {
         "n": len(rows), "days": days,
         "date_lo": dates[0] if dates else "", "date_hi": dates[-1] if dates else "",
         "built": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "by_marketplace": by_m,
+        "cost_lo": cost_dates[0] if cost_dates else "",
+        "cost_hi": cost_dates[-1] if cost_dates else "",
     }
 
 
@@ -568,6 +722,8 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .lines td.prod { color: var(--muted); }
   .lines tfoot td { border-top: 1px solid var(--line); font-weight: 700; padding-top: 6px; }
   .lines .vnone { color: var(--muted); font-style: italic; }
+  .linecost { margin: 9px 0 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .linecost b { color: var(--ink); }
 
   .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
   a.link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -626,6 +782,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
         <th data-k="dest" tabindex="0">Destination<span class="arrow">&#9660;</span></th>
         <th data-k="units" class="num" tabindex="0">Units<span class="arrow">&#9660;</span></th>
         <th data-k="value" class="num" tabindex="0">Order value<span class="arrow">&#9660;</span></th>
+        <th data-k="cost" class="num" tabindex="0">Ship cost<span class="arrow">&#9660;</span></th>
         <th data-k="car" tabindex="0">Carrier<span class="arrow">&#9660;</span></th>
         <th data-k="trk" tabindex="0">Tracking<span class="arrow">&#9660;</span></th>
         <th data-k="st" tabindex="0">Status<span class="arrow">&#9660;</span></th>
@@ -654,7 +811,7 @@ const num = n => n.toLocaleString("en-US");
 // Rows arrive as dictionary-encoded arrays (40k+ of them), so unpack once into
 // objects the filter/sort can read by name without re-indexing on every pass.
 const C = {SHIP:0, ORDER:1, MKT:2, NUM:3, CUST:4, CITY:5, STATE:6, UNITS:7, SKUS:8,
-           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13};
+           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15};
 const P = {SKU:0, NAME:1};   // products table
 const L = {P:0, QTY:1, UNIT:2, TOTAL:3};  // one line item
 const iso = d => d < 0 ? "" : new Date(EPOCH + d * DAY).toISOString().slice(0, 10);
@@ -670,6 +827,9 @@ const DATA = RAW.rows.map((r, i) => {
     units: r[C.UNITS], skus: r[C.SKUS],
     car: RAW.carrier[r[C.CAR]] || "", trk: r[C.TRK] || "", st: RAW.status[r[C.ST]],
     value: r[C.VALUE], items: r[C.ITEMS] || [],
+    // null means no invoice found for this tracking number, which is not $0.
+    cost: r[C.COST] == null ? null : r[C.COST],
+    csrc: RAW.source[r[C.CSRC]] || "",
     // One lowercase haystack per row, built once: search stays instant at 40k rows.
     // SKUs are in it (people look up "who bought MW0808DWOOD"); product titles are
     // not — they are long, near-duplicate, and would triple the page's memory.
@@ -708,21 +868,28 @@ function kpiCards(rows) {
   const shipped = rows.filter(r => r.st === "Shipped").length;
   const tracked = rows.filter(r => r.trk).length;
   const units = rows.reduce((a, r) => a + r.units, 0);
-  const mkts = new Set(rows.map(r => r.mkt)).size;
   // Days-to-ship only means anything on rows that carry both dates.
   const spans = rows.filter(r => r.ship >= 0 && r.order >= 0).map(r => r.ship - r.order);
   const avgSpan = spans.length ? (spans.reduce((a, b) => a + b, 0) / spans.length) : null;
   const value = rows.reduce((a, r) => a + r.value, 0);
+  const priced = rows.filter(r => r.cost != null);
+  const cost = priced.reduce((a, r) => a + r.cost, 0);
+  const pricedUnits = priced.reduce((a, r) => a + r.units, 0);
   const cards = [
     {label: "Shipments", value: num(rows.length), sub: rows.length === DATA.length ? "" : "of " + num(DATA.length)},
     {label: "Units", value: num(units)},
     {label: "Order value", value: money0(value),
      sub: rows.length ? money(value / rows.length) + " avg" : ""},
+    {label: "Shipping cost", value: priced.length ? money0(cost) : "\u2014",
+     sub: priced.length ? num(priced.length) + " of " + num(rows.length) + " priced" : "no invoices loaded"},
+    // Not the weekly report's blended CPU: this is only the shipments an invoice
+    // has been matched to, and it excludes nothing the way that report does.
+    {label: "Cost per unit", value: pricedUnits ? money(cost / pricedUnits) : "\u2014",
+     sub: pricedUnits ? "on " + num(pricedUnits) + " priced units" : ""},
     {label: "Shipped", value: num(shipped), sub: "of " + num(rows.length)},
     {label: "With tracking", value: num(tracked), sub: "of " + num(rows.length)},
     {label: "Avg days to ship", value: avgSpan == null ? "\u2014" : avgSpan.toFixed(1),
      sub: spans.length ? "on " + num(spans.length) + " rows" : "no ship dates"},
-    {label: "Marketplaces", value: mkts},
   ];
   document.getElementById("kpis").innerHTML = cards.map(k =>
     '<div class="kpi"><div class="label">' + k.label + '</div>' +
@@ -771,9 +938,17 @@ function filtered() {
     return true;
   });
   rows.sort((a, b) => {
-    if (sortKey === "ship" || sortKey === "order" || sortKey === "units" || sortKey === "value") {
+    if (sortKey === "ship" || sortKey === "order" || sortKey === "units" || sortKey === "value" || sortKey === "cost") {
       // Rows with no ship date sort to the bottom either way &mdash; an empty cell is
       // not "oldest", it's unknown, and burying it keeps the top of the table useful.
+      // An unpriced shipment sorts to the bottom in both directions, like a
+      // missing ship date: "no invoice yet" is unknown, not cheap.
+      if (sortKey === "cost") {
+        if (a.cost == null && b.cost == null) return 0;
+        if (a.cost == null) return 1;
+        if (b.cost == null) return -1;
+        return (a.cost - b.cost) * sortDir;
+      }
       const x = a[sortKey], y = b[sortKey];
       if (sortKey !== "units" && sortKey !== "value") {
         if (x < 0 && y < 0) return 0;
@@ -796,7 +971,8 @@ let shown = PAGE, current = [];
 const expanded = new Set();
 
 function lineRows(r) {
-  if (!r.items.length) return '<p class="vnone" style="margin:0">No line detail on this order.</p>';
+  if (!r.items.length) return '<p class="vnone" style="margin:0">No line detail on this order.</p>' +
+    (r.cost == null ? "" : '<p class="linecost">Carrier charge: <b>' + money(r.cost) + '</b></p>');
   const rows = r.items.map(l => {
     const p = RAW.products[l[L.P]] || ["", ""];
     return '<tr><td class="sku">' + esc(p[P.SKU] || "\u2014") + '</td>' +
@@ -805,12 +981,16 @@ function lineRows(r) {
       '<td class="num">' + money(l[L.UNIT]) + '</td>' +
       '<td class="num">' + money(l[L.TOTAL]) + '</td></tr>';
   }).join("");
+  const costLine = r.cost == null ? "" :
+    '<p class="linecost">Carrier charge: <b>' + money(r.cost) + '</b>' +
+    (r.csrc ? ' (' + esc(r.csrc) + ')' : "") +
+    (r.units ? ' &middot; ' + money(r.cost / r.units) + ' per unit' : "") + '</p>';
   return '<table class="lines"><thead><tr><th>SKU</th><th>Item</th>' +
     '<th class="num">Qty</th><th class="num">Unit</th><th class="num">Line total</th></tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     (r.items.length > 1 ? '<tfoot><tr><td colspan="2"></td><td class="num">' + num(r.units) +
       '</td><td></td><td class="num">' + money(r.value) + '</td></tr></tfoot>' : "") +
-    '</table>';
+    '</table>' + costLine;
 }
 
 function rowHtml(r) {
@@ -839,11 +1019,14 @@ function rowHtml(r) {
     '<td class="dest">' + (r.dest ? esc(r.dest) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td class="num">' + num(r.units) + (r.skus > 1 ? ' <small style="color:var(--muted)">/' + r.skus + '</small>' : "") + '</td>' +
     '<td class="num">' + (r.value ? money(r.value) : '<span class="dash">&mdash;</span>') + '</td>' +
+    '<td class="num">' + (r.cost == null
+      ? '<span class="dash" title="No carrier invoice matched to this tracking number yet">&mdash;</span>'
+      : '<span title="' + esc(r.csrc || "carrier") + ' invoice">' + money(r.cost) + '</span>') + '</td>' +
     '<td>' + (r.car ? esc(r.car) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + trk + '</td>' +
     '<td>' + status + '</td></tr>';
   return open
-    ? main + '<tr class="linedetail"><td colspan="11">' + lineRows(r) + '</td></tr>'
+    ? main + '<tr class="linedetail"><td colspan="12">' + lineRows(r) + '</td></tr>'
     : main;
 }
 
@@ -851,7 +1034,7 @@ function paint(reset) {
   if (reset) { current = filtered(); shown = PAGE; }
   document.getElementById("rows").innerHTML =
     current.slice(0, shown).map(rowHtml).join("") ||
-    '<tr><td colspan="11" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
+    '<tr><td colspan="12" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
   const left = current.length - shown;
   const wrap = document.getElementById("morewrap");
   wrap.hidden = left <= 0;
@@ -882,7 +1065,7 @@ document.querySelectorAll(".mp-table thead th[data-k]").forEach(th => {
   const go = () => {
     const k = th.dataset.k;
     sortDir = sortKey === k ? -sortDir
-      : (k === "ship" || k === "order" || k === "units" || k === "value" ? -1 : 1);
+      : (k === "ship" || k === "order" || k === "units" || k === "value" || k === "cost" ? -1 : 1);
     sortKey = k;
     document.querySelectorAll(".mp-table thead th").forEach(o => o.classList.remove("sorted"));
     th.classList.add("sorted");
@@ -907,12 +1090,17 @@ addEventListener("resize", measureToolbar);
 const gaps = Object.entries(KPI.by_marketplace)
   .filter(([, v]) => v.n > 0 && v.shipdate / v.n < 0.05)
   .map(([k]) => k);
-document.getElementById("gapnote").innerHTML = gaps.length
+const costNote = KPI.cost_lo
+  ? " <b>Ship cost</b> is the carrier's own invoice, matched by tracking number, and currently covers shipments from " +
+    fmtDate(KPI.cost_lo) + " to " + fmtDate(KPI.cost_hi) +
+    " &mdash; FedEx and Stamps.com bill weeks in arrears, so recent shipments show a dash until their invoice lands."
+  : " <b>Ship cost</b> is empty: no carrier invoices were loaded into this build.";
+document.getElementById("gapnote").innerHTML = (gaps.length
   ? "<b>Known gap:</b> " + gaps.join(" and ") + " rows carry no ship date or tracking number. " +
     "Those orders come from ShipStation, whose <i>shipment</i> feed stopped loading into BigQuery in October 2023 &mdash; " +
-    "the order, customer and destination are current, the label is not. Target and Macy's are complete."
-  : "";
-document.getElementById("gapnote").hidden = !gaps.length;
+    "the order, customer and destination are current, the label is not. Target and Macy's are complete. " +
+    "With no tracking number there is nothing to match a carrier invoice to, so they carry no ship cost either."
+  : "") + costNote;
 
 document.getElementById("foot").innerHTML =
   "<p>Built " + esc(KPI.built) + " from <code>acenda</code>, <code>macys</code> and <code>shipstation</code> in BigQuery &mdash; " +
@@ -941,6 +1129,15 @@ def main():
     ap.add_argument("--out", default="marketplace_shipments.html",
                     help="HTML output path")
     ap.add_argument("--ndjson", help="also write newline-delimited JSON for a BigQuery load")
+    ap.add_argument("--costs", nargs="*", default=[], metavar="PATH",
+                    help="FedEx / Stamps.com invoice exports (files or a folder) to "
+                         "price the shipments by tracking number")
+    ap.add_argument("--costs-ndjson", metavar="PATH",
+                    help="write the parsed, de-duplicated charges as newline-delimited "
+                         "JSON for loading into marketplaces.parcel_charges")
+    ap.add_argument("--cost-table", metavar="TABLE",
+                    help="BigQuery table of parcel charges (tracking, amount, carrier), "
+                         "e.g. americanflat.marketplaces.parcel_charges")
     ap.add_argument("--source", choices=["feeds", "ledger"], default="feeds",
                     help="feeds = the live marketplace tables (default); "
                          "ledger = marketplaces.marketplace_shipments, once it exists")
@@ -951,6 +1148,32 @@ def main():
     token = access_token(args.auth)
     print("Querying BigQuery for the last %d days…" % args.days, file=sys.stderr)
     rows = normalize(query(build_sql(args.days, args.source), token))
+
+    costs, charge_lines = {}, []
+    if args.costs:
+        print("Reading parcel charges:", file=sys.stderr)
+        costs, charge_lines = load_costs(args.costs)
+    if args.cost_table:
+        for r in query(COST_TABLE_SQL % args.cost_table, token):
+            costs[norm_tracking(r["tracking"])] = {"cost": float(r["cost"] or 0),
+                                                   "source": r["source"] or "Other"}
+    attach_costs(rows, costs)
+    if args.costs_ndjson:
+        today = dt.date.today().isoformat()
+        with open(args.costs_ndjson, "w") as fh:
+            for line in charge_lines:
+                fh.write(json.dumps(dict(line, loaded_at=today)) + "\n")
+        print("  %s: %d charge lines for BigQuery"
+              % (args.costs_ndjson, len(charge_lines)), file=sys.stderr)
+    if costs:
+        priced = [r for r in rows if r["ship_cost"] is not None]
+        units = sum(r["units"] for r in priced)
+        print("  %d charges -> %d of %d shipments priced, $%s%s"
+              % (len(costs), len(priced), len(rows),
+                 format(round(sum(r["ship_cost"] for r in priced), 2), ",.2f"),
+                 ", $%.2f per unit" % (sum(r["ship_cost"] for r in priced) / units)
+                 if units else ""), file=sys.stderr)
+
     kpi = kpi_block(rows, args.days)
 
     with open(args.out, "w") as fh:
@@ -964,6 +1187,8 @@ def main():
             for r in rows:
                 rec = dict(r, loaded_at=loaded, order_value=r["value"])
                 rec.pop("value")
+                if rec.get("ship_cost") is None:
+                    rec.pop("ship_cost", None)
                 # Empty strings are dropped so the MERGE sees NULL and keeps whatever
                 # the ledger already holds, rather than blanking a captured fact.
                 fh.write(json.dumps({k: v for k, v in rec.items() if v != ""}) + "\n")
@@ -975,8 +1200,10 @@ def main():
             print("  %-9s no rows in window" % m, file=sys.stderr)
             continue
         print("  %-9s %6d shipments  %6d units  ship date %3d%%  tracking %3d%%"
+              "  priced %3d%%"
               % (m, s["n"], s["units"], round(100 * s["shipdate"] / s["n"]),
-                 round(100 * s["tracked"] / s["n"])), file=sys.stderr)
+                 round(100 * s["tracked"] / s["n"]),
+                 round(100 * s["costed"] / s["n"])), file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -160,13 +160,19 @@ Michaels and Shopify orders, searchable by order number, customer name or
 tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
 Built by this repo's `refresh_marketplace_shipments.py` straight off the
 marketplace feeds already in BigQuery (`acenda`, `macys`, `shipstation`) — no
-schedule, republish with `url:` like the Yusen one. Two facts it is built around:
-ShipStation's *shipment* feed stopped loading in Oct 2023, so Michaels/Shopify
-rows have no ship date or tracking; and Target Plus redacts customer names ~45
+schedule, republish with `url:` like the Yusen one. Three facts it is built
+around: ShipStation's *shipment* feed stopped loading in Oct 2023, so
+Michaels/Shopify rows have no ship date or tracking (and so no shipping cost —
+there is nothing to match an invoice to); Target Plus redacts customer names ~45
 days after the order and the sync rewrites the rows in place, which is why
 `sql/marketplace_shipments_setup.sql` defines a durable ledger table whose MERGE
-never overwrites a captured fact with a blank. Full detail:
-`MARKETPLACE-SHIPMENTS.md`.
+never overwrites a captured fact with a blank; and **no order feed carries what
+shipping cost** (acenda's `cost` is 0.00 on every row), so `--costs` joins the
+FedEx/Stamps invoice exports by tracking number. Those stacked Drive sheets
+repeat the same invoice line across overlapping weekly exports — de-dupe on
+(tracking, date, amount) or CPU comes out ~3x high. The durable fix is
+`marketplaces.parcel_charges`, loaded weekly from the same files the shipping
+cost report downloads. Full detail: `MARKETPLACE-SHIPMENTS.md`.
 
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's

@@ -14,13 +14,13 @@ state. Filters: marketplace, month, carrier, status, has-tracking. Every column
 sorts. Clicking an order number expands it to its line items — SKU, item, qty,
 unit price, line total.
 
-**"Order value" is what the customer paid, not what shipping cost us.** It is the
-sum of that order's own line totals, so the column and the expanded lines can
-never disagree. Actual carrier cost per shipment is not in any of these feeds —
-it lives in the FedEx and Stamps.com invoices, matched to orders by tracking
-number, which is what `shipping-cost-report` and `cost-per-sku-dashboard` do.
-Adding a true shipping-cost column means feeding those invoices in as a fifth
-source; the acenda feed has a `cost` field but every row of it is 0.00.
+There are two money columns and they are different things:
+
+- **Order value** — what the customer paid. The sum of that order's own line
+  totals, so the column and the expanded lines can never disagree.
+- **Ship cost** — what the carrier billed us, from the FedEx and Stamps.com
+  invoices, matched to the shipment by tracking number. A dash means no invoice
+  has been matched yet, which is not the same as free.
 
 ## Where the data comes from
 
@@ -37,13 +37,73 @@ daily. The builder normalizes four of them onto one shipment-shaped row.
 The query runs at line grain and the builder groups it into orders, so the SKU
 detail and the order totals come from the same rows.
 
-Last 180 days, as of 2026-08-31: 42,462 orders / 75,151 units / $1.80M order
-value — Target 32,612, Shopify 7,232, Michaels 1,447, Macy's 1,171. The feeds
+Last 180 days, as of 2026-08-31: 42,462 orders / 73,785 units / $1.80M order
+value / $107,031 of matched shipping cost — Target 32,612, Shopify 7,232, Michaels 1,447, Macy's 1,171. The feeds
 move during the day, so a re-run minutes later will not match to the order.
 
 `dsco.orders_clean` is a fifth feed in the same shape, but its only retailer
 (`dscoRetailerId 1000007328`, ~500 orders/month since 2021) is not one of these
 four, so it is deliberately left out.
+
+## Shipping cost
+
+No order feed carries what shipping actually cost: acenda's fulfillment `cost`
+field is 0.00 on all 43,634 rows, and ShipStation's `shipmentCost` died with the
+rest of that feed in 2023. The real number is on the carrier invoices, so the
+builder joins them the same way the weekly shipping cost report does — by
+tracking number.
+
+```bash
+python3 refresh_marketplace_shipments.py --costs ~/Downloads/week-of-2026-08-25
+python3 refresh_marketplace_shipments.py --costs "AMF FedEx Invoices.csv" "AMF Stamps.com Invoices.csv"
+```
+
+`--costs` takes files or a folder and recognizes four layouts: the two
+consolidated Drive sheets (`AMF FedEx Invoices`, `AMF Stamps.com Invoices`) and
+the raw FedEx Billing Online and Stamps.com print-history exports the weekly
+download already produces. Charges are **summed** per tracking number — FedEx
+re-rates a shipment on a later invoice and both lines are real money — but a
+charge is counted **once** per (tracking, date, amount).
+
+That second rule is not optional. The consolidated Drive sheets are weekly
+exports stacked on each other and the downloads overlap, so the same invoice
+line is physically present two or three times: 4,266 of the FedEx sheet's 7,963
+rows are repeats. Summing them raw put Target's FedEx cost per unit at $35.92
+against a known ~$13.47. With repeats dropped it lands at $12.66, and the
+blended figure at $8.51 — in the band the weekly report reports ($7.69 for a
+wider mix that includes the cheap Shopify and Michaels USPS volume).
+
+**Coverage as of 2026-08-31: shipments through late April.** Both Drive sheets
+were last refreshed 2026-04-30, so 8,875 of 42,462 shipments are priced
+($107,031). Later shipments show a dash. Two reasons a shipment has no cost:
+
+1. **The invoice hasn't been loaded.** FedEx and Stamps bill weeks in arrears
+   and these sheets have not been updated since April.
+2. **There is no tracking number to match on** — every Michaels and Shopify row,
+   because of the ShipStation gap below. Fixing that feed fixes their cost too.
+
+### Keeping it current
+
+`sql/marketplace_shipments_setup.sql` defines
+`americanflat.marketplaces.parcel_charges` — one row per invoice line, keyed by
+tracking number. This is the piece that has never existed in BigQuery. Load it
+weekly from the same five files the shipping cost report already downloads:
+
+```bash
+python3 refresh_marketplace_shipments.py --days 30 \
+    --costs ~/Downloads/week-of-2026-08-25 --costs-ndjson /tmp/charges.ndjson
+bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect \
+    americanflat:marketplaces._stage_parcel_charges /tmp/charges.ndjson
+# then the parcel_charges MERGE at the bottom of the SQL file
+```
+
+After that, `--cost-table americanflat.marketplaces.parcel_charges` prices the
+portal straight from BigQuery with no files to hand it.
+
+**Cost per unit on this page is not the weekly report's CPU.** It is matched cost
+over the units on matched shipments only, and it excludes none of what that
+report deliberately excludes (TikTok sample sends, wholesale, LTL). Use it to
+see what one shipment cost, not to restate the number in the Friday meeting.
 
 ## Two data problems worth knowing about
 
@@ -115,7 +175,7 @@ Artifact(file_path="marketplace_shipments.html",
 
 The builder runs anywhere: in a cloud session BigQuery auth is injected by the
 agent proxy, and on the Mac it borrows the gcloud ADC token (`--auth` forces
-either). The page is one self-contained HTML file, ~5.3 MB at 180 days: 42k
+either). The page is one self-contained HTML file, ~5.6 MB at 180 days: 42k
 orders and 50k line items, dictionary-encoded (the ~4,200 distinct products are
 stored once and referenced by index) and painted 250 rows at a time.
 

@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS `americanflat.marketplaces.marketplace_shipments` (
   carrier       STRING  OPTIONS(description="FedEx | UPS | USPS | DHL, normalized"),
   tracking      STRING,
   status        STRING  OPTIONS(description="Shipped | Shipping | Open | On hold | Cancelled"),
-  order_value   NUMERIC OPTIONS(description="Sum of the order's line totals — what the customer paid, not what shipping cost us"),
+  order_value   NUMERIC OPTIONS(description="Sum of the order's line totals — what the customer paid"),
+  ship_cost     NUMERIC OPTIONS(description="What the carrier billed us for this shipment, matched from parcel_charges by tracking number. NULL = no invoice matched yet, which is not the same as zero"),
+  cost_source   STRING  OPTIONS(description="Carrier whose invoice the ship_cost came from"),
   items         ARRAY<STRUCT<
                   sku        STRING,
                   product    STRING,
@@ -83,14 +85,63 @@ WHEN MATCHED THEN UPDATE SET
   tracking     = COALESCE(S.tracking,     T.tracking),
   status       = COALESCE(S.status,       T.status),
   order_value  = COALESCE(S.order_value,  T.order_value),
+  ship_cost    = COALESCE(S.ship_cost,    T.ship_cost),
+  cost_source  = COALESCE(S.cost_source,  T.cost_source),
   -- Same rule for the line array: an empty one is missing data, not a cleared order.
   items        = IF(ARRAY_LENGTH(S.items) > 0, S.items, T.items),
   loaded_at    = S.loaded_at
 WHEN NOT MATCHED THEN INSERT
   (marketplace, order_ref, order_number, customer, city, state, order_date,
-   ship_date, units, skus, carrier, tracking, status, order_value, items,
-   first_seen_at, loaded_at)
+   ship_date, units, skus, carrier, tracking, status, order_value, ship_cost,
+   cost_source, items, first_seen_at, loaded_at)
 VALUES
   (S.marketplace, S.order_ref, S.order_number, S.customer, S.city, S.state,
    S.order_date, S.ship_date, S.units, S.skus, S.carrier, S.tracking, S.status,
-   S.order_value, S.items, S.loaded_at, S.loaded_at);
+   S.order_value, S.ship_cost, S.cost_source, S.items, S.loaded_at, S.loaded_at);
+
+
+-- ---------------------------------------------------------------------------
+-- Parcel charges — what FedEx and Stamps.com actually billed, by tracking number.
+--
+-- This is the piece Americanflat has never had in BigQuery. Today it lives only
+-- in the two consolidated Drive sheets and in the weekly downloads that feed the
+-- shipping cost report, which is why the portal's Ship cost column stops where
+-- those sheets stop. Load this table weekly from the same files and the column
+-- keeps up on its own.
+--
+-- Grain: one row per charge line. A shipment can be billed more than once (a
+-- re-rate, a residential surcharge), so the portal SUMs by tracking number.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `americanflat.marketplaces.parcel_charges` (
+  tracking    STRING  NOT NULL OPTIONS(description="Tracking number, spaces and dashes stripped, uppercased"),
+  amount      NUMERIC OPTIONS(description="Net charge on this line"),
+  carrier     STRING  OPTIONS(description="FedEx | UPS | USPS | DHL"),
+  charge_date DATE    OPTIONS(description="Invoice date (FedEx) or ship date (Stamps.com)"),
+  loaded_at   DATE
+)
+CLUSTER BY tracking
+OPTIONS(description="Parcel invoice lines from FedEx Billing Online and Stamps.com print history. Loaded by refresh_marketplace_shipments.py --costs-ndjson.");
+
+-- Weekly load, from the Mac, using the same five files the shipping cost report
+-- already downloads:
+--
+--   python3 refresh_marketplace_shipments.py --days 30 \
+--       --costs ~/Downloads/week-of-2026-08-25 \
+--       --costs-ndjson /tmp/charges.ndjson
+--   bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect \
+--       americanflat:marketplaces._stage_parcel_charges /tmp/charges.ndjson
+--
+-- Then de-duplicate into the real table. The builder already drops repeated
+-- lines within one run; this guards against the same week being loaded twice.
+MERGE `americanflat.marketplaces.parcel_charges` T
+USING (
+  SELECT tracking, amount, charge_date, ANY_VALUE(carrier) AS carrier,
+         MIN(loaded_at) AS loaded_at
+  FROM `americanflat.marketplaces._stage_parcel_charges`
+  GROUP BY tracking, amount, charge_date
+) S
+ON T.tracking = S.tracking AND T.amount = S.amount
+   AND COALESCE(T.charge_date, DATE "1900-01-01") = COALESCE(S.charge_date, DATE "1900-01-01")
+WHEN NOT MATCHED THEN INSERT (tracking, amount, carrier, charge_date, loaded_at)
+VALUES (S.tracking, S.amount, S.carrier, S.charge_date, S.loaded_at);
