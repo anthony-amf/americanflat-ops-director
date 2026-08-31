@@ -88,12 +88,14 @@ against a known ~$13.47. With repeats dropped it lands at $12.66, and the
 blended figure at $8.51 — in the band the weekly report reports ($7.69 for a
 wider mix that includes the cheap Shopify and Michaels USPS volume).
 
-**Coverage as of 2026-08-31: 25,836 of 42,462 shipments priced ($299,800),
-$8.46 per unit.** Stamps.com is current — a print-history export for
-2026-04-30 → 2026-08-31 took UPS Ground Saver and USPS to 99% priced from May
-onward. FedEx is the remaining gap: only 6% of its May-onward shipments are
-priced, because the FedEx invoices in Drive stop at 2026-04-27. A shipment shows
-a dash for one of two reasons:
+**Coverage as of 2026-08-31: 37,861 of 42,462 shipments priced ($573,412),
+$9.47 per unit** — 97–99% of March through July, 86% of August. Two sources got
+it there: a current Stamps.com print history (`--costs`) and the weekly cost
+report's per-order roll-up (`--order-costs`, below), which carries FedEx through
+Aug 24 and reaches the orders with no tracking number at all.
+
+What remains unpriced is almost entirely the last stretch of August, where FedEx
+has not billed yet. A shipment shows a dash for one of two reasons:
 
 1. **The invoice hasn't been loaded.** Note the two carriers behave differently:
    FedEx bills weeks in arrears, so a recent FedEx shipment genuinely has no
@@ -102,6 +104,33 @@ a dash for one of two reasons:
    export, not that the charge is pending. Export the print history and pass it
    to `--costs` and those shipments price immediately, right up to today.
 2. **There was no tracking number to match on** — see the 3PL join below.
+
+### The order-level cost report — the second cost source
+
+The weekly shipping cost pipeline emits a reconciled per-order roll-up
+(`all_orders_shipping_costs_<date>.md`): order number, marketplace, ship date,
+carrier, and the summed cost of every package on the order. Pass it with
+`--order-costs` and it is joined by order number:
+
+```bash
+python3 refresh_marketplace_shipments.py \
+    --costs ~/Downloads/week-of-2026-08-25 \
+    --order-costs ~/Downloads/all_orders_shipping_costs_20260831.md
+```
+
+This is what makes Michaels and Shopify work. They have no tracking number in
+BigQuery, so no invoice can reach them by tracking — but they do have order
+numbers. Loading the 2026-08-31 report took Michaels from 6% to 84% priced and
+Shopify from 1% to 67%, and supplied their ship dates too.
+
+**Precedence: a tracking-level match wins where there is one.** The two sources
+agree to the cent on 84.9% of the 23,893 orders they both price. Where they
+differ it is usually a Stamps adjustment that posted after the report was built
+— the report has the quoted amount, a later export has quoted + the adjustment
+as Amount Paid (8.23 + 7.50 = 15.73) — so the fresher per-shipment figure is the
+one to keep. The page's tooltip says which join produced each number; an
+order-level figure is labelled "(order match)", which on a split order is the
+whole order's cost rather than one package's.
 
 ### Orders with no tracking number — the 3PL join
 

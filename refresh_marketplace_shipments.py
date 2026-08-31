@@ -516,6 +516,75 @@ def attach_3pl(rows, index):
     return filled
 
 
+# --------------------------------------------------------------------------
+# The order-level shipping cost report — costs already matched to orders
+# --------------------------------------------------------------------------
+# The weekly shipping cost pipeline emits a reconciled per-order roll-up
+# (all_orders_shipping_costs_<date>.md): order number, marketplace, ship date,
+# carrier and the summed cost of every package on the order. It reaches orders
+# this builder cannot price on its own — the ones with no tracking number in
+# BigQuery at all — so it is joined by order number as a second cost source.
+#
+# Precedence: a tracking-level match wins where we have one. Both sources agree
+# to the cent on 85% of the orders they share; where they differ it is usually a
+# Stamps adjustment that posted after the report was built (its Quoted Amount
+# plus a later $7.50 adjustment is our Amount Paid), so the fresher per-shipment
+# figure is the one to keep.
+ORDER_COST_COLUMNS = ("Order", "Ship Date", "Carrier", "Cost")
+
+
+def load_order_costs(paths):
+    """order key -> {"cost", "carrier", "ship_date"} from the shipping cost report."""
+    index = {}
+    for path in paths:
+        n = 0
+        header = None
+        for line in open(path, encoding="utf-8", errors="replace"):
+            if not line.startswith("|"):
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if header is None:
+                if "Order" in cells and "Cost" in cells:
+                    header = cells
+                continue
+            # The row of dashes under a markdown header, and the summary tables
+            # above the detail one, are not orders.
+            if len(cells) != len(header) or set("".join(cells)) <= set("-: "):
+                continue
+            row = dict(zip(header, cells))
+            key = order_key(row.get("Order"))
+            cost = parse_amount(str(row.get("Cost", "")).replace("$", ""))
+            if not key or cost is None:
+                continue
+            index[key] = {"cost": round(cost, 2),
+                          "carrier": norm_carrier(row.get("Carrier")),
+                          "ship_date": iso_date(row.get("Ship Date"))}
+            n += 1
+        print("  %-46s %6d orders" % (os.path.basename(path)[:46], n), file=sys.stderr)
+    return index
+
+
+def attach_order_costs(rows, index):
+    """Price the orders the tracking join could not reach, and fill their dates."""
+    priced = 0
+    for r in rows:
+        hit = index.get(order_key(r["order_number"])) or index.get(order_key(r["order_ref"]))
+        if not hit:
+            continue
+        if not r["ship_date"] and hit["ship_date"]:
+            r["ship_date"] = hit["ship_date"]
+            r["status"] = norm_status(None, hit["ship_date"])
+        if not r["carrier"] and hit["carrier"]:
+            r["carrier"] = hit["carrier"]
+        if r.get("ship_cost") is None:
+            r["ship_cost"] = hit["cost"]
+            # Say which join produced the figure: one is per shipment, the other
+            # is the whole order, and on a split order those differ legitimately.
+            r["cost_source"] = (hit["carrier"] or "Carrier") + " (order match)"
+            priced += 1
+    return priced
+
+
 COST_TABLE_SQL = r"""
 SELECT tracking, SUM(amount) AS cost, ANY_VALUE(carrier) AS source
 FROM `%s`
@@ -1248,6 +1317,10 @@ def main():
     ap.add_argument("--costs", nargs="*", default=[], metavar="PATH",
                     help="FedEx / Stamps.com invoice exports (files or a folder) to "
                          "price the shipments by tracking number")
+    ap.add_argument("--order-costs", nargs="*", default=[], metavar="PATH",
+                    help="the weekly shipping cost report's per-order roll-up "
+                         "(all_orders_shipping_costs_*.md), joined by order number "
+                         "to price orders that have no tracking number")
     ap.add_argument("--costs-ndjson", metavar="PATH",
                     help="write the parsed, de-duplicated charges as newline-delimited "
                          "JSON for loading into marketplaces.parcel_charges")
@@ -1296,6 +1369,11 @@ def main():
                  format(round(sum(r["ship_cost"] for r in priced), 2), ",.2f"),
                  ", $%.2f per unit" % (sum(r["ship_cost"] for r in priced) / units)
                  if units else ""), file=sys.stderr)
+
+    if args.order_costs:
+        print("Reading the order-level shipping cost report:", file=sys.stderr)
+        n = attach_order_costs(rows, load_order_costs(args.order_costs))
+        print("  priced %d more shipments by order number" % n, file=sys.stderr)
 
     kpi = kpi_block(rows, args.days, filled)
 
