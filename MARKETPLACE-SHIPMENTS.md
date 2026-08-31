@@ -31,8 +31,8 @@ daily. The builder normalizes four of them onto one shipment-shaped row.
 |---|---|---|---|---|
 | Target | `acenda.ship_advice_raw` + `acenda.fulfillment_raw` | yes (98%) | recent orders only — see redaction below | yes |
 | Macy's | `macys.orders_clean` (Mirakl) | yes (94%) | yes | yes |
-| Michaels | `shipstation.orders_clean`, store `AMF Michaels` | **no** | yes | yes |
-| Shopify | `shipstation.orders_clean`, store `Shopify` | **no** | yes | yes |
+| Michaels | `shipstation.orders_clean`, store `AMF Michaels` | only via `--3pl` | yes | yes |
+| Shopify | `shipstation.orders_clean`, store `Shopify` | only via `--3pl` | yes | yes |
 
 The query runs at line grain and the builder groups it into orders, so the SKU
 detail and the order totals come from the same rows.
@@ -74,13 +74,45 @@ blended figure at $8.51 — in the band the weekly report reports ($7.69 for a
 wider mix that includes the cheap Shopify and Michaels USPS volume).
 
 **Coverage as of 2026-08-31: shipments through late April.** Both Drive sheets
-were last refreshed 2026-04-30, so 8,875 of 42,462 shipments are priced
-($107,031). Later shipments show a dash. Two reasons a shipment has no cost:
+were last refreshed 2026-04-30, so 9,064 of 42,462 shipments are priced
+($109,089). Later shipments show a dash, for one of two reasons:
 
-1. **The invoice hasn't been loaded.** FedEx and Stamps bill weeks in arrears
-   and these sheets have not been updated since April.
-2. **There is no tracking number to match on** — every Michaels and Shopify row,
-   because of the ShipStation gap below. Fixing that feed fixes their cost too.
+1. **The invoice hasn't been loaded.** Note the two carriers behave differently:
+   FedEx bills weeks in arrears, so a recent FedEx shipment genuinely has no
+   invoice yet — but **Stamps.com print history is available the same day**. A
+   Stamps shipment with no cost means nobody handed the builder a current
+   export, not that the charge is pending. Export the print history and pass it
+   to `--costs` and those shipments price immediately, right up to today.
+2. **There was no tracking number to match on** — see the 3PL join below.
+
+### Orders with no tracking number — the 3PL join
+
+Michaels and Shopify orders arrive from ShipStation with no tracking number, so
+there is nothing for a carrier invoice to match and they showed no cost at all.
+The warehouses do report it: the weekly NJ / Fontana / South Carolina
+shipped-order reports are keyed by order number and carry tracking, ship date
+and carrier.
+
+```bash
+python3 refresh_marketplace_shipments.py \
+    --3pl ~/Downloads/week-of-2026-08-25 --costs ~/Downloads/week-of-2026-08-25
+```
+
+`--3pl` reads the consolidated Drive sheets and both raw export layouts (NJ and
+Fontana use `Order` / `Bill of Lading`, South Carolina uses `Order No.` /
+`Tracking Number`). It only fills fields the marketplace feed left blank, never
+overwrites Target's or Macy's own tracking, and runs before the cost join so the
+recovered tracking numbers get priced in the same pass.
+
+Order numbers need one normalization: a Michaels order is `THP6600107706404869-2`
+in ShipStation and plain `6600107706404869` at the warehouse. Shopify's (`19528`)
+match as-is.
+
+**The consolidated Drive sheets are weak for this**: they kept the order-number
+column for only about 7,300 of 85,800 rows (the later weekly exports), which is
+why today's build recovers just 294 shipments. Anthony's raw weekly reports have
+an order number on every row, so running with those fills Michaels and Shopify
+in properly.
 
 ### Keeping it current
 
@@ -115,9 +147,7 @@ destination but a dash for ship date and tracking. Restarting that half of the
 ShipStation ingest fills both marketplaces in with no change to the portal.
 
 Until then, the ship-side truth for those two lives in the weekly 3PL shipped
-order reports (NJ / Fontana / SC) that `shipping-cost-report` and
-`cost-per-sku-dashboard` read. Those Drive sheets were last refreshed
-2026-04-30, so they are not a stand-in as things are.
+order reports (NJ / Fontana / SC), which `--3pl` reads — see the 3PL join above.
 
 **2. Target Plus redacts customer PII after about 45 days.** The name becomes the
 literal `Customer Name` and the street `1234 Redacted St`, and the acenda sync

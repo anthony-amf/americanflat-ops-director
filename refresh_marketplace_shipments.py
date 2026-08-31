@@ -411,6 +411,99 @@ def iso_date(value):
     return ""
 
 
+# --------------------------------------------------------------------------
+# 3PL shipped-order reports — the ship date and tracking ShipStation stopped sending
+# --------------------------------------------------------------------------
+# Michaels and Shopify orders reach BigQuery from ShipStation, whose shipment
+# feed died in Oct 2023, so they arrive with no ship date and no tracking number
+# — and with no tracking there is nothing for a carrier invoice to match, which
+# is why they were showing no cost either. The warehouses do report all three:
+# the weekly NJ / Fontana / South Carolina shipped-order reports are keyed by
+# order number. Fill the gap from those and the cost join then works normally.
+THREEPL_LAYOUTS = [
+    # (order column, tracking column, ship date column, carrier column)
+    ("Order Number", "Tracking Number", "Ship Date", "Carrier"),        # consolidated Drive sheet
+    ("Order", "Bill of Lading", "Ship Date", "Carrier"),                # NJ / Fontana export
+    ("Order No.", "Tracking Number", "Actual Ship Date", "Carrier"),    # South Carolina export
+]
+
+
+def order_key(value):
+    """A Michaels order is THP6600107706404869-2 in ShipStation and plain
+    6600107706404869 at the warehouse; Shopify is 23901 in both. Reduce to the
+    digits both sides agree on."""
+    v = re.sub(r"\s", "", str(value or "")).upper()
+    v = re.sub(r"^THP", "", v)
+    v = re.sub(r"-\d+$", "", v)
+    return v
+
+
+def load_3pl(paths):
+    """order key -> {"ship_date", "tracking", "carrier"} from warehouse reports."""
+    files = []
+    for p in paths:
+        if os.path.isdir(p):
+            files += [os.path.join(p, f) for f in sorted(os.listdir(p))
+                      if f.lower().endswith((".csv", ".xlsx", ".xls"))]
+        else:
+            files.append(p)
+    index = {}
+    for path in files:
+        if path.lower().endswith((".xlsx", ".xls")):
+            rows = _read_xlsx(path)
+        else:
+            with open(path, newline="", encoding="utf-8-sig", errors="replace") as fh:
+                rows = list(csv.DictReader(fh))
+        if not rows:
+            continue
+        header = set(rows[0].keys())
+        for ocol, tcol, dcol, ccol in THREEPL_LAYOUTS:
+            if ocol in header and tcol in header:
+                break
+        else:
+            print("  skipped %s (no order/tracking columns)" % os.path.basename(path),
+                  file=sys.stderr)
+            continue
+        n = 0
+        for r in rows:
+            key = order_key(r.get(ocol))
+            tracking = norm_tracking(r.get(tcol))
+            if not key or not tracking:
+                continue
+            ship = iso_date(r.get(dcol))
+            prior = index.get(key)
+            # A split order has a row per carton. Keep the first one that shipped,
+            # to match how the Target feed reports a multi-fulfillment order.
+            if prior and prior["ship_date"] and (not ship or prior["ship_date"] <= ship):
+                continue
+            index[key] = {"ship_date": ship, "tracking": tracking,
+                          "carrier": norm_carrier(r.get(ccol))}
+            n += 1
+        print("  %-46s %6d orders" % (os.path.basename(path)[:46], n), file=sys.stderr)
+    return index
+
+
+def attach_3pl(rows, index):
+    """Fill in only what the marketplace feed left blank — never overwrite it."""
+    filled = 0
+    for r in rows:
+        if r["tracking"] and r["ship_date"]:
+            continue
+        hit = index.get(order_key(r["order_number"])) or index.get(order_key(r["order_ref"]))
+        if not hit:
+            continue
+        if not r["tracking"] and hit["tracking"]:
+            r["tracking"] = hit["tracking"]
+            r["shipped_by"] = "3PL report"
+            filled += 1
+        if not r["ship_date"] and hit["ship_date"]:
+            r["ship_date"] = hit["ship_date"]
+            r["status"] = norm_status(None, hit["ship_date"])
+        if not r["carrier"] and hit["carrier"]:
+            r["carrier"] = hit["carrier"]
+    return filled
+
+
 COST_TABLE_SQL = r"""
 SELECT tracking, SUM(amount) AS cost, ANY_VALUE(carrier) AS source
 FROM `%s`
@@ -535,7 +628,7 @@ def encode(rows):
             "epoch": EPOCH.isoformat()}
 
 
-def kpi_block(rows, days):
+def kpi_block(rows, days, filled_3pl=0):
     dates = sorted(d for d in (r["ship_date"] or r["order_date"] for r in rows) if d)
     # The window the invoices actually cover, so the page can say so rather than
     # leaving a half-empty column unexplained.
@@ -559,6 +652,7 @@ def kpi_block(rows, days):
         "date_lo": dates[0] if dates else "", "date_hi": dates[-1] if dates else "",
         "built": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "by_marketplace": by_m,
+        "filled_3pl": filled_3pl,
         "cost_lo": cost_dates[0] if cost_dates else "",
         "cost_hi": cost_dates[-1] if cost_dates else "",
     }
@@ -1087,19 +1181,25 @@ function measureToolbar() {
 }
 addEventListener("resize", measureToolbar);
 
+// "Most rows are missing", not "all": once the warehouse reports fill some in,
+// a strict zero test would silently drop the caveat while the column stays mostly empty.
 const gaps = Object.entries(KPI.by_marketplace)
-  .filter(([, v]) => v.n > 0 && v.shipdate / v.n < 0.05)
+  .filter(([, v]) => v.n > 0 && v.shipdate / v.n < 0.6)
   .map(([k]) => k);
 const costNote = KPI.cost_lo
-  ? " <b>Ship cost</b> is the carrier's own invoice, matched by tracking number, and currently covers shipments from " +
-    fmtDate(KPI.cost_lo) + " to " + fmtDate(KPI.cost_hi) +
-    " &mdash; FedEx and Stamps.com bill weeks in arrears, so recent shipments show a dash until their invoice lands."
+  ? " <b>Ship cost</b> is the carrier's own invoice, matched by tracking number, and this build covers shipments from " +
+    fmtDate(KPI.cost_lo) + " to " + fmtDate(KPI.cost_hi) + ". " +
+    "FedEx bills weeks behind, so its recent shipments genuinely have no invoice yet. " +
+    "<b>Stamps.com print history is available the same day</b> &mdash; a Stamps shipment with no cost means its export " +
+    "has not been loaded into this build, not that the charge is pending."
   : " <b>Ship cost</b> is empty: no carrier invoices were loaded into this build.";
 document.getElementById("gapnote").innerHTML = (gaps.length
-  ? "<b>Known gap:</b> " + gaps.join(" and ") + " rows carry no ship date or tracking number. " +
+  ? "<b>Known gap:</b> most " + gaps.join(" and ") + " rows carry no ship date or tracking number. " +
     "Those orders come from ShipStation, whose <i>shipment</i> feed stopped loading into BigQuery in October 2023 &mdash; " +
     "the order, customer and destination are current, the label is not. Target and Macy's are complete. " +
-    "With no tracking number there is nothing to match a carrier invoice to, so they carry no ship cost either."
+    "With no tracking number there is nothing for a carrier invoice to match, so those rows carry no ship cost either. " +
+    "The warehouse shipped-order reports do have the tracking numbers, and this build recovered " +
+    KPI.filled_3pl + " of them that way."
   : "") + costNote;
 
 document.getElementById("foot").innerHTML =
@@ -1129,6 +1229,10 @@ def main():
     ap.add_argument("--out", default="marketplace_shipments.html",
                     help="HTML output path")
     ap.add_argument("--ndjson", help="also write newline-delimited JSON for a BigQuery load")
+    ap.add_argument("--3pl", nargs="*", default=[], metavar="PATH", dest="threepl",
+                    help="warehouse shipped-order reports (NJ / Fontana / South "
+                         "Carolina) to supply the ship date and tracking number "
+                         "ShipStation no longer sends for Michaels and Shopify")
     ap.add_argument("--costs", nargs="*", default=[], metavar="PATH",
                     help="FedEx / Stamps.com invoice exports (files or a folder) to "
                          "price the shipments by tracking number")
@@ -1148,6 +1252,13 @@ def main():
     token = access_token(args.auth)
     print("Querying BigQuery for the last %d days…" % args.days, file=sys.stderr)
     rows = normalize(query(build_sql(args.days, args.source), token))
+
+    filled = 0
+    if args.threepl:
+        print("Reading warehouse shipped-order reports:", file=sys.stderr)
+        filled = attach_3pl(rows, load_3pl(args.threepl))
+        print("  tracking filled in on %d shipments the marketplace feed left blank"
+              % filled, file=sys.stderr)
 
     costs, charge_lines = {}, []
     if args.costs:
@@ -1174,7 +1285,7 @@ def main():
                  ", $%.2f per unit" % (sum(r["ship_cost"] for r in priced) / units)
                  if units else ""), file=sys.stderr)
 
-    kpi = kpi_block(rows, args.days)
+    kpi = kpi_block(rows, args.days, filled)
 
     with open(args.out, "w") as fh:
         fh.write(render(rows, kpi))
