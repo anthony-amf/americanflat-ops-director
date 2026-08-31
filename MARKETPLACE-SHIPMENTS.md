@@ -58,6 +58,21 @@ python3 refresh_marketplace_shipments.py --costs ~/Downloads/week-of-2026-08-25
 python3 refresh_marketplace_shipments.py --costs "AMF FedEx Invoices.csv" "AMF Stamps.com Invoices.csv"
 ```
 
+Two things about the Stamps.com print history specifically, both learned the
+hard way:
+
+- **`Amount Paid` is already the final number.** A re-rated label shows
+  `Quoted Amount` + `Adjusted Amount` = `Amount Paid` (9.85 + 7.50 = 17.35), so
+  adding the adjustment on top would double-count it.
+- **USPS tracking numbers come out Excel-escaped** as `="9434650105798022300341"`
+  while UPS numbers come through bare. A tracking normalizer that only strips
+  spaces and dashes therefore matches every UPS shipment and no USPS one — which
+  is exactly what happened on the first load (UPS 99%, USPS 0%). `norm_tracking`
+  keeps letters and digits only.
+
+A refunded label is skipped: Stamps keeps the row with its original `Amount
+Paid`, so counting it would bill a shipment that was credited back.
+
 `--costs` takes files or a folder and recognizes four layouts: the two
 consolidated Drive sheets (`AMF FedEx Invoices`, `AMF Stamps.com Invoices`) and
 the raw FedEx Billing Online and Stamps.com print-history exports the weekly
@@ -73,9 +88,12 @@ against a known ~$13.47. With repeats dropped it lands at $12.66, and the
 blended figure at $8.51 — in the band the weekly report reports ($7.69 for a
 wider mix that includes the cheap Shopify and Michaels USPS volume).
 
-**Coverage as of 2026-08-31: shipments through late April.** Both Drive sheets
-were last refreshed 2026-04-30, so 9,064 of 42,462 shipments are priced
-($109,089). Later shipments show a dash, for one of two reasons:
+**Coverage as of 2026-08-31: 25,836 of 42,462 shipments priced ($299,800),
+$8.46 per unit.** Stamps.com is current — a print-history export for
+2026-04-30 → 2026-08-31 took UPS Ground Saver and USPS to 99% priced from May
+onward. FedEx is the remaining gap: only 6% of its May-onward shipments are
+priced, because the FedEx invoices in Drive stop at 2026-04-27. A shipment shows
+a dash for one of two reasons:
 
 1. **The invoice hasn't been loaded.** Note the two carriers behave differently:
    FedEx bills weeks in arrears, so a recent FedEx shipment genuinely has no

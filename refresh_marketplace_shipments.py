@@ -309,7 +309,13 @@ COST_LAYOUTS = [
 
 
 def norm_tracking(value):
-    return re.sub(r"[\s-]", "", str(value or "")).upper()
+    """Keep letters and digits only.
+
+    Stamps.com exports USPS numbers Excel-escaped as ="9434650105798022300341"
+    while UPS numbers come through bare, so a laxer strip silently matched every
+    UPS shipment and no USPS one.
+    """
+    return re.sub(r"[^A-Za-z0-9]", "", str(value or "")).upper()
 
 
 def parse_amount(value):
@@ -337,6 +343,12 @@ def _cost_rows(path):
               file=sys.stderr)
         return
     for r in rows:
+        # A refunded label costs us nothing. Stamps keeps the row with its original
+        # Amount Paid, so counting it would bill a shipment we were credited for.
+        # (Amount Paid already includes any re-rate: quoted + adjusted = paid.)
+        if (str(r.get("Refund Status", "")).strip().lower() == "approved"
+                or str(r.get("Shipment Status", "")).strip().lower() == "refunded"):
+            continue
         tracking = norm_tracking(r.get(tcol))
         amount = parse_amount(r.get(acol))
         # The consolidated sheets are several exports stacked, so a repeated
