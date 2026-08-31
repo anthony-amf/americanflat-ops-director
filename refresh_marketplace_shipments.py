@@ -826,7 +826,10 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 15px 17px; box-shadow: var(--shadow); }
   .kpi .label { color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
   .kpi .value { font-size: 23px; font-weight: 700; letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .kpi .value small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  /* The sub sits on its own line: inline, "395 of 548 priced" broke across two
+     lines mid-phrase and pushed the cards to different heights. */
+  .kpi .sub { font-size: 12.5px; font-weight: 500; color: var(--muted); margin-top: 3px;
+    font-variant-numeric: tabular-nums; min-height: 1.2em; }
 
   .mp-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 26px; }
   @media (max-width: 860px) { .mp-panels { grid-template-columns: 1fr; } }
@@ -1035,8 +1038,15 @@ function carrierOf(r) {
   return r.car;
 }
 
-document.getElementById("meta").textContent =
-  num(KPI.n) + " shipments \u00b7 " + fmtDate(KPI.date_lo) + " \u2192 " + fmtDate(KPI.date_hi);
+// The header line follows the filter like everything else — a count and a date
+// range that stayed at the full 42k while the cards showed 548 read as a bug.
+function metaLine(rows) {
+  const dates = rows.map(r => r.shipIso || r.orderIso).filter(Boolean).sort();
+  const range = dates.length ? fmtDate(dates[0]) + " \u2192 " + fmtDate(dates[dates.length - 1]) : "no dates";
+  const scope = rows.length === DATA.length ? "" : " \u00b7 filtered from " + num(DATA.length);
+  document.getElementById("meta").textContent =
+    num(rows.length) + " shipment" + (rows.length === 1 ? "" : "s") + " \u00b7 " + range + scope;
+}
 
 // ---- KPI cards + bar panels, recomputed for the current filter ----
 function kpiCards(rows) {
@@ -1068,7 +1078,8 @@ function kpiCards(rows) {
   ];
   document.getElementById("kpis").innerHTML = cards.map(k =>
     '<div class="kpi"><div class="label">' + k.label + '</div>' +
-    '<div class="value">' + k.value + (k.sub ? ' <small>' + k.sub + '</small>' : "") + '</div></div>'
+    '<div class="value">' + k.value + '</div>' +
+    '<div class="sub">' + (k.sub || "") + '</div></div>'
   ).join("");
 }
 
@@ -1218,6 +1229,7 @@ function paint(reset) {
     num(current.length) + " shipment" + (current.length === 1 ? "" : "s") +
     (left > 0 ? " \u00b7 showing " + num(shown) : "");
   if (reset) {
+    metaLine(current);
     kpiCards(current);
     chart("chart-mkt", "hint-mkt", "mkt", current, "Shipments in the current filter");
     chart("chart-car", "hint-car", "car", current, "Carrier as recorded on the shipment");
