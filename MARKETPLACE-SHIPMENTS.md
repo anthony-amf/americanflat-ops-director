@@ -9,23 +9,37 @@ sortable table.
 - **Builder:** `refresh_marketplace_shipments.py` (this repo)
 - **Ledger table (planned):** `americanflat.marketplaces.marketplace_shipments`
 
-Search matches order number, customer name, tracking number, city and state.
-Filters: marketplace, month, carrier, status, has-tracking. Every column sorts.
+Search matches order number, customer name, tracking number, SKU, city and
+state. Filters: marketplace, month, carrier, status, has-tracking. Every column
+sorts. Clicking an order number expands it to its line items — SKU, item, qty,
+unit price, line total.
+
+**"Order value" is what the customer paid, not what shipping cost us.** It is the
+sum of that order's own line totals, so the column and the expanded lines can
+never disagree. Actual carrier cost per shipment is not in any of these feeds —
+it lives in the FedEx and Stamps.com invoices, matched to orders by tracking
+number, which is what `shipping-cost-report` and `cost-per-sku-dashboard` do.
+Adding a true shipping-cost column means feeding those invoices in as a fifth
+source; the acenda feed has a `cost` field but every row of it is 0.00.
 
 ## Where the data comes from
 
 Nothing new is scraped — the marketplace order feeds already land in BigQuery
 daily. The builder normalizes four of them onto one shipment-shaped row.
 
-| Marketplace | BigQuery source | Ship date + tracking | Customer name |
-|---|---|---|---|
-| Target | `acenda.ship_advice_raw` + `acenda.fulfillment_raw` | yes (98%) | recent orders only — see redaction below |
-| Macy's | `macys.orders_clean` (Mirakl) | yes (95%) | yes |
-| Michaels | `shipstation.orders_clean`, store `AMF Michaels` | **no** | yes |
-| Shopify | `shipstation.orders_clean`, store `Shopify` | **no** | yes |
+| Marketplace | BigQuery source | Ship date + tracking | Customer name | Line items |
+|---|---|---|---|---|
+| Target | `acenda.ship_advice_raw` + `acenda.fulfillment_raw` | yes (98%) | recent orders only — see redaction below | yes |
+| Macy's | `macys.orders_clean` (Mirakl) | yes (94%) | yes | yes |
+| Michaels | `shipstation.orders_clean`, store `AMF Michaels` | **no** | yes | yes |
+| Shopify | `shipstation.orders_clean`, store `Shopify` | **no** | yes | yes |
 
-Last 180 days, as of 2026-08-24: 41,807 orders / 73,066 units — Target 32,499,
-Shopify 6,607, Michaels 1,524, Macy's 1,177.
+The query runs at line grain and the builder groups it into orders, so the SKU
+detail and the order totals come from the same rows.
+
+Last 180 days, as of 2026-08-31: 42,462 orders / 75,151 units / $1.80M order
+value — Target 32,612, Shopify 7,232, Michaels 1,447, Macy's 1,171. The feeds
+move during the day, so a re-run minutes later will not match to the order.
 
 `dsco.orders_clean` is a fifth feed in the same shape, but its only retailer
 (`dscoRetailerId 1000007328`, ~500 orders/month since 2021) is not one of these
@@ -101,14 +115,15 @@ Artifact(file_path="marketplace_shipments.html",
 
 The builder runs anywhere: in a cloud session BigQuery auth is injected by the
 agent proxy, and on the Mac it borrows the gcloud ADC token (`--auth` forces
-either). The page is one self-contained HTML file, ~3.3 MB at 180 days, with the
-rows dictionary-encoded and painted 250 at a time so 40k rows stay quick.
+either). The page is one self-contained HTML file, ~5.3 MB at 180 days: 42k
+orders and 50k line items, dictionary-encoded (the ~4,200 distinct products are
+stored once and referenced by index) and painted 250 rows at a time.
 
 No schedule yet. If it earns one, the Yusen artifact's gated pattern is the model
 — fingerprint the rows, skip the republish when nothing changed.
 
 ## A note on what is on the page
 
-Customer names, cities and states are on it; email addresses and street
-addresses are not. Artifacts are private until shared, and this one should stay
+Customer names, cities, states, and what each person ordered are on it; email
+addresses and street addresses are not. Artifacts are private until shared, and this one should stay
 inside Americanflat.

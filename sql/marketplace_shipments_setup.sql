@@ -27,6 +27,14 @@ CREATE TABLE IF NOT EXISTS `americanflat.marketplaces.marketplace_shipments` (
   carrier       STRING  OPTIONS(description="FedEx | UPS | USPS | DHL, normalized"),
   tracking      STRING,
   status        STRING  OPTIONS(description="Shipped | Shipping | Open | On hold | Cancelled"),
+  order_value   NUMERIC OPTIONS(description="Sum of the order's line totals — what the customer paid, not what shipping cost us"),
+  items         ARRAY<STRUCT<
+                  sku        STRING,
+                  product    STRING,
+                  qty        INT64,
+                  unit_price NUMERIC,
+                  line_total NUMERIC
+                >> OPTIONS(description="Order lines. A line with no SKU is an adjustment (a Shopify discount code), counted in order_value but not in units."),
   first_seen_at DATE    OPTIONS(description="First refresh that captured this order"),
   loaded_at     DATE    OPTIONS(description="Most recent refresh that touched the row")
 )
@@ -74,11 +82,15 @@ WHEN MATCHED THEN UPDATE SET
   carrier      = COALESCE(S.carrier,      T.carrier),
   tracking     = COALESCE(S.tracking,     T.tracking),
   status       = COALESCE(S.status,       T.status),
+  order_value  = COALESCE(S.order_value,  T.order_value),
+  -- Same rule for the line array: an empty one is missing data, not a cleared order.
+  items        = IF(ARRAY_LENGTH(S.items) > 0, S.items, T.items),
   loaded_at    = S.loaded_at
 WHEN NOT MATCHED THEN INSERT
   (marketplace, order_ref, order_number, customer, city, state, order_date,
-   ship_date, units, skus, carrier, tracking, status, first_seen_at, loaded_at)
+   ship_date, units, skus, carrier, tracking, status, order_value, items,
+   first_seen_at, loaded_at)
 VALUES
   (S.marketplace, S.order_ref, S.order_number, S.customer, S.city, S.state,
    S.order_date, S.ship_date, S.units, S.skus, S.carrier, S.tracking, S.status,
-   S.loaded_at, S.loaded_at);
+   S.order_value, S.items, S.loaded_at, S.loaded_at);

@@ -101,7 +101,7 @@ def query(sql, token, page_size=20000):
 # --------------------------------------------------------------------------
 SQL = r"""
 WITH
--- ---- Target: Acenda ship advices (order grain) + fulfillments (tracking) ----
+-- ---- Target: Acenda ship advices (item grain) + fulfillments (tracking) ----
 tgt_orders AS (
   SELECT
     shipAdviceId,
@@ -112,9 +112,7 @@ tgt_orders AS (
     NULLIF(TRIM(CONCAT(COALESCE(ANY_VALUE(shipToFirstName), ''), ' ',
                        COALESCE(ANY_VALUE(shipToLastName), ''))), '')  AS customer,
     ANY_VALUE(shipToCity)                                      AS city,
-    ANY_VALUE(shipToState)                                     AS state,
-    SUM(quantity)                                              AS units,
-    COUNT(DISTINCT sku)                                        AS skus
+    ANY_VALUE(shipToState)                                     AS state
   FROM `americanflat.acenda.ship_advice_raw`
   GROUP BY shipAdviceId
 ),
@@ -139,55 +137,74 @@ tgt_ship AS (
 ),
 tgt AS (
   SELECT 'Target' AS marketplace, o.order_number, o.order_ref, o.customer, o.city, o.state,
-         o.order_date, s.ship_date, o.units, o.skus, s.carrier, s.tracking, o.raw_status
-  FROM tgt_orders o LEFT JOIN tgt_ship s USING (shipAdviceId)
+         o.order_date, s.ship_date, o.raw_status, s.carrier, s.tracking,
+         i.sku, i.productName AS product, i.quantity AS qty,
+         i.unitPrice AS unit_price, i.totalItemPrice AS line_total
+  FROM `americanflat.acenda.ship_advice_raw` i
+  JOIN tgt_orders o USING (shipAdviceId)
+  LEFT JOIN tgt_ship s USING (shipAdviceId)
 ),
 
--- ---- Macy's: Mirakl order feed (line grain -> order grain) ----
-mac AS (
+-- ---- Macy's: Mirakl order feed (line grain) ----
+mac_orders AS (
   SELECT
-    "Macy's" AS marketplace,
-    COALESCE(ANY_VALUE(commercialId), orderId)                 AS order_number,
     orderId                                                    AS order_ref,
+    COALESCE(ANY_VALUE(commercialId), orderId)                 AS order_number,
     NULLIF(TRIM(CONCAT(COALESCE(ANY_VALUE(shipToFirstName), ''), ' ',
                        COALESCE(ANY_VALUE(shipToLastName), ''))), '')  AS customer,
     ANY_VALUE(shipToCity)                                      AS city,
     ANY_VALUE(shipToState)                                     AS state,
     ANY_VALUE(orderDay)                                        AS order_date,
     DATE(MIN(shippedDate))                                     AS ship_date,
-    SUM(quantity)                                              AS units,
-    COUNT(DISTINCT productSku)                                 AS skus,
     ANY_VALUE(shippingCompany)                                 AS carrier,
     NULLIF(ANY_VALUE(shippingTracking), '')                    AS tracking,
     ANY_VALUE(orderState)                                      AS raw_status
   FROM `americanflat.macys.orders_clean`
   GROUP BY orderId
 ),
+mac AS (
+  SELECT "Macy's" AS marketplace, o.order_number, o.order_ref, o.customer, o.city, o.state,
+         o.order_date, o.ship_date, o.raw_status, o.carrier, o.tracking,
+         -- productShopSku is our own SKU; productSku is Macy's internal id.
+         COALESCE(NULLIF(l.productShopSku, ''), l.offerSku, l.productSku) AS sku,
+         l.productTitle AS product, l.quantity AS qty,
+         l.linePrice AS unit_price, l.lineTotalPrice AS line_total
+  FROM `americanflat.macys.orders_clean` l
+  JOIN mac_orders o ON o.order_ref = l.orderId
+),
 
 -- ---- Michaels + Shopify: ShipStation order feed (no shipment feed since 2023) ----
-ss AS (
+ss_orders AS (
   SELECT
-    CASE WHEN storeName LIKE '%Michaels%' THEN 'Michaels' ELSE 'Shopify' END AS marketplace,
+    orderId,
+    CASE WHEN ANY_VALUE(storeName) LIKE '%Michaels%' THEN 'Michaels' ELSE 'Shopify' END AS marketplace,
     ANY_VALUE(orderNumber)                                     AS order_number,
-    CAST(orderId AS STRING)                                    AS order_ref,
     NULLIF(TRIM(COALESCE(ANY_VALUE(shipToName), '')), '')      AS customer,
     ANY_VALUE(shipToCity)                                      AS city,
     ANY_VALUE(shipToState)                                     AS state,
     ANY_VALUE(orderDay)                                        AS order_date,
-    CAST(NULL AS DATE)                                         AS ship_date,
-    SUM(quantity)                                              AS units,
-    COUNT(DISTINCT sku)                                        AS skus,
     ANY_VALUE(COALESCE(NULLIF(carrierCode, ''), requestedShippingService))  AS carrier,
-    CAST(NULL AS STRING)                                       AS tracking,
     ANY_VALUE(orderStatus)                                     AS raw_status
   FROM `americanflat.shipstation.orders_clean`
   WHERE storeName IN ('AMF Michaels', 'Manual Michaels Orders',
                       'Shopify', 'Manual Shopify Orders')
-  GROUP BY orderId, marketplace
+  GROUP BY orderId
+),
+ss AS (
+  SELECT o.marketplace, o.order_number, CAST(o.orderId AS STRING) AS order_ref,
+         o.customer, o.city, o.state, o.order_date,
+         CAST(NULL AS DATE) AS ship_date, o.raw_status, o.carrier,
+         CAST(NULL AS STRING) AS tracking,
+         l.sku, l.itemName AS product, l.quantity AS qty,
+         l.unitPrice AS unit_price, l.lineTotal AS line_total
+  FROM `americanflat.shipstation.orders_clean` l
+  JOIN ss_orders o ON o.orderId = l.orderId
+  WHERE l.storeName IN ('AMF Michaels', 'Manual Michaels Orders',
+                        'Shopify', 'Manual Shopify Orders')
 )
 
--- The three CTEs project the same columns in the same order, so a positional
--- UNION ALL is safe here.
+-- One row per order line. The three CTEs project the same columns in the same
+-- order, so a positional UNION ALL is safe; the builder groups them into orders.
 SELECT * FROM (
   SELECT * FROM tgt
   UNION ALL SELECT * FROM mac
@@ -199,12 +216,13 @@ ORDER BY COALESCE(ship_date, order_date) DESC
 
 
 LEDGER_SQL = r"""
-SELECT marketplace, order_number, order_ref, customer, city, state,
-       order_date, ship_date, units, skus, carrier, tracking,
-       status AS raw_status
-FROM `americanflat.marketplaces.marketplace_shipments`
-WHERE COALESCE(ship_date, order_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL @DAYS DAY)
-ORDER BY COALESCE(ship_date, order_date) DESC
+SELECT t.marketplace, t.order_number, t.order_ref, t.customer, t.city, t.state,
+       t.order_date, t.ship_date, t.carrier, t.tracking, t.status AS raw_status,
+       it.sku, it.product, it.qty, it.unit_price, it.line_total
+FROM `americanflat.marketplaces.marketplace_shipments` t
+LEFT JOIN UNNEST(t.items) it
+WHERE COALESCE(t.ship_date, t.order_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL @DAYS DAY)
+ORDER BY COALESCE(t.ship_date, t.order_date) DESC
 """
 
 
@@ -280,30 +298,54 @@ def title_case(name):
 
 
 def normalize(rows):
-    out = []
+    """Collapse line-grain rows into one order each, carrying its line items."""
+    orders = {}
     for r in rows:
-        ship, order = r.get("ship_date"), r.get("order_date")
-        carrier = norm_carrier(r.get("carrier"))
-        # A redacted marketplace name is not a name — Target Plus swaps consumer
-        # PII for "Customer Name" ~45 days after the order, so don't pretend.
-        cust = title_case(r.get("customer") or "")
-        if cust.lower() in ("customer name", "name customer", "customer"):
-            cust = ""
-        out.append({
-            "marketplace": r["marketplace"],
-            "order_number": (r.get("order_number") or "").strip(),
-            "order_ref": (r.get("order_ref") or "").strip(),
-            "customer": cust,
-            "city": title_case(r.get("city") or ""),
-            "state": (r.get("state") or "").strip().upper()[:2],
-            "order_date": order or "",
-            "ship_date": ship or "",
-            "units": int(r.get("units") or 0),
-            "skus": int(r.get("skus") or 0),
-            "carrier": carrier,
-            "tracking": (r.get("tracking") or "").strip(),
-            "status": norm_status(r.get("raw_status"), ship),
+        key = (r["marketplace"], r.get("order_ref") or r.get("order_number") or "")
+        o = orders.get(key)
+        if o is None:
+            ship, order = r.get("ship_date"), r.get("order_date")
+            # A redacted marketplace name is not a name — Target Plus swaps consumer
+            # PII for "Customer Name" ~45 days after the order, so don't pretend.
+            cust = title_case(r.get("customer") or "")
+            if cust.lower() in ("customer name", "name customer", "customer"):
+                cust = ""
+            o = orders[key] = {
+                "marketplace": r["marketplace"],
+                "order_number": (r.get("order_number") or "").strip(),
+                "order_ref": (r.get("order_ref") or "").strip(),
+                "customer": cust,
+                "city": title_case(r.get("city") or ""),
+                "state": (r.get("state") or "").strip().upper()[:2],
+                "order_date": order or "",
+                "ship_date": ship or "",
+                "carrier": norm_carrier(r.get("carrier")),
+                "tracking": (r.get("tracking") or "").strip(),
+                "status": norm_status(r.get("raw_status"), ship),
+                "items": [],
+            }
+        sku = (r.get("sku") or "").strip()
+        product = (r.get("product") or "").strip()
+        qty = int(float(r.get("qty") or 0))
+        if not (sku or product or qty):
+            continue
+        o["items"].append({
+            "sku": sku, "product": product, "qty": qty,
+            "unit_price": round(float(r.get("unit_price") or 0), 2),
+            "line_total": round(float(r.get("line_total") or 0), 2),
         })
+
+    out = []
+    for o in orders.values():
+        # ShipStation carries discounts as line items with a name but no SKU
+        # ("WELCOME10", qty 1, -$8.59). They belong in the order's value, which is
+        # what the customer paid, but counting one as a shipped unit is wrong.
+        o["units"] = sum(i["qty"] for i in o["items"] if i["sku"])
+        o["skus"] = len({i["sku"] for i in o["items"] if i["sku"]})
+        # Order value is the sum of its own lines, so the column and the expanded
+        # detail can never disagree.
+        o["value"] = round(sum(i["line_total"] for i in o["items"]), 2)
+        out.append(o)
     return out
 
 
@@ -317,32 +359,47 @@ def day_num(iso):
 
 
 def encode(rows):
-    mkts, carriers, statuses, states = [], [], [], []
+    """Dictionary-encode everything repetitive: 40k orders and 50k line items go
+    into the page as arrays of small integers plus one products table."""
+    mkts, carriers, statuses, states, products = [], [], [], [], []
+    pidx = {}
 
     def idx(pool, val):
         if val not in pool:
             pool.append(val)
         return pool.index(val)
 
+    def product_idx(sku, name):
+        key = (sku, name)
+        if key not in pidx:
+            pidx[key] = len(products)
+            products.append([sku, name])
+        return pidx[key]
+
     data = []
     for r in rows:
+        items = [[product_idx(i["sku"], i["product"]), i["qty"],
+                  i["unit_price"], i["line_total"]] for i in r["items"]]
         data.append([
             day_num(r["ship_date"]), day_num(r["order_date"]),
             idx(mkts, r["marketplace"]), r["order_number"], r["customer"],
             r["city"], idx(states, r["state"]), r["units"], r["skus"],
             idx(carriers, r["carrier"]), r["tracking"], idx(statuses, r["status"]),
+            r["value"], items,
         ])
-    return {"rows": data, "mkt": mkts, "carrier": carriers,
-            "status": statuses, "state": states, "epoch": EPOCH.isoformat()}
+    return {"rows": data, "mkt": mkts, "carrier": carriers, "status": statuses,
+            "state": states, "products": products, "epoch": EPOCH.isoformat()}
 
 
 def kpi_block(rows, days):
     dates = sorted(d for d in (r["ship_date"] or r["order_date"] for r in rows) if d)
     by_m = {}
     for r in rows:
-        m = by_m.setdefault(r["marketplace"], {"n": 0, "units": 0, "tracked": 0, "shipdate": 0})
+        m = by_m.setdefault(r["marketplace"],
+                            {"n": 0, "units": 0, "tracked": 0, "shipdate": 0, "value": 0.0})
         m["n"] += 1
         m["units"] += r["units"]
+        m["value"] = round(m["value"] + r["value"], 2)
         m["tracked"] += 1 if r["tracking"] else 0
         m["shipdate"] += 1 if r["ship_date"] else 0
     return {
@@ -491,6 +548,27 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .mp-table td.cust { max-width: 220px; overflow-wrap: anywhere; }
   .mp-table td.dest { color: var(--muted); white-space: nowrap; }
 
+  .expbtn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; cursor: pointer;
+    color: var(--ink); display: inline-flex; align-items: center; gap: 6px;
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .expbtn:hover { color: var(--accent); }
+  .expbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .ecaret { color: var(--muted); font-size: 9px; transition: transform .12s ease; }
+  @media (prefers-reduced-motion: reduce) { .ecaret { transition: none; } }
+  .expbtn[aria-expanded="true"] .ecaret { transform: rotate(90deg); }
+  tr.linedetail > td { background: var(--thead); padding: 12px 16px 14px; }
+  .lines { border-collapse: collapse; width: 100%; max-width: 900px; }
+  .lines th { text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--muted); padding: 0 10px 5px 0; white-space: nowrap; }
+  .lines th.num, .lines td.num { text-align: right; }
+  .lines td { padding: 4px 10px 4px 0; border-top: 1px solid var(--line); vertical-align: top;
+    font-size: 12.5px; }
+  .lines td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lines td.sku { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lines td.prod { color: var(--muted); }
+  .lines tfoot td { border-top: 1px solid var(--line); font-weight: 700; padding-top: 6px; }
+  .lines .vnone { color: var(--muted); font-style: italic; }
+
   .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
   a.link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
   a.link:hover { text-decoration: underline; }
@@ -528,7 +606,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   <p class="mp-note" id="gapnote"></p>
 
   <div class="mp-toolbar">
-    <input type="search" id="q" placeholder="Search order #, customer name, tracking, city&#8230;" autocomplete="off" aria-label="Search shipments">
+    <input type="search" id="q" placeholder="Search order #, customer name, tracking, SKU, city&#8230;" autocomplete="off" aria-label="Search shipments">
     <select id="f-mkt" aria-label="Filter by marketplace"><option value="">All marketplaces</option></select>
     <select id="f-month" aria-label="Filter by month"><option value="">All months</option></select>
     <select id="f-car" aria-label="Filter by carrier"><option value="">All carriers</option></select>
@@ -547,6 +625,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
         <th data-k="cust" tabindex="0">Customer<span class="arrow">&#9660;</span></th>
         <th data-k="dest" tabindex="0">Destination<span class="arrow">&#9660;</span></th>
         <th data-k="units" class="num" tabindex="0">Units<span class="arrow">&#9660;</span></th>
+        <th data-k="value" class="num" tabindex="0">Order value<span class="arrow">&#9660;</span></th>
         <th data-k="car" tabindex="0">Carrier<span class="arrow">&#9660;</span></th>
         <th data-k="trk" tabindex="0">Tracking<span class="arrow">&#9660;</span></th>
         <th data-k="st" tabindex="0">Status<span class="arrow">&#9660;</span></th>
@@ -574,23 +653,34 @@ const num = n => n.toLocaleString("en-US");
 
 // Rows arrive as dictionary-encoded arrays (40k+ of them), so unpack once into
 // objects the filter/sort can read by name without re-indexing on every pass.
-const C = {SHIP:0, ORDER:1, MKT:2, NUM:3, CUST:4, CITY:5, STATE:6, UNITS:7, SKUS:8, CAR:9, TRK:10, ST:11};
+const C = {SHIP:0, ORDER:1, MKT:2, NUM:3, CUST:4, CITY:5, STATE:6, UNITS:7, SKUS:8,
+           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13};
+const P = {SKU:0, NAME:1};   // products table
+const L = {P:0, QTY:1, UNIT:2, TOTAL:3};  // one line item
 const iso = d => d < 0 ? "" : new Date(EPOCH + d * DAY).toISOString().slice(0, 10);
-const DATA = RAW.rows.map(r => {
+const DATA = RAW.rows.map((r, i) => {
   const shipIso = iso(r[C.SHIP]), orderIso = iso(r[C.ORDER]);
   const state = RAW.state[r[C.STATE]] || "";
   const city = r[C.CITY] || "";
   return {
+    i,
     ship: r[C.SHIP], order: r[C.ORDER], shipIso, orderIso,
     mkt: RAW.mkt[r[C.MKT]], num: r[C.NUM] || "", cust: r[C.CUST] || "",
     dest: city + (city && state ? ", " : "") + state,
     units: r[C.UNITS], skus: r[C.SKUS],
     car: RAW.carrier[r[C.CAR]] || "", trk: r[C.TRK] || "", st: RAW.status[r[C.ST]],
+    value: r[C.VALUE], items: r[C.ITEMS] || [],
     // One lowercase haystack per row, built once: search stays instant at 40k rows.
+    // SKUs are in it (people look up "who bought MW0808DWOOD"); product titles are
+    // not — they are long, near-duplicate, and would triple the page's memory.
     hay: ((r[C.NUM] || "") + " " + (r[C.CUST] || "") + " " + (r[C.TRK] || "") + " " +
-          city + " " + state + " " + RAW.mkt[r[C.MKT]]).toLowerCase(),
+          city + " " + state + " " + RAW.mkt[r[C.MKT]] + " " +
+          (r[C.ITEMS] || []).map(l => RAW.products[l[L.P]][P.SKU]).join(" ")).toLowerCase(),
   };
 });
+
+const money = n => "$" + n.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const money0 = n => "$" + Math.round(n).toLocaleString("en-US");
 
 const fmtDate = d => { if (!d) return ""; const [y, m, dd] = d.split("-"); return MON[+m - 1] + " " + dd + ", " + y.slice(2); };
 const fmtMonth = ym => { const [y, m] = ym.split("-"); return MON[+m - 1] + " " + y; };
@@ -622,9 +712,12 @@ function kpiCards(rows) {
   // Days-to-ship only means anything on rows that carry both dates.
   const spans = rows.filter(r => r.ship >= 0 && r.order >= 0).map(r => r.ship - r.order);
   const avgSpan = spans.length ? (spans.reduce((a, b) => a + b, 0) / spans.length) : null;
+  const value = rows.reduce((a, r) => a + r.value, 0);
   const cards = [
     {label: "Shipments", value: num(rows.length), sub: rows.length === DATA.length ? "" : "of " + num(DATA.length)},
     {label: "Units", value: num(units)},
+    {label: "Order value", value: money0(value),
+     sub: rows.length ? money(value / rows.length) + " avg" : ""},
     {label: "Shipped", value: num(shipped), sub: "of " + num(rows.length)},
     {label: "With tracking", value: num(tracked), sub: "of " + num(rows.length)},
     {label: "Avg days to ship", value: avgSpan == null ? "\u2014" : avgSpan.toFixed(1),
@@ -678,11 +771,11 @@ function filtered() {
     return true;
   });
   rows.sort((a, b) => {
-    if (sortKey === "ship" || sortKey === "order" || sortKey === "units") {
+    if (sortKey === "ship" || sortKey === "order" || sortKey === "units" || sortKey === "value") {
       // Rows with no ship date sort to the bottom either way &mdash; an empty cell is
       // not "oldest", it's unknown, and burying it keeps the top of the table useful.
       const x = a[sortKey], y = b[sortKey];
-      if (sortKey !== "units") {
+      if (sortKey !== "units" && sortKey !== "value") {
         if (x < 0 && y < 0) return 0;
         if (x < 0) return 1;
         if (y < 0) return -1;
@@ -698,6 +791,27 @@ function filtered() {
 // first render stays instant and the browser never builds 40k <tr> nodes at once.
 const PAGE = 250;
 let shown = PAGE, current = [];
+// Keyed by the row's index in DATA, so a sort or filter in between doesn't move
+// which order is open.
+const expanded = new Set();
+
+function lineRows(r) {
+  if (!r.items.length) return '<p class="vnone" style="margin:0">No line detail on this order.</p>';
+  const rows = r.items.map(l => {
+    const p = RAW.products[l[L.P]] || ["", ""];
+    return '<tr><td class="sku">' + esc(p[P.SKU] || "\u2014") + '</td>' +
+      '<td class="prod">' + esc(p[P.NAME]) + '</td>' +
+      '<td class="num">' + num(l[L.QTY]) + '</td>' +
+      '<td class="num">' + money(l[L.UNIT]) + '</td>' +
+      '<td class="num">' + money(l[L.TOTAL]) + '</td></tr>';
+  }).join("");
+  return '<table class="lines"><thead><tr><th>SKU</th><th>Item</th>' +
+    '<th class="num">Qty</th><th class="num">Unit</th><th class="num">Line total</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    (r.items.length > 1 ? '<tfoot><tr><td colspan="2"></td><td class="num">' + num(r.units) +
+      '</td><td></td><td class="num">' + money(r.value) + '</td></tr></tfoot>' : "") +
+    '</table>';
+}
 
 function rowHtml(r) {
   const mkt = '<span class="chip" style="background:color-mix(in srgb, var(' + mktVar(r.mkt) +
@@ -713,24 +827,31 @@ function rowHtml(r) {
   const trk = !r.trk ? '<span class="dash">&mdash;</span>'
     : base ? '<a class="link" href="' + base + encodeURIComponent(r.trk) + '" target="_blank" rel="noopener">' + esc(r.trk) + '</a>'
     : esc(r.trk);
-  return '<tr>' +
+  const open = expanded.has(r.i);
+  const order = '<button class="expbtn" type="button" data-i="' + r.i + '" aria-expanded="' + open + '"' +
+    ' title="Show the line items on this order"><span class="ecaret">&#9654;</span>' + esc(r.num) + '</button>';
+  const main = '<tr>' +
     '<td class="date">' + (r.shipIso ? fmtDate(r.shipIso) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td class="date">' + (r.orderIso ? fmtDate(r.orderIso) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + mkt + '</td>' +
-    '<td class="ord">' + esc(r.num) + '</td>' +
+    '<td class="ord">' + order + '</td>' +
     '<td class="cust">' + (r.cust ? esc(r.cust) : '<span class="dash" title="This marketplace redacts the customer name after the order ages out">&mdash;</span>') + '</td>' +
     '<td class="dest">' + (r.dest ? esc(r.dest) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td class="num">' + num(r.units) + (r.skus > 1 ? ' <small style="color:var(--muted)">/' + r.skus + '</small>' : "") + '</td>' +
+    '<td class="num">' + (r.value ? money(r.value) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + (r.car ? esc(r.car) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + trk + '</td>' +
     '<td>' + status + '</td></tr>';
+  return open
+    ? main + '<tr class="linedetail"><td colspan="11">' + lineRows(r) + '</td></tr>'
+    : main;
 }
 
 function paint(reset) {
   if (reset) { current = filtered(); shown = PAGE; }
   document.getElementById("rows").innerHTML =
     current.slice(0, shown).map(rowHtml).join("") ||
-    '<tr><td colspan="10" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
+    '<tr><td colspan="11" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
   const left = current.length - shown;
   const wrap = document.getElementById("morewrap");
   wrap.hidden = left <= 0;
@@ -745,6 +866,14 @@ function paint(reset) {
   }
 }
 
+document.getElementById("rows").addEventListener("click", e => {
+  const btn = e.target.closest(".expbtn");
+  if (!btn) return;
+  const i = +btn.dataset.i;
+  if (expanded.has(i)) expanded.delete(i); else expanded.add(i);
+  paint(false);
+});
+
 document.getElementById("more").addEventListener("click", () => { shown += 1000; paint(false); });
 [q, fMkt, fMonth, fCar, fStatus, fTrack].forEach(el =>
   el.addEventListener("input", () => paint(true)));
@@ -752,7 +881,8 @@ document.getElementById("more").addEventListener("click", () => { shown += 1000;
 document.querySelectorAll(".mp-table thead th[data-k]").forEach(th => {
   const go = () => {
     const k = th.dataset.k;
-    sortDir = sortKey === k ? -sortDir : (k === "ship" || k === "order" || k === "units" ? -1 : 1);
+    sortDir = sortKey === k ? -sortDir
+      : (k === "ship" || k === "order" || k === "units" || k === "value" ? -1 : 1);
     sortKey = k;
     document.querySelectorAll(".mp-table thead th").forEach(o => o.classList.remove("sorted"));
     th.classList.add("sorted");
@@ -832,7 +962,10 @@ def main():
         loaded = dt.date.today().isoformat()
         with open(args.ndjson, "w") as fh:
             for r in rows:
-                rec = dict(r, loaded_at=loaded)
+                rec = dict(r, loaded_at=loaded, order_value=r["value"])
+                rec.pop("value")
+                # Empty strings are dropped so the MERGE sees NULL and keeps whatever
+                # the ledger already holds, rather than blanking a captured fact.
                 fh.write(json.dumps({k: v for k, v in rec.items() if v != ""}) + "\n")
         print("%s: %d rows for BigQuery" % (args.ndjson, len(rows)), file=sys.stderr)
 
