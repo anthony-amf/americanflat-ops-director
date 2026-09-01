@@ -1070,6 +1070,13 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     outline: 2px solid var(--accent); outline-offset: 1px;
   }
   .mp-count { color: var(--muted); font-size: 13px; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .csvbtn { font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    color: var(--accent); background: var(--accent-soft); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 13px; }
+  .csvbtn:hover:not(:disabled) { border-color: var(--accent); }
+  .csvbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .csvbtn:disabled { opacity: .6; cursor: default; }
+  .csvbtn[hidden] { display: none; }
 
   .mp-tablewrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); overflow-x: auto; }
   @media (min-width: 1560px) { .mp-tablewrap { overflow-x: visible; } }
@@ -1165,6 +1172,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     <select id="f-adj" aria-label="Filter by carrier re-rate"><option value="">Overbilling: any</option><option value="yes">Billed over label</option><option value="no">Billed at label</option></select>
     <select id="f-rs" aria-label="Filter by order type"><option value="standard">Standard orders</option><option value="reship">Reships only</option><option value="manual">Manual only</option><option value="">All order types</option></select>
     <span class="mp-count" id="count"></span>
+    <button class="csvbtn" type="button" id="csv" hidden>Export CSV</button>
   </div>
 
   <div class="mp-tablewrap">
@@ -1513,6 +1521,8 @@ function paint(reset) {
   const wrap = document.getElementById("morewrap");
   wrap.hidden = left <= 0;
   document.getElementById("more").textContent = "Show " + num(Math.min(left, 1000)) + " more";
+  const csvB = document.getElementById("csv");
+  if (csvB) csvB.disabled = current.length === 0;
   document.getElementById("count").textContent =
     num(current.length) + " shipment" + (current.length === 1 ? "" : "s") +
     (left > 0 ? " \u00b7 showing " + num(shown) : "");
@@ -1588,6 +1598,91 @@ document.getElementById("foot").innerHTML =
   "<p>Built " + esc(KPI.built) + " from <code>acenda</code>, <code>macys</code> and <code>shipstation</code> in BigQuery &mdash; " +
   "a rolling " + KPI.days + "-day window.</p>" +
   "<p>Refresh with <code>python3 refresh_marketplace_shipments.py</code> in americanflat-ops-director.</p>";
+
+// ---- CSV of exactly what is on screen -------------------------------------
+// A published artifact cannot start a download on its own; the downloads
+// capability asks the viewer instead. If it is not granted the button stays
+// hidden rather than failing on click.
+const CSV_COLUMNS = [
+  ["Ship date", r => r.shipIso],
+  ["Ordered", r => r.orderIso],
+  ["Marketplace", r => r.mkt],
+  ["Order #", r => r.num],
+  ["Order type", r => r.rs ? "reship" : r.manual ? "manual" : "standard"],
+  ["Customer", r => r.cust],
+  ["City", r => r.dest.split(", ")[0] || ""],
+  ["State", r => r.dest.split(", ")[1] || ""],
+  ["Ships from", r => r.wh],
+  ["Carrier", r => r.car],
+  ["Tracking", r => r.trk],
+  ["Status", r => r.st],
+  ["Units", r => r.units],
+  ["SKUs", r => r.skus],
+  ["Order value", r => r.value ? r.value.toFixed(2) : ""],
+  ["Ship cost", r => r.cost == null ? "" : r.cost.toFixed(2)],
+  ["Billed over label", r => r.lvar == null ? "" : r.lvar.toFixed(2)],
+  ["Cost source", r => r.csrc],
+  // One row per order stays one row: the items ride along in a single cell so
+  // the file opens as a table rather than needing a second export to join.
+  ["Items", r => (r.items || []).map(l => {
+      const p = RAW.products[l[L.P]] || ["", ""];
+      return (p[P.SKU] || p[P.NAME]) + " x" + l[L.QTY];
+    }).join("; ")],
+];
+
+function csvCell(v) {
+  const s = v == null ? "" : String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function csvOf(rows) {
+  const out = [CSV_COLUMNS.map(c => csvCell(c[0])).join(",")];
+  for (const r of rows) out.push(CSV_COLUMNS.map(c => csvCell(c[1](r))).join(","));
+  // The BOM is what makes Excel read it as UTF-8 rather than mangling names.
+  return "\ufeff" + out.join("\r\n") + "\r\n";
+}
+
+function csvName() {
+  const bits = ["marketplace-shipments"];
+  if (fMkt.value) bits.push(fMkt.value.replace(/[^A-Za-z0-9]/g, ""));
+  if (fWh.value) bits.push(fWh.value.replace(/[^A-Za-z0-9]/g, ""));
+  if (fMonth.value) bits.push(fMonth.value);
+  if (fRs.value === "reship") bits.push("reships");
+  if (fRs.value === "manual") bits.push("manual");
+  if (fAdj.value === "yes") bits.push("overbilled");
+  return bits.join("-") + ".csv";
+}
+
+const csvBtn = document.getElementById("csv");
+// Guarded: window.claude only exists inside the artifact viewer, and an
+// unguarded reference here would throw before the table ever painted.
+const capabilities = typeof claude !== "undefined" && claude && typeof claude.use === "function"
+  ? claude.use("downloads") : Promise.resolve(null);
+capabilities.then(downloads => {
+  if (!downloads) return;                       // not granted here: no affordance
+  csvBtn.hidden = false;
+  csvBtn.addEventListener("click", async () => {
+    const rows = current;
+    if (!rows.length) return;
+    const text = csvOf(rows);
+    const label = csvBtn.textContent;
+    csvBtn.disabled = true;
+    csvBtn.textContent = "Preparing\u2026";
+    try {
+      await downloads.save({filename: csvName(), data: text});
+      csvBtn.textContent = "Exported";
+    } catch (err) {
+      const code = err && err.code;
+      csvBtn.textContent = code === "declined" ? label
+        : code === "too_large" ? "Too big \u2014 filter first"
+        : code === "rate_limited" ? "Try again in a moment"
+        : "Export unavailable";
+    } finally {
+      csvBtn.disabled = false;
+      setTimeout(() => { csvBtn.textContent = label; }, 2500);
+    }
+  });
+});
 
 document.querySelector(".mp-table thead th[data-k='ship']").classList.add("sorted");
 measureToolbar();

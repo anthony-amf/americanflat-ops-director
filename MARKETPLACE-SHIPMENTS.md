@@ -46,6 +46,19 @@ them. Five of those had already shipped when they were cancelled and carried
 $209.99 of real carrier cost, which leaves the totals with them — small, but it
 means portal spend is what shipped and stayed sold, not everything ever billed.
 
+**Export CSV** sits beside the row count and exports exactly the current filter
+and sort — 19 columns, one row per order, with each order's SKUs and quantities
+in a single `Items` cell so the file stays a table. The filename follows the
+filters (`marketplace-shipments-Target-Fontana-2026-08.csv`).
+
+A published artifact cannot start a download itself — `<a download>` and
+script-driven saves are inert in the viewer sandbox — so this uses the
+`downloads` runtime capability, declared as `capabilities: {downloads: true}` at
+publish time. **Republishing without that declaration silently removes the
+button**, since a non-empty capabilities object is a full-set declaration and
+omitting the field carries the stored one forward. The page feature-detects: no
+capability, no button, rather than a click that fails.
+
 ## Where the data comes from
 
 Nothing new is scraped — the marketplace order feeds already land in BigQuery
