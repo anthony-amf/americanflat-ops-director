@@ -858,12 +858,13 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .kpi .sub { font-size: 12.5px; font-weight: 500; color: var(--muted); margin-top: 3px;
     font-variant-numeric: tabular-nums; min-height: 1.2em; }
 
-  .mp-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 26px; }
-  @media (max-width: 860px) { .mp-panels { grid-template-columns: 1fr; } }
+  .mp-panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+  @media (max-width: 1180px) { .mp-panels { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 780px) { .mp-panels { grid-template-columns: 1fr; } }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 17px 19px; box-shadow: var(--shadow); }
   .panel h2 { font-size: 13.5px; font-weight: 650; margin: 0 0 2px; }
   .panel .hint { color: var(--muted); font-size: 11.5px; margin: 0 0 12px; }
-  .bar-row { display: grid; grid-template-columns: 128px 1fr auto; align-items: center; gap: 10px; margin: 8px 0; }
+  .bar-row { display: grid; grid-template-columns: minmax(96px, 150px) 1fr auto; align-items: center; gap: 10px; margin: 8px 0; }
   .bar-row .name { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar-track { background: var(--track); border-radius: 5px; height: 17px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 5px; }
@@ -930,6 +931,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .linecost { margin: 9px 0 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .linecost b { color: var(--ink); }
   .linereRate { color: var(--warn); }
+  .rerate { color: var(--warn); font-weight: 600; font-size: 11px; }
 
   .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
   a.link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -963,6 +965,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   <section class="mp-panels">
     <div class="panel"><h2>Shipments by marketplace</h2><p class="hint" id="hint-mkt"></p><div id="chart-mkt"></div></div>
     <div class="panel"><h2>Shipments by carrier</h2><p class="hint" id="hint-car"></p><div id="chart-car"></div></div>
+    <div class="panel"><h2>Re-rated SKUs</h2><p class="hint" id="hint-sku"></p><div id="chart-sku"></div></div>
   </section>
 
   <p class="mp-note" id="gapnote"></p>
@@ -974,6 +977,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     <select id="f-car" aria-label="Filter by carrier"><option value="">All carriers</option></select>
     <select id="f-status" aria-label="Filter by status"><option value="">All statuses</option></select>
     <select id="f-track" aria-label="Filter by tracking"><option value="">Tracking: any</option><option value="yes">Has tracking</option><option value="no">No tracking</option></select>
+    <select id="f-adj" aria-label="Filter by carrier re-rate"><option value="">Re-rates: any</option><option value="yes">Re-rated only</option><option value="no">No re-rate</option></select>
     <span class="mp-count" id="count"></span>
   </div>
 
@@ -1133,10 +1137,38 @@ function chart(elId, hintId, key, rows, hint) {
   document.getElementById(hintId).textContent = hint;
 }
 
+// Which SKUs the carrier keeps re-rating. An order's adjustment is split across
+// its items by unit share — the surcharge is charged on the box, not one line,
+// so this points at the culprit rather than claiming to prove it.
+function skuChart(rows) {
+  const agg = {};
+  for (const r of rows) {
+    if (!r.adj) continue;
+    const items = (r.items || []).filter(l => RAW.products[l[L.P]] && RAW.products[l[L.P]][P.SKU]);
+    const units = items.reduce((a, l) => a + l[L.QTY], 0);
+    if (!units) continue;
+    for (const l of items) {
+      const sku = RAW.products[l[L.P]][P.SKU];
+      agg[sku] = (agg[sku] || 0) + r.adj * (l[L.QTY] / units);
+    }
+  }
+  const items = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const max = Math.max(...items.map(i => i[1]), 1);
+  document.getElementById("chart-sku").innerHTML = items.length ? items.map(([sku, amt]) =>
+    '<div class="bar-row"><div class="name" title="' + esc(sku) + '">' + esc(sku) + '</div>' +
+    '<div class="bar-track"><div class="bar-fill" style="width:' + (amt / max * 100).toFixed(1) +
+    '%;background:var(--warn)"></div></div><div class="amt">' + money(amt) + '</div></div>'
+  ).join("") : '<div class="bar-row"><div class="name" style="grid-column:1/-1;color:var(--muted)">No re-rated shipments in the current filter</div></div>';
+  document.getElementById("hint-sku").textContent = rows.some(r => r.adj)
+    ? "Charges added after the label, split across an order's items"
+    : "Nothing re-rated here";
+}
+
 const uniq = key => [...new Set(DATA.map(r => r[key]).filter(Boolean))].sort();
 const fMkt = document.getElementById("f-mkt"), fMonth = document.getElementById("f-month"),
       fCar = document.getElementById("f-car"), fStatus = document.getElementById("f-status"),
-      fTrack = document.getElementById("f-track"), q = document.getElementById("q");
+      fTrack = document.getElementById("f-track"), fAdj = document.getElementById("f-adj"),
+      q = document.getElementById("q");
 uniq("mkt").forEach(m => fMkt.add(new Option(m, m)));
 uniq("car").forEach(c => fCar.add(new Option(c, c)));
 uniq("st").forEach(s => fStatus.add(new Option(s, s)));
@@ -1147,13 +1179,16 @@ let sortKey = "ship", sortDir = -1;
 
 function filtered() {
   const term = q.value.trim().toLowerCase();
-  const fm = fMkt.value, fmo = fMonth.value, fc = fCar.value, fs = fStatus.value, ft = fTrack.value;
+  const fm = fMkt.value, fmo = fMonth.value, fc = fCar.value, fs = fStatus.value,
+        ft = fTrack.value, fa = fAdj.value;
   const rows = DATA.filter(r => {
     if (fm && r.mkt !== fm) return false;
     if (fc && r.car !== fc) return false;
     if (fs && r.st !== fs) return false;
     if (ft === "yes" && !r.trk) return false;
     if (ft === "no" && r.trk) return false;
+    if (fa === "yes" && !r.adj) return false;
+    if (fa === "no" && r.adj) return false;
     if (fmo && (r.shipIso || r.orderIso).slice(0, 7) !== fmo) return false;
     if (term && !r.hay.includes(term)) return false;
     return true;
@@ -1245,7 +1280,9 @@ function rowHtml(r) {
     '<td class="num">' + (r.value ? money(r.value) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td class="num">' + (r.cost == null
       ? '<span class="dash" title="No carrier invoice matched to this tracking number yet">&mdash;</span>'
-      : '<span title="' + esc(r.csrc || "carrier") + ' invoice">' + money(r.cost) + '</span>') + '</td>' +
+      : '<span title="' + esc(r.csrc || "carrier") + ' invoice">' + money(r.cost) + '</span>' +
+        (r.adj ? ' <small class="rerate" title="Re-rated by the carrier after the label">+' +
+                 money(r.adj) + '</small>' : "")) + '</td>' +
     '<td>' + (r.car ? esc(r.car) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + trk + '</td>' +
     '<td>' + status + '</td></tr>';
@@ -1271,6 +1308,7 @@ function paint(reset) {
     kpiCards(current);
     chart("chart-mkt", "hint-mkt", "mkt", current, "Shipments in the current filter");
     chart("chart-car", "hint-car", "car", current, "Carrier as recorded on the shipment");
+    skuChart(current);
   }
 }
 
@@ -1283,7 +1321,7 @@ document.getElementById("rows").addEventListener("click", e => {
 });
 
 document.getElementById("more").addEventListener("click", () => { shown += 1000; paint(false); });
-[q, fMkt, fMonth, fCar, fStatus, fTrack].forEach(el =>
+[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj].forEach(el =>
   el.addEventListener("input", () => paint(true)));
 
 document.querySelectorAll(".mp-table thead th[data-k]").forEach(th => {
