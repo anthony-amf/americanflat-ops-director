@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS `americanflat.finance.parcel_invoices` (
   carrier        STRING  OPTIONS(description="FedEx | UPS | USPS | DHL"),
   invoice_number STRING  OPTIONS(description="Carrier invoice number — what a dispute is filed against"),
   invoice_date   DATE,
-  charge_type    STRING  OPTIONS(description="Freight, residential surcharge, dimensional re-rate, fuel, etc. where the export provides it"),
+  charge_class   STRING  OPTIONS(description="'base' = the freight quoted when the label was made. 'adjustment' = anything the carrier added afterwards. This split is what keeps a re-rate out of cost per unit without hiding it"),
+  charge_type    STRING  OPTIONS(description="Why the carrier charged it: dimensional re-rate, residential surcharge, address correction, fuel, delivery area. The reason is what makes a charge actionable"),
+  quoted_amount  NUMERIC OPTIONS(description="Price at label creation where the export states it. Stamps gives it directly (Quoted + Adjusted = Paid); FedEx does not, so the first charge on a tracking number is the base and later ones are adjustments"),
   service        STRING,
   weight_lb      NUMERIC,
   source_file    STRING  OPTIONS(description="Which export this line came from, so a wrong number is traceable"),
@@ -45,6 +47,7 @@ MERGE `americanflat.finance.parcel_invoices` T
 USING (
   SELECT tracking, invoice_date, amount, charge_type,
          ANY_VALUE(carrier) AS carrier, ANY_VALUE(invoice_number) AS invoice_number,
+         ANY_VALUE(charge_class) AS charge_class, ANY_VALUE(quoted_amount) AS quoted_amount,
          ANY_VALUE(service) AS service, ANY_VALUE(weight_lb) AS weight_lb,
          ANY_VALUE(source_file) AS source_file, MIN(loaded_at) AS loaded_at
   FROM `americanflat.finance._stage_parcel_invoices`
@@ -55,11 +58,11 @@ AND T.amount = S.amount
 AND COALESCE(T.invoice_date, DATE "1900-01-01") = COALESCE(S.invoice_date, DATE "1900-01-01")
 AND COALESCE(T.charge_type, "") = COALESCE(S.charge_type, "")
 WHEN NOT MATCHED THEN INSERT
-  (tracking, amount, carrier, invoice_number, invoice_date, charge_type, service,
-   weight_lb, source_file, loaded_at)
+  (tracking, amount, carrier, invoice_number, invoice_date, charge_class, charge_type,
+   quoted_amount, service, weight_lb, source_file, loaded_at)
 VALUES
-  (S.tracking, S.amount, S.carrier, S.invoice_number, S.invoice_date, S.charge_type,
-   S.service, S.weight_lb, S.source_file, S.loaded_at);
+  (S.tracking, S.amount, S.carrier, S.invoice_number, S.invoice_date, S.charge_class,
+   S.charge_type, S.quoted_amount, S.service, S.weight_lb, S.source_file, S.loaded_at);
 
 
 -- ---------------------------------------------------------------------------
@@ -70,10 +73,18 @@ CREATE OR REPLACE VIEW `americanflat.finance.shipment_cost` AS
 WITH invoice_per_tracking AS (
   -- Sum the lines: an original charge plus a later re-rate is what we actually paid.
   SELECT tracking,
-         SUM(amount)            AS invoice_cost,
-         ANY_VALUE(carrier)     AS invoice_carrier,
-         MAX(invoice_date)      AS last_invoice_date,
-         COUNT(*)               AS invoice_lines
+         SUM(amount)                                              AS invoice_cost,
+         -- Base and adjustment are carried separately all the way through, so a
+         -- cost-per-unit figure can be read either all-in or on base freight
+         -- alone without recomputing anything.
+         SUM(IF(charge_class = 'adjustment', 0, amount))           AS base_cost,
+         SUM(IF(charge_class = 'adjustment', amount, 0))           AS adjustment_cost,
+         ANY_VALUE(carrier)                                        AS invoice_carrier,
+         STRING_AGG(DISTINCT IF(charge_class = 'adjustment', charge_type, NULL)
+                    ORDER BY IF(charge_class = 'adjustment', charge_type, NULL))
+                                                                   AS adjustment_reasons,
+         MAX(invoice_date)                                         AS last_invoice_date,
+         COUNT(*)                                                  AS invoice_lines
   FROM `americanflat.finance.parcel_invoices`
   GROUP BY tracking
 ),
@@ -97,6 +108,9 @@ resolved AS (
   SELECT
     p.*,
     i.invoice_cost,
+    i.base_cost,
+    i.adjustment_cost,
+    i.adjustment_reasons,
     i.invoice_carrier,
     i.last_invoice_date,
     i.invoice_lines,
@@ -122,6 +136,12 @@ SELECT
   SUM(cost)                                            AS cost,
   SUM(label_cost)                                      AS label_cost,
   SUM(invoice_cost)                                    AS invoice_cost,
+  -- The cost-per-unit pair. base_cost answers "what does it cost to ship a
+  -- unit"; cost answers "what did we pay". Report whichever the question wants,
+  -- but never quietly fold the second into the first.
+  SUM(COALESCE(base_cost, label_cost))                 AS base_cost,
+  SUM(COALESCE(adjustment_cost, 0))                    AS adjustment_cost,
+  STRING_AGG(DISTINCT adjustment_reasons)              AS adjustment_reasons,
   -- What the carrier billed above (or below) the label. This is the audit
   -- number: a positive variance is a re-rate or surcharge we absorbed.
   SUM(invoice_cost) - SUM(IF(invoice_cost IS NULL, NULL, label_cost)) AS invoice_variance,
@@ -132,3 +152,33 @@ SELECT
   MAX(last_invoice_date)                               AS last_invoice_date
 FROM resolved
 GROUP BY orderNumber;
+
+
+-- ---------------------------------------------------------------------------
+-- The audit view. Every shipment where the carrier billed something other than
+-- the label, newest first — what was quoted, what was billed, the gap, and why.
+--
+-- This is the question the cost column can't answer once it resolves to one
+-- number: not "what did shipping cost" but "what is the carrier adding after
+-- the fact, and is any of it disputable".
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE VIEW `americanflat.finance.shipment_cost_variance` AS
+SELECT
+  order_number,
+  channel,
+  ship_date,
+  carriers,
+  packages,
+  units,
+  label_cost,
+  invoice_cost,
+  invoice_variance,
+  adjustment_cost,
+  adjustment_reasons,
+  SAFE_DIVIDE(invoice_variance, NULLIF(label_cost, 0)) AS variance_pct,
+  last_invoice_date
+FROM `americanflat.finance.shipment_cost`
+WHERE invoice_cost IS NOT NULL
+  AND label_cost IS NOT NULL
+  AND ABS(invoice_variance) > 0.005
+ORDER BY ship_date DESC, ABS(invoice_variance) DESC;

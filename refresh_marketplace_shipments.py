@@ -300,11 +300,16 @@ def norm_status(raw, ship_date):
 # Four layouts are accepted: the two consolidated Drive sheets, and the raw
 # exports the weekly download drops in the uploads folder.
 COST_LAYOUTS = [
-    # (tracking column, amount column, carrier column or fixed carrier, date column)
-    ("Tracking Number", "Net Charge", "FedEx", "Invoice Date"),               # AMF FedEx Invoices sheet
-    ("Tracking Number", "Amount Paid", ("col", "Carrier"), "Ship Date"),      # AMF Stamps.com Invoices sheet
-    ("Express or Ground Tracking ID", "Net Charge Amount", "FedEx", "Invoice Date"),  # FedEx Billing Online
-    ("Tracking #", "Amount Paid", ("col", "Carrier"), "Ship Date"),           # Stamps.com print history
+    # (tracking col, amount col, carrier col or fixed carrier, date col, quoted col)
+    #
+    # `quoted` is the price at label creation where the export gives it. Stamps
+    # does: Quoted Amount + Adjusted Amount = Amount Paid, exactly. That split is
+    # what lets a re-rate be reported separately from the base freight instead of
+    # silently inflating cost per unit.
+    ("Tracking Number", "Net Charge", "FedEx", "Invoice Date", None),
+    ("Tracking Number", "Amount Paid", ("col", "Carrier"), "Ship Date", None),
+    ("Express or Ground Tracking ID", "Net Charge Amount", "FedEx", "Invoice Date", None),
+    ("Tracking #", "Amount Paid", ("col", "Carrier"), "Ship Date", "Quoted Amount"),
 ]
 
 
@@ -335,7 +340,7 @@ def _cost_rows(path):
     if not rows:
         return
     header = set(rows[0].keys())
-    for tcol, acol, carrier, dcol in COST_LAYOUTS:
+    for tcol, acol, carrier, dcol, qcol in COST_LAYOUTS:
         if tcol in header and acol in header:
             break
     else:
@@ -356,7 +361,9 @@ def _cost_rows(path):
         if not tracking or amount is None:
             continue
         name = r.get(carrier[1]) if isinstance(carrier, tuple) else carrier
-        yield tracking, amount, norm_carrier(name) or "Other", str(r.get(dcol, "") or "")
+        quoted = parse_amount(r.get(qcol)) if qcol and qcol in header else None
+        yield (tracking, amount, norm_carrier(name) or "Other",
+               str(r.get(dcol, "") or ""), quoted)
 
 
 def _read_xlsx(path):
@@ -395,16 +402,25 @@ def load_costs(paths):
     seen, costs, lines, repeats = set(), {}, [], 0
     for path in files:
         n = 0
-        for tracking, amount, carrier, date in _cost_rows(path):
+        for tracking, amount, carrier, date, quoted in _cost_rows(path):
             key = (tracking, date, amount)
             if key in seen:
                 repeats += 1
                 continue
             seen.add(key)
-            entry = costs.setdefault(tracking, {"cost": 0.0, "source": carrier})
+            entry = costs.setdefault(tracking, {"cost": 0.0, "base": 0.0,
+                                                "adjustment": 0.0, "source": carrier})
             entry["cost"] = round(entry["cost"] + amount, 2)
+            # Where the export states the quoted price, the difference is the
+            # carrier's later re-rate. Where it does not, the first charge on a
+            # tracking number is the base and anything after it is an adjustment.
+            base = quoted if quoted is not None else (amount if not entry["base"] else 0.0)
+            entry["base"] = round(entry["base"] + base, 2)
+            entry["adjustment"] = round(entry["cost"] - entry["base"], 2)
             lines.append({"tracking": tracking, "amount": round(amount, 2),
-                          "carrier": carrier, "charge_date": iso_date(date)})
+                          "carrier": carrier, "charge_date": iso_date(date),
+                          "charge_class": "base" if base else "adjustment",
+                          "quoted": round(quoted, 2) if quoted is not None else None})
             n += 1
         print("  %-46s %6d charges" % (os.path.basename(path)[:46], n), file=sys.stderr)
     if repeats:
@@ -578,6 +594,10 @@ def attach_order_costs(rows, index):
             r["carrier"] = hit["carrier"]
         if r.get("ship_cost") is None:
             r["ship_cost"] = hit["cost"]
+            # The order report is a roll-up with no re-rate breakdown, so all of
+            # it counts as base rather than being guessed at.
+            r["ship_base"] = hit["cost"]
+            r["ship_adjustment"] = 0.0
             # Say which join produced the figure: one is per shipment, the other
             # is the whole order, and on a split order those differ legitimately.
             r["cost_source"] = (hit["carrier"] or "Carrier") + " (order match)"
@@ -597,6 +617,10 @@ def attach_costs(rows, costs):
     for r in rows:
         hit = costs.get(norm_tracking(r["tracking"])) if r["tracking"] else None
         r["ship_cost"] = round(hit["cost"], 2) if hit else None
+        # Carried alongside the total, never folded into it: cost per unit can then
+        # be read either all-in or on base freight alone, from the same rows.
+        r["ship_base"] = round(hit["base"], 2) if hit else None
+        r["ship_adjustment"] = round(hit["adjustment"], 2) if hit else None
         r["cost_source"] = hit["source"] if hit else ""
     return rows
 
@@ -703,6 +727,7 @@ def encode(rows):
             # null, not 0: no invoice for this shipment is a different fact from a
             # shipment that cost nothing, and the page has to show them differently.
             r.get("ship_cost"), idx(sources, r.get("cost_source") or ""),
+            r.get("ship_adjustment") or 0,
         ])
     return {"rows": data, "mkt": mkts, "carrier": carriers, "status": statuses,
             "state": states, "products": products, "source": sources,
@@ -719,7 +744,8 @@ def kpi_block(rows, days, filled_3pl=0):
     for r in rows:
         m = by_m.setdefault(r["marketplace"],
                             {"n": 0, "units": 0, "tracked": 0, "shipdate": 0,
-                             "value": 0.0, "costed": 0, "cost": 0.0})
+                             "value": 0.0, "costed": 0, "cost": 0.0,
+                             "adjustment": 0.0})
         m["n"] += 1
         m["units"] += r["units"]
         m["value"] = round(m["value"] + r["value"], 2)
@@ -728,6 +754,7 @@ def kpi_block(rows, days, filled_3pl=0):
         if r.get("ship_cost") is not None:
             m["costed"] += 1
             m["cost"] = round(m["cost"] + r["ship_cost"], 2)
+            m["adjustment"] = round(m.get("adjustment", 0.0) + (r.get("ship_adjustment") or 0), 2)
     return {
         "n": len(rows), "days": days,
         "date_lo": dates[0] if dates else "", "date_hi": dates[-1] if dates else "",
@@ -902,6 +929,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .lines .vnone { color: var(--muted); font-style: italic; }
   .linecost { margin: 9px 0 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .linecost b { color: var(--ink); }
+  .linereRate { color: var(--warn); }
 
   .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
   a.link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -989,7 +1017,7 @@ const num = n => n.toLocaleString("en-US");
 // Rows arrive as dictionary-encoded arrays (40k+ of them), so unpack once into
 // objects the filter/sort can read by name without re-indexing on every pass.
 const C = {SHIP:0, ORDER:1, MKT:2, NUM:3, CUST:4, CITY:5, STATE:6, UNITS:7, SKUS:8,
-           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15};
+           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15, ADJ:16};
 const P = {SKU:0, NAME:1};   // products table
 const L = {P:0, QTY:1, UNIT:2, TOTAL:3};  // one line item
 const iso = d => d < 0 ? "" : new Date(EPOCH + d * DAY).toISOString().slice(0, 10);
@@ -1008,6 +1036,7 @@ const DATA = RAW.rows.map((r, i) => {
     // null means no invoice found for this tracking number, which is not $0.
     cost: r[C.COST] == null ? null : r[C.COST],
     csrc: RAW.source[r[C.CSRC]] || "",
+    adj: r[C.ADJ] || 0,
     // One lowercase haystack per row, built once: search stays instant at 40k rows.
     // SKUs are in it (people look up "who bought MW0808DWOOD"); product titles are
     // not — they are long, near-duplicate, and would triple the page's memory.
@@ -1050,8 +1079,6 @@ function metaLine(rows) {
 
 // ---- KPI cards + bar panels, recomputed for the current filter ----
 function kpiCards(rows) {
-  const shipped = rows.filter(r => r.st === "Shipped").length;
-  const tracked = rows.filter(r => r.trk).length;
   const units = rows.reduce((a, r) => a + r.units, 0);
   // Days-to-ship only means anything on rows that carry both dates.
   const spans = rows.filter(r => r.ship >= 0 && r.order >= 0).map(r => r.ship - r.order);
@@ -1060,8 +1087,12 @@ function kpiCards(rows) {
   const priced = rows.filter(r => r.cost != null);
   const cost = priced.reduce((a, r) => a + r.cost, 0);
   const pricedUnits = priced.reduce((a, r) => a + r.units, 0);
+  const adj = priced.reduce((a, r) => a + r.adj, 0);
+  const nAdj = priced.filter(r => r.adj).length;
   const cards = [
-    {label: "Shipments", value: num(rows.length), sub: rows.length === DATA.length ? "" : "of " + num(DATA.length)},
+    {label: "Shipments", value: num(rows.length),
+     sub: num(rows.filter(r => r.st === "Shipped").length) + " shipped" +
+          (rows.length === DATA.length ? "" : " \u00b7 of " + num(DATA.length))},
     {label: "Units", value: num(units)},
     {label: "Order value", value: money0(value),
      sub: rows.length ? money(value / rows.length) + " avg" : ""},
@@ -1070,9 +1101,13 @@ function kpiCards(rows) {
     // Not the weekly report's blended CPU: this is only the shipments an invoice
     // has been matched to, and it excludes nothing the way that report does.
     {label: "Cost per unit", value: pricedUnits ? money(cost / pricedUnits) : "\u2014",
-     sub: pricedUnits ? "on " + num(pricedUnits) + " priced units" : ""},
-    {label: "Shipped", value: num(shipped), sub: "of " + num(rows.length)},
-    {label: "With tracking", value: num(tracked), sub: "of " + num(rows.length)},
+     sub: pricedUnits ? (adj ? money((cost - adj) / pricedUnits) + " before re-rates"
+                             : "on " + num(pricedUnits) + " priced units") : ""},
+    // Kept out of the cost-per-unit card on purpose: a re-rate is real money but
+    // it is a different question from what it costs to ship a unit.
+    {label: "Re-rates billed", value: adj ? money0(adj) : "\u2014",
+     sub: adj ? nAdj + " shipment" + (nAdj === 1 ? "" : "s") + " \u00b7 " +
+                (cost ? (adj / cost * 100).toFixed(1) + "% of cost" : "") : "none found"},
     {label: "Avg days to ship", value: avgSpan == null ? "\u2014" : avgSpan.toFixed(1),
      sub: spans.length ? "on " + num(spans.length) + " rows" : "no ship dates"},
   ];
@@ -1170,7 +1205,10 @@ function lineRows(r) {
   const costLine = r.cost == null ? "" :
     '<p class="linecost">Carrier charge: <b>' + money(r.cost) + '</b>' +
     (r.csrc ? ' (' + esc(r.csrc) + ')' : "") +
-    (r.units ? ' &middot; ' + money(r.cost / r.units) + ' per unit' : "") + '</p>';
+    (r.units ? ' &middot; ' + money(r.cost / r.units) + ' per unit' : "") +
+    (r.adj ? '<br><span class="linereRate">' + money(r.cost - r.adj) + ' at the label, ' +
+             '<b>' + money(r.adj) + '</b> re-rated by the carrier afterwards</span>' : "") +
+    '</p>';
   return '<table class="lines"><thead><tr><th>SKU</th><th>Item</th>' +
     '<th class="num">Qty</th><th class="num">Unit</th><th class="num">Line total</th></tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
