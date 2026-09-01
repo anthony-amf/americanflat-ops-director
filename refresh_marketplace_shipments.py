@@ -279,7 +279,8 @@ SELECT
   COALESCE(o.ship_date, s.ship_date)              AS ship_date,
   COALESCE(o.tracking, s.tracking)                AS tracking,
   s.tracking_all                                  AS tracking_all,
-  COALESCE(o.carrier, s.scac)                     AS carrier,
+  o.carrier                                       AS carrier,
+  s.scac                                          AS scac,
   o.raw_status,
   s.ship_cost                                     AS label_cost,
   s.warehouse                                     AS warehouse,
@@ -317,9 +318,11 @@ def build_sql(days, source="feeds"):
 # --------------------------------------------------------------------------
 CARRIERS = {
     "fedx": "FedEx", "fedex": "FedEx", "fedex_walleted": "FedEx",
-    "ups": "UPS", "ups_walleted": "UPS",
-    "usps": "USPS", "stamps_com": "USPS", "stamps.com": "USPS",
+    "ups": "UPS", "ups_walleted": "UPS", "upsn": "UPS",
+    "usps": "USPS", "usp_": "USPS", "stamps_com": "USPS", "stamps.com": "USPS",
     "dhl": "DHL", "dhl_express_worldwide": "DHL",
+    # SCAC codes as the warehouses put them on the 945.
+    "glob": "Global-e", "cpup": "Customer pickup", "prty": "Priority",
 }
 
 STATUS = {
@@ -350,6 +353,32 @@ def norm_carrier(raw):
     # carrier was assigned. That is a price, not a carrier — leave it blank rather
     # than let it crowd the carrier panel.
     return ""
+
+
+def carrier_from_tracking(tracking):
+    """UPS, USPS and FedEx are each identifiable from the number itself."""
+    t = norm_tracking(tracking)
+    if t.startswith("1Z"):
+        return "UPS"
+    if re.match(r"^(94|93|92|95|82)\d{18,}$", t):
+        return "USPS"
+    if re.match(r"^(\d{12}|\d{15}|\d{20})$", t):
+        return "FedEx"
+    return ""
+
+
+def resolve_carrier(feed_carrier, scac, tracking):
+    """Who actually carried it.
+
+    The marketplace feed is asked first but rarely knows — ShipStation stores a
+    storefront rate name ("Free Shipping - $65+") where a carrier should be, and
+    that normalizes to an empty string rather than a null, which is how 7,409
+    Shopify and Michaels shipments ended up showing no carrier at all. The
+    warehouse SCAC is on every 945 row; the tracking number settles the rest.
+    """
+    return (norm_carrier(feed_carrier)
+            or norm_carrier(scac)
+            or carrier_from_tracking(tracking))
 
 
 def norm_status(raw, ship_date):
@@ -757,7 +786,8 @@ def normalize(rows):
                 "state": (r.get("state") or "").strip().upper()[:2],
                 "order_date": order or "",
                 "ship_date": ship or "",
-                "carrier": norm_carrier(r.get("carrier")),
+                "carrier": resolve_carrier(r.get("carrier"), r.get("scac"),
+                                           r.get("tracking")),
                 "tracking": (r.get("tracking") or "").strip(),
                 "tracking_all": [t for t in (r.get("tracking_all") or "").split(",") if t],
                 "status": norm_status(r.get("raw_status"), ship),

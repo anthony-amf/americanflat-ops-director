@@ -97,6 +97,7 @@ package AS (
     cartonTracking                      AS tracking,
     MIN(shipDate)                       AS ship_date,
     ANY_VALUE(carrierScac)              AS scac,
+    ANY_VALUE(cartonTracking)           AS tracking,
     ANY_VALUE(warehouse)                AS warehouse,
     MAX(freightChargeShipment)          AS label_cost,
     SUM(quantityShipped)                AS units
@@ -117,6 +118,23 @@ resolved AS (
     -- The rule. An invoice for this tracking number wins outright; with no
     -- invoice yet, fall back to what the label charged.
     COALESCE(i.invoice_cost, p.label_cost) AS cost,
+    -- Who actually carried it. The invoice is the strongest answer — it is the
+    -- carrier that billed us — then the warehouse SCAC, then the tracking
+    -- number's own shape. They agree 93.8% of the time; where they differ it is
+    -- usually a service handing off to a carrier (Global-e tendering to UPS on
+    -- 1,641 orders, UPS Ground Saver finishing with USPS), which is exactly the
+    -- thing the SCAC alone cannot tell you.
+    COALESCE(
+      i.invoice_carrier,
+      CASE UPPER(p.scac)
+        WHEN 'FEDX' THEN 'FedEx' WHEN 'UPSN' THEN 'UPS'
+        WHEN 'USPS' THEN 'USPS'  WHEN 'USP_' THEN 'USPS'
+        WHEN 'GLOB' THEN 'Global-e' ELSE NULLIF(p.scac, '') END,
+      CASE WHEN STARTS_WITH(p.tracking, '1Z') THEN 'UPS'
+           WHEN REGEXP_CONTAINS(p.tracking, r'^(94|93|92|95|82)[0-9]{18,}$') THEN 'USPS'
+           WHEN REGEXP_CONTAINS(p.tracking, r'^([0-9]{12}|[0-9]{15}|[0-9]{20})$') THEN 'FedEx'
+           END
+    )                                      AS carrier,
     CASE WHEN i.invoice_cost IS NOT NULL THEN 'invoice'
          WHEN p.label_cost   IS NOT NULL THEN 'label'
          ELSE 'none' END                   AS cost_source
@@ -127,7 +145,16 @@ SELECT
   orderNumber                                          AS order_number,
   ANY_VALUE(channel)                                   AS channel,
   MIN(ship_date)                                       AS ship_date,
-  STRING_AGG(DISTINCT scac ORDER BY scac)              AS carriers,
+  STRING_AGG(DISTINCT carrier ORDER BY carrier)         AS carriers,
+  STRING_AGG(DISTINCT scac ORDER BY scac)              AS warehouse_scac,
+  STRING_AGG(DISTINCT invoice_carrier ORDER BY invoice_carrier) AS billing_carrier,
+  -- The warehouse said one carrier and a different one sent the bill. Mostly a
+  -- legitimate hand-off, but it is also how a mis-routed shipment shows up.
+  LOGICAL_OR(invoice_carrier IS NOT NULL AND scac IS NOT NULL
+             AND invoice_carrier != CASE UPPER(scac)
+               WHEN 'FEDX' THEN 'FedEx' WHEN 'UPSN' THEN 'UPS'
+               WHEN 'USPS' THEN 'USPS'  WHEN 'USP_' THEN 'USPS'
+               WHEN 'GLOB' THEN 'Global-e' ELSE scac END)  AS carrier_mismatch,
   STRING_AGG(DISTINCT warehouse ORDER BY warehouse)    AS warehouses,
   COUNT(*)                                             AS packages,
   SUM(units)                                           AS units,
@@ -175,6 +202,9 @@ SELECT
   invoice_variance,
   adjustment_cost,
   adjustment_reasons,
+  warehouse_scac,
+  billing_carrier,
+  carrier_mismatch,
   SAFE_DIVIDE(invoice_variance, NULLIF(label_cost, 0)) AS variance_pct,
   last_invoice_date
 FROM `americanflat.finance.shipment_cost`
