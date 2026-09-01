@@ -764,8 +764,12 @@ def title_case(name):
     return n
 
 
-def normalize(rows):
-    """Collapse line-grain rows into one order each, carrying its line items."""
+def normalize(rows, keep_cancelled=False):
+    """Collapse line-grain rows into one order each, carrying its line items.
+
+    Cancelled orders are dropped unless asked for: they carry units and order
+    value but no shipment, so they only distort the totals.
+    """
     orders = {}
     for r in rows:
         key = (r["marketplace"], r.get("order_ref") or r.get("order_number") or "")
@@ -811,6 +815,10 @@ def normalize(rows):
 
     out = []
     for o in orders.values():
+        # A cancelled order is not a shipment. Leaving them in put 2,043 units
+        # and 373 orders into the counts that never went anywhere.
+        if o["status"] == "Cancelled" and not keep_cancelled:
+            continue
         # ShipStation carries discounts as line items with a name but no SKU
         # ("WELCOME10", qty 1, -$8.59). They belong in the order's value, which is
         # what the customer paid, but counting one as a shipped unit is wrong.
@@ -1564,6 +1572,8 @@ def main():
     ap.add_argument("--cost-table", metavar="TABLE",
                     help="BigQuery table of parcel charges (tracking, amount, carrier), "
                          "e.g. americanflat.marketplaces.parcel_charges")
+    ap.add_argument("--include-cancelled", action="store_true",
+                    help="keep cancelled orders, which are dropped by default")
     ap.add_argument("--source", choices=["feeds", "ledger"], default="feeds",
                     help="feeds = the live marketplace tables (default); "
                          "ledger = marketplaces.marketplace_shipments, once it exists")
@@ -1573,7 +1583,11 @@ def main():
 
     token = access_token(args.auth)
     print("Querying BigQuery for the last %d days…" % args.days, file=sys.stderr)
-    rows = normalize(query(build_sql(args.days, args.source), token))
+    raw = query(build_sql(args.days, args.source), token)
+    rows = normalize(raw, keep_cancelled=args.include_cancelled)
+    dropped = len({(r["marketplace"], r.get("order_ref")) for r in raw}) - len(rows)
+    if dropped > 0 and not args.include_cancelled:
+        print("  %d cancelled orders dropped" % dropped, file=sys.stderr)
 
     filled = 0
     if args.threepl:

@@ -22,6 +22,12 @@ There are two money columns and they are different things:
   invoices, matched to the shipment by tracking number. A dash means no invoice
   has been matched yet, which is not the same as free.
 
+**Cancelled orders are dropped.** 373 of them over 180 days, carrying 2,043
+units and their order value against no shipment. `--include-cancelled` keeps
+them. Five of those had already shipped when they were cancelled and carried
+$209.99 of real carrier cost, which leaves the totals with them — small, but it
+means portal spend is what shipped and stayed sold, not everything ever billed.
+
 ## Where the data comes from
 
 Nothing new is scraped — the marketplace order feeds already land in BigQuery
