@@ -22,6 +22,17 @@ There are two money columns and they are different things:
   invoices, matched to the shipment by tracking number. A dash means no invoice
   has been matched yet, which is not the same as free.
 
+**Reships are set aside, not deleted.** An order number ending `RS` — `24584RS`
+against the original `24584` — is a second shipment for a sale already made, so
+it is cost with no revenue behind it and it distorts cost per unit. The toolbar
+defaults to "Reships: set aside"; "Reships only" shows them. Over 180 days: 139
+of them, 292 units, $4,060 of shipping at **$16.85 per unit against $10.57
+overall**, and 138 of the 139 are Shopify.
+
+Match on the **suffix**, never on "contains". 681 order numbers in the 945 have
+those two letters somewhere and nearly all are random Amazon-style ids like
+`P4CXLRsbV` where they mean nothing.
+
 **Cancelled orders are dropped.** 373 of them over 180 days, carrying 2,043
 units and their order value against no shipment. `--include-cancelled` keeps
 them. Five of those had already shipped when they were cancelled and carried

@@ -570,6 +570,20 @@ THREEPL_LAYOUTS = [
 ]
 
 
+def is_reship(*values):
+    """A reship is the original order number with RS appended — 24584RS.
+
+    Matched on the suffix, never on "contains": 681 order numbers in the 945 have
+    those two letters somewhere, and nearly all are random Amazon-style ids like
+    P4CXLRsbV where they mean nothing.
+    """
+    for v in values:
+        v = re.sub(r"-[0-9]+$", "", str(v or "").strip().upper())
+        if v.endswith("RS"):
+            return True
+    return False
+
+
 def order_key(value):
     """A Michaels order is THP6600107706404869-2 in ShipStation and plain
     6600107706404869 at the warehouse; Shopify is 23901 in both. Reduce to the
@@ -806,6 +820,10 @@ def normalize(rows, keep_cancelled=False):
                 "status": norm_status(r.get("raw_status"), ship),
                 "warehouse": WAREHOUSES.get((r.get("warehouse") or "").strip().upper(),
                                             (r.get("warehouse") or "").strip()),
+                # A reship is a second shipment for a sale already made, so it is
+                # cost with no revenue behind it. Kept, flagged, and filtered out
+                # of the default view rather than dropped.
+                "reship": is_reship(r.get("order_number"), r.get("order_ref")),
                 # What the label charged, straight from the warehouse feed. The
                 # invoice overlay may replace it below; until then it is the cost.
                 "label_cost": (round(float(r["label_cost"]), 2)
@@ -885,6 +903,7 @@ def encode(rows):
             r.get("ship_adjustment") or 0,
             r.get("label_variance"),
             idx(warehouses, r.get("warehouse") or ""),
+            1 if r.get("reship") else 0,
         ])
     return {"rows": data, "mkt": mkts, "carrier": carriers, "status": statuses,
             "state": states, "products": products, "source": sources,
@@ -1090,6 +1109,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .linecost b { color: var(--ink); }
   .linereRate { color: var(--warn); }
   .rerate { color: var(--warn); font-weight: 600; font-size: 11px; }
+  .rschip { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); font-size: 10.5px; }
 
   .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
   a.link { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -1137,6 +1157,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     <select id="f-status" aria-label="Filter by status"><option value="">All statuses</option></select>
     <select id="f-track" aria-label="Filter by tracking"><option value="">Tracking: any</option><option value="yes">Has tracking</option><option value="no">No tracking</option></select>
     <select id="f-adj" aria-label="Filter by carrier re-rate"><option value="">Overbilling: any</option><option value="yes">Billed over label</option><option value="no">Billed at label</option></select>
+    <select id="f-rs" aria-label="Filter by reship"><option value="no">Reships: set aside</option><option value="only">Reships only</option><option value="">Include reships</option></select>
     <span class="mp-count" id="count"></span>
   </div>
 
@@ -1181,7 +1202,7 @@ const num = n => n.toLocaleString("en-US");
 // Rows arrive as dictionary-encoded arrays (40k+ of them), so unpack once into
 // objects the filter/sort can read by name without re-indexing on every pass.
 const C = {SHIP:0, ORDER:1, MKT:2, NUM:3, CUST:4, CITY:5, STATE:6, UNITS:7, SKUS:8,
-           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15, ADJ:16, LVAR:17, WH:18};
+           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15, ADJ:16, LVAR:17, WH:18, RS:19};
 const P = {SKU:0, NAME:1};   // products table
 const L = {P:0, QTY:1, UNIT:2, TOTAL:3};  // one line item
 const iso = d => d < 0 ? "" : new Date(EPOCH + d * DAY).toISOString().slice(0, 10);
@@ -1207,6 +1228,7 @@ const DATA = RAW.rows.map((r, i) => {
     lvar: r[C.LVAR] == null ? null : r[C.LVAR],
     over: r[C.LVAR] != null ? Math.max(r[C.LVAR], 0) : (r[C.ADJ] || 0),
     wh: RAW.warehouse[r[C.WH]] || "",
+    rs: !!r[C.RS],
     // One lowercase haystack per row, built once: search stays instant at 40k rows.
     // SKUs are in it (people look up "who bought MW0808DWOOD"); product titles are
     // not — they are long, near-duplicate, and would triple the page's memory.
@@ -1337,7 +1359,7 @@ const uniq = key => [...new Set(DATA.map(r => r[key]).filter(Boolean))].sort();
 const fMkt = document.getElementById("f-mkt"), fMonth = document.getElementById("f-month"),
       fCar = document.getElementById("f-car"), fStatus = document.getElementById("f-status"),
       fTrack = document.getElementById("f-track"), fAdj = document.getElementById("f-adj"),
-      fWh = document.getElementById("f-wh"),
+      fWh = document.getElementById("f-wh"), fRs = document.getElementById("f-rs"),
       q = document.getElementById("q");
 uniq("mkt").forEach(m => fMkt.add(new Option(m, m)));
 uniq("car").forEach(c => fCar.add(new Option(c, c)));
@@ -1351,11 +1373,13 @@ let sortKey = "ship", sortDir = -1;
 function filtered() {
   const term = q.value.trim().toLowerCase();
   const fm = fMkt.value, fmo = fMonth.value, fc = fCar.value, fs = fStatus.value,
-        ft = fTrack.value, fa = fAdj.value, fw = fWh.value;
+        ft = fTrack.value, fa = fAdj.value, fw = fWh.value, frs = fRs.value;
   const rows = DATA.filter(r => {
     if (fm && r.mkt !== fm) return false;
     if (fc && r.car !== fc) return false;
     if (fw && r.wh !== fw) return false;
+    if (frs === "no" && r.rs) return false;
+    if (frs === "only" && !r.rs) return false;
     if (fs && r.st !== fs) return false;
     if (ft === "yes" && !r.trk) return false;
     if (ft === "no" && r.trk) return false;
@@ -1444,7 +1468,8 @@ function rowHtml(r) {
     : esc(r.trk);
   const open = expanded.has(r.i);
   const order = '<button class="expbtn" type="button" data-i="' + r.i + '" aria-expanded="' + open + '"' +
-    ' title="Show the line items on this order"><span class="ecaret">&#9654;</span>' + esc(r.num) + '</button>';
+    ' title="Show the line items on this order"><span class="ecaret">&#9654;</span>' + esc(r.num) + '</button>' +
+    (r.rs ? ' <span class="chip rschip" title="Reship — a second shipment for an order already sold">reship</span>' : "");
   const main = '<tr>' +
     '<td class="date">' + (r.shipIso ? fmtDate(r.shipIso) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td class="date">' + (r.orderIso ? fmtDate(r.orderIso) : '<span class="dash">&mdash;</span>') + '</td>' +
@@ -1498,7 +1523,7 @@ document.getElementById("rows").addEventListener("click", e => {
 });
 
 document.getElementById("more").addEventListener("click", () => { shown += 1000; paint(false); });
-[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj, fWh].forEach(el =>
+[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj, fWh, fRs].forEach(el =>
   el.addEventListener("input", () => paint(true)));
 
 document.querySelectorAll(".mp-table thead th[data-k]").forEach(th => {
