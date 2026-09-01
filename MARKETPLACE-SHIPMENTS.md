@@ -22,7 +22,14 @@ There are two money columns and they are different things:
   invoices, matched to the shipment by tracking number. A dash means no invoice
   has been matched yet, which is not the same as free.
 
-**Reships are set aside, not deleted.** An order number ending `RS` — `24584RS`
+**Reships and manual orders are set aside, not deleted**, under one Order type
+control: Standard orders (the default, 41,909), Reships only (139), Manual only
+(149), All order types. Manual means ShipStation's `Manual ...` stores — anything
+raised by hand rather than by a marketplace — and it is where reships live, so
+139 of the 149 are both. The 10 that are manual without being reships run $20.54
+a unit.
+
+**Reships specifically.** An order number ending `RS` — `24584RS`
 against the original `24584` — is a second shipment for a sale already made, so
 it is cost with no revenue behind it and it distorts cost per unit. The toolbar
 defaults to "Reships: set aside"; "Reships only" shows them. Over 180 days: 139

@@ -194,7 +194,7 @@ tgt_ship AS (
 tgt AS (
   SELECT 'Target' AS marketplace, o.order_number, o.order_ref, o.customer, o.city, o.state,
          o.order_date, s.ship_date, o.raw_status, s.carrier, s.tracking,
-         UPPER(o.order_number) AS okey,
+         UPPER(o.order_number) AS okey, FALSE AS manual,
          i.sku, i.productName AS product, i.quantity AS qty,
          i.unitPrice AS unit_price, i.totalItemPrice AS line_total
   FROM `americanflat.acenda.ship_advice_raw` i
@@ -222,7 +222,7 @@ mac_orders AS (
 mac AS (
   SELECT "Macy's" AS marketplace, o.order_number, o.order_ref, o.customer, o.city, o.state,
          o.order_date, o.ship_date, o.raw_status, o.carrier, o.tracking,
-         UPPER(o.order_number) AS okey,
+         UPPER(o.order_number) AS okey, FALSE AS manual,
          COALESCE(NULLIF(l.productShopSku, ''), l.offerSku, l.productSku) AS sku,
          l.productTitle AS product, l.quantity AS qty,
          l.linePrice AS unit_price, l.lineTotalPrice AS line_total
@@ -239,6 +239,9 @@ ss_orders AS (
   SELECT
     orderId,
     CASE WHEN ANY_VALUE(storeName) LIKE '%Michaels%' THEN 'Michaels' ELSE 'Shopify' END AS marketplace,
+    -- ShipStation files anything raised by hand into a "Manual ..." store, which
+    -- is where reships and one-off replacements live.
+    ANY_VALUE(storeName) LIKE 'Manual%'                        AS manual,
     ANY_VALUE(orderNumber)                                     AS order_number,
     NULLIF(TRIM(COALESCE(ANY_VALUE(shipToName), '')), '')      AS customer,
     ANY_VALUE(shipToCity)                                      AS city,
@@ -257,6 +260,7 @@ ss AS (
          CAST(NULL AS DATE) AS ship_date, o.raw_status, o.carrier,
          CAST(NULL AS STRING) AS tracking,
          REGEXP_REPLACE(REGEXP_REPLACE(UPPER(o.order_number), r'^THP', ''), r'-[0-9]+$', '') AS okey,
+         o.manual,
          l.sku, l.itemName AS product, l.quantity AS qty,
          l.unitPrice AS unit_price, l.lineTotal AS line_total
   FROM `americanflat.shipstation.orders_clean` l
@@ -282,6 +286,7 @@ SELECT
   o.carrier                                       AS carrier,
   s.scac                                          AS scac,
   o.raw_status,
+  o.manual                                        AS manual,
   s.ship_cost                                     AS label_cost,
   s.warehouse                                     AS warehouse,
   s.packages                                      AS packages,
@@ -824,6 +829,7 @@ def normalize(rows, keep_cancelled=False):
                 # cost with no revenue behind it. Kept, flagged, and filtered out
                 # of the default view rather than dropped.
                 "reship": is_reship(r.get("order_number"), r.get("order_ref")),
+                "manual": str(r.get("manual")).lower() == "true",
                 # What the label charged, straight from the warehouse feed. The
                 # invoice overlay may replace it below; until then it is the cost.
                 "label_cost": (round(float(r["label_cost"]), 2)
@@ -903,7 +909,7 @@ def encode(rows):
             r.get("ship_adjustment") or 0,
             r.get("label_variance"),
             idx(warehouses, r.get("warehouse") or ""),
-            1 if r.get("reship") else 0,
+            (1 if r.get("reship") else 0) | (2 if r.get("manual") else 0),
         ])
     return {"rows": data, "mkt": mkts, "carrier": carriers, "status": statuses,
             "state": states, "products": products, "source": sources,
@@ -1157,7 +1163,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     <select id="f-status" aria-label="Filter by status"><option value="">All statuses</option></select>
     <select id="f-track" aria-label="Filter by tracking"><option value="">Tracking: any</option><option value="yes">Has tracking</option><option value="no">No tracking</option></select>
     <select id="f-adj" aria-label="Filter by carrier re-rate"><option value="">Overbilling: any</option><option value="yes">Billed over label</option><option value="no">Billed at label</option></select>
-    <select id="f-rs" aria-label="Filter by reship"><option value="no">Reships: set aside</option><option value="only">Reships only</option><option value="">Include reships</option></select>
+    <select id="f-rs" aria-label="Filter by order type"><option value="standard">Standard orders</option><option value="reship">Reships only</option><option value="manual">Manual only</option><option value="">All order types</option></select>
     <span class="mp-count" id="count"></span>
   </div>
 
@@ -1228,10 +1234,11 @@ const DATA = RAW.rows.map((r, i) => {
     lvar: r[C.LVAR] == null ? null : r[C.LVAR],
     over: r[C.LVAR] != null ? Math.max(r[C.LVAR], 0) : (r[C.ADJ] || 0),
     wh: RAW.warehouse[r[C.WH]] || "",
-    rs: !!r[C.RS],
+    rs: !!(r[C.RS] & 1),
+    manual: !!(r[C.RS] & 2),
     // One lowercase haystack per row, built once: search stays instant at 40k rows.
     // SKUs are in it (people look up "who bought MW0808DWOOD"); product titles are
-    // not — they are long, near-duplicate, and would triple the page's memory.
+    // not &mdash; they are long, near-duplicate, and would triple the page's memory.
     hay: ((r[C.NUM] || "") + " " + (r[C.CUST] || "") + " " + (r[C.TRK] || "") + " " +
           city + " " + state + " " + RAW.mkt[r[C.MKT]] + " " +
           (r[C.ITEMS] || []).map(l => RAW.products[l[L.P]][P.SKU]).join(" ")).toLowerCase(),
@@ -1259,7 +1266,7 @@ function carrierOf(r) {
   return r.car;
 }
 
-// The header line follows the filter like everything else — a count and a date
+// The header line follows the filter like everything else &mdash; a count and a date
 // range that stayed at the full 42k while the cards showed 548 read as a bug.
 function metaLine(rows) {
   const dates = rows.map(r => r.shipIso || r.orderIso).filter(Boolean).sort();
@@ -1329,7 +1336,7 @@ function chart(elId, hintId, key, rows, hint) {
 }
 
 // Which SKUs the carrier keeps re-rating. An order's adjustment is split across
-// its items by unit share — the surcharge is charged on the box, not one line,
+// its items by unit share &mdash; the surcharge is charged on the box, not one line,
 // so this points at the culprit rather than claiming to prove it.
 function skuChart(rows) {
   const agg = {};
@@ -1378,8 +1385,11 @@ function filtered() {
     if (fm && r.mkt !== fm) return false;
     if (fc && r.car !== fc) return false;
     if (fw && r.wh !== fw) return false;
-    if (frs === "no" && r.rs) return false;
-    if (frs === "only" && !r.rs) return false;
+    // Standard is the default view: a reship or a hand-raised order is real
+    // money but neither is a normal sale, and both skew cost per unit.
+    if (frs === "standard" && (r.rs || r.manual)) return false;
+    if (frs === "reship" && !r.rs) return false;
+    if (frs === "manual" && !r.manual) return false;
     if (fs && r.st !== fs) return false;
     if (ft === "yes" && !r.trk) return false;
     if (ft === "no" && r.trk) return false;
@@ -1469,7 +1479,8 @@ function rowHtml(r) {
   const open = expanded.has(r.i);
   const order = '<button class="expbtn" type="button" data-i="' + r.i + '" aria-expanded="' + open + '"' +
     ' title="Show the line items on this order"><span class="ecaret">&#9654;</span>' + esc(r.num) + '</button>' +
-    (r.rs ? ' <span class="chip rschip" title="Reship — a second shipment for an order already sold">reship</span>' : "");
+    (r.rs ? ' <span class="chip rschip" title="Reship &mdash; a second shipment for an order already sold">reship</span>'
+          : r.manual ? ' <span class="chip rschip" title="Raised by hand in ShipStation rather than by a marketplace">manual</span>' : "");
   const main = '<tr>' +
     '<td class="date">' + (r.shipIso ? fmtDate(r.shipIso) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td class="date">' + (r.orderIso ? fmtDate(r.orderIso) : '<span class="dash">&mdash;</span>') + '</td>' +
