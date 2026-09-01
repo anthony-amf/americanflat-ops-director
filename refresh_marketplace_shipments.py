@@ -332,6 +332,15 @@ STATUS = {
     "canceled": "Cancelled", "cancelled": "Cancelled",
 }
 
+# The 945's warehouse code is the reliable identifier — senderProfileId backs it
+# up (Taylored-EAST-NJ, taylored, Taylored-SC, yusen-ben). Its shipFrom address
+# is not: every NJ row carries Fontana's address, which is stale EDI setup at
+# the warehouse rather than a routing fact.
+WAREHOUSES = {
+    "NJ": "New Jersey", "FON": "Fontana", "SC": "South Carolina",
+    "NL": "Netherlands",
+}
+
 TRACK_URL = {
     "UPS": "https://www.ups.com/track?tracknum=",
     "FedEx": "https://www.fedex.com/fedextrack/?trknbr=",
@@ -795,7 +804,8 @@ def normalize(rows, keep_cancelled=False):
                 "tracking": (r.get("tracking") or "").strip(),
                 "tracking_all": [t for t in (r.get("tracking_all") or "").split(",") if t],
                 "status": norm_status(r.get("raw_status"), ship),
-                "warehouse": (r.get("warehouse") or "").strip(),
+                "warehouse": WAREHOUSES.get((r.get("warehouse") or "").strip().upper(),
+                                            (r.get("warehouse") or "").strip()),
                 # What the label charged, straight from the warehouse feed. The
                 # invoice overlay may replace it below; until then it is the cost.
                 "label_cost": (round(float(r["label_cost"]), 2)
@@ -844,6 +854,7 @@ def encode(rows):
     """Dictionary-encode everything repetitive: 40k orders and 50k line items go
     into the page as arrays of small integers plus one products table."""
     mkts, carriers, statuses, states, products, sources = [], [], [], [], [], [""]
+    warehouses = [""]
     pidx = {}
 
     def idx(pool, val):
@@ -873,9 +884,11 @@ def encode(rows):
             r.get("ship_cost"), idx(sources, r.get("cost_source") or ""),
             r.get("ship_adjustment") or 0,
             r.get("label_variance"),
+            idx(warehouses, r.get("warehouse") or ""),
         ])
     return {"rows": data, "mkt": mkts, "carrier": carriers, "status": statuses,
             "state": states, "products": products, "source": sources,
+            "warehouse": warehouses,
             "epoch": EPOCH.isoformat()}
 
 
@@ -1119,6 +1132,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     <input type="search" id="q" placeholder="Search order #, customer name, tracking, SKU, city&#8230;" autocomplete="off" aria-label="Search shipments">
     <select id="f-mkt" aria-label="Filter by marketplace"><option value="">All marketplaces</option></select>
     <select id="f-month" aria-label="Filter by month"><option value="">All months</option></select>
+    <select id="f-wh" aria-label="Filter by warehouse"><option value="">All warehouses</option></select>
     <select id="f-car" aria-label="Filter by carrier"><option value="">All carriers</option></select>
     <select id="f-status" aria-label="Filter by status"><option value="">All statuses</option></select>
     <select id="f-track" aria-label="Filter by tracking"><option value="">Tracking: any</option><option value="yes">Has tracking</option><option value="no">No tracking</option></select>
@@ -1138,6 +1152,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
         <th data-k="units" class="num" tabindex="0">Units<span class="arrow">&#9660;</span></th>
         <th data-k="value" class="num" tabindex="0">Order value<span class="arrow">&#9660;</span></th>
         <th data-k="cost" class="num" tabindex="0">Ship cost<span class="arrow">&#9660;</span></th>
+        <th data-k="wh" tabindex="0">Ships from<span class="arrow">&#9660;</span></th>
         <th data-k="car" tabindex="0">Carrier<span class="arrow">&#9660;</span></th>
         <th data-k="trk" tabindex="0">Tracking<span class="arrow">&#9660;</span></th>
         <th data-k="st" tabindex="0">Status<span class="arrow">&#9660;</span></th>
@@ -1166,7 +1181,7 @@ const num = n => n.toLocaleString("en-US");
 // Rows arrive as dictionary-encoded arrays (40k+ of them), so unpack once into
 // objects the filter/sort can read by name without re-indexing on every pass.
 const C = {SHIP:0, ORDER:1, MKT:2, NUM:3, CUST:4, CITY:5, STATE:6, UNITS:7, SKUS:8,
-           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15, ADJ:16, LVAR:17};
+           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15, ADJ:16, LVAR:17, WH:18};
 const P = {SKU:0, NAME:1};   // products table
 const L = {P:0, QTY:1, UNIT:2, TOTAL:3};  // one line item
 const iso = d => d < 0 ? "" : new Date(EPOCH + d * DAY).toISOString().slice(0, 10);
@@ -1191,6 +1206,7 @@ const DATA = RAW.rows.map((r, i) => {
     // meaningful where both figures exist.
     lvar: r[C.LVAR] == null ? null : r[C.LVAR],
     over: r[C.LVAR] != null ? Math.max(r[C.LVAR], 0) : (r[C.ADJ] || 0),
+    wh: RAW.warehouse[r[C.WH]] || "",
     // One lowercase haystack per row, built once: search stays instant at 40k rows.
     // SKUs are in it (people look up "who bought MW0808DWOOD"); product titles are
     // not — they are long, near-duplicate, and would triple the page's memory.
@@ -1321,9 +1337,11 @@ const uniq = key => [...new Set(DATA.map(r => r[key]).filter(Boolean))].sort();
 const fMkt = document.getElementById("f-mkt"), fMonth = document.getElementById("f-month"),
       fCar = document.getElementById("f-car"), fStatus = document.getElementById("f-status"),
       fTrack = document.getElementById("f-track"), fAdj = document.getElementById("f-adj"),
+      fWh = document.getElementById("f-wh"),
       q = document.getElementById("q");
 uniq("mkt").forEach(m => fMkt.add(new Option(m, m)));
 uniq("car").forEach(c => fCar.add(new Option(c, c)));
+uniq("wh").forEach(w => fWh.add(new Option(w, w)));
 uniq("st").forEach(s => fStatus.add(new Option(s, s)));
 [...new Set(DATA.map(r => (r.shipIso || r.orderIso).slice(0, 7)).filter(Boolean))].sort().reverse()
   .forEach(ym => fMonth.add(new Option(fmtMonth(ym), ym)));
@@ -1333,10 +1351,11 @@ let sortKey = "ship", sortDir = -1;
 function filtered() {
   const term = q.value.trim().toLowerCase();
   const fm = fMkt.value, fmo = fMonth.value, fc = fCar.value, fs = fStatus.value,
-        ft = fTrack.value, fa = fAdj.value;
+        ft = fTrack.value, fa = fAdj.value, fw = fWh.value;
   const rows = DATA.filter(r => {
     if (fm && r.mkt !== fm) return false;
     if (fc && r.car !== fc) return false;
+    if (fw && r.wh !== fw) return false;
     if (fs && r.st !== fs) return false;
     if (ft === "yes" && !r.trk) return false;
     if (ft === "no" && r.trk) return false;
@@ -1440,11 +1459,12 @@ function rowHtml(r) {
       : '<span title="' + esc(r.csrc || "carrier") + ' invoice">' + money(r.cost) + '</span>' +
         (r.over ? ' <small class="rerate" title="Billed above what the label cost">+' +
                   money(r.over) + '</small>' : "")) + '</td>' +
+    '<td class="dest">' + (r.wh ? esc(r.wh) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + (r.car ? esc(r.car) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + trk + '</td>' +
     '<td>' + status + '</td></tr>';
   return open
-    ? main + '<tr class="linedetail"><td colspan="12">' + lineRows(r) + '</td></tr>'
+    ? main + '<tr class="linedetail"><td colspan="13">' + lineRows(r) + '</td></tr>'
     : main;
 }
 
@@ -1452,7 +1472,7 @@ function paint(reset) {
   if (reset) { current = filtered(); shown = PAGE; }
   document.getElementById("rows").innerHTML =
     current.slice(0, shown).map(rowHtml).join("") ||
-    '<tr><td colspan="12" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
+    '<tr><td colspan="13" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
   const left = current.length - shown;
   const wrap = document.getElementById("morewrap");
   wrap.hidden = left <= 0;
@@ -1478,7 +1498,7 @@ document.getElementById("rows").addEventListener("click", e => {
 });
 
 document.getElementById("more").addEventListener("click", () => { shown += 1000; paint(false); });
-[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj].forEach(el =>
+[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj, fWh].forEach(el =>
   el.addEventListener("input", () => paint(true)));
 
 document.querySelectorAll(".mp-table thead th[data-k]").forEach(th => {
