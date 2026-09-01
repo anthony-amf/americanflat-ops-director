@@ -158,9 +158,18 @@ two placeholders, and confirm every `r.<field>` the template reads is emitted by
 **The Marketplace Shipments portal** is the second artifact — Target, Macy's,
 Michaels and Shopify orders, searchable by order number, customer name or
 tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
-Built by this repo's `refresh_marketplace_shipments.py` straight off the
-marketplace feeds already in BigQuery (`acenda`, `macys`, `shipstation`) — no
-schedule, republish with `url:` like the Yusen one. Three facts it is built
+Built by this repo's `refresh_marketplace_shipments.py` — no schedule, republish
+with `url:` like the Yusen one. **`finance.shipment_reconciliation` (the daily
+EDI 945 feed from all four warehouses) is the spine**: ship date, carrier,
+tracking, packages and freight charge, keyed by order number, joined to the
+marketplace order feeds (`acenda` = Target, `macys`, `shipstation` = Michaels +
+Shopify) which supply the customer and the line items. Two traps in that feed: a
+**zero freight charge means "not reported", not free** (the median USPS row is
+0.00 — `NULLIF(freightChargeShipment, 0)`, or thousands of shipments price at $0
+and every USPS invoice looks like overbilling), and the freight is stated once
+per shipment with sibling cartons left null, so collapse to the package before
+summing. Michaels order numbers need the `THP` prefix and `-N` suffix stripped
+to match; the others join as-is. Three facts it is built
 around: ShipStation's *shipment* feed stopped loading in Oct 2023, so
 Michaels/Shopify rows have no ship date or tracking, and so no shipping cost
 until `--3pl` recovers all three from the weekly warehouse shipped-order reports

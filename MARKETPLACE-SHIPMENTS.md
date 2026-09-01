@@ -27,12 +27,23 @@ There are two money columns and they are different things:
 Nothing new is scraped — the marketplace order feeds already land in BigQuery
 daily. The builder normalizes four of them onto one shipment-shaped row.
 
-| Marketplace | BigQuery source | Ship date + tracking | Customer name | Line items |
-|---|---|---|---|---|
-| Target | `acenda.ship_advice_raw` + `acenda.fulfillment_raw` | yes (98%) | recent orders only — see redaction below | yes |
-| Macy's | `macys.orders_clean` (Mirakl) | yes (94%) | yes | yes |
-| Michaels | `shipstation.orders_clean`, store `AMF Michaels` | only via `--3pl` | yes | yes |
-| Shopify | `shipstation.orders_clean`, store `Shopify` | only via `--3pl` | yes | yes |
+**`americanflat.finance.shipment_reconciliation` is the spine.** It is the EDI
+945 warehouse shipping advice from all four warehouses, loaded daily, and it
+carries ship date, carrier, tracking, packages and the freight charge keyed by
+order number. Everything about how a shipment went out comes from there. The
+marketplace feeds supply who ordered and what.
+
+| Marketplace | Order feed | Joins to the 945 on |
+|---|---|---|
+| Target | `acenda.ship_advice_raw` + `acenda.fulfillment_raw` | `purchaseOrder` |
+| Macy's | `macys.orders_clean` (Mirakl) | `commercialId` |
+| Michaels | `shipstation.orders_clean`, store `AMF Michaels` | order number, `THP` prefix and `-N` suffix stripped |
+| Shopify | `shipstation.orders_clean`, store `Shopify` | order number as-is |
+
+The `shopify` dataset holds the same Shopify orders (7,279 against ShipStation's
+7,259 for one window; its `name` is `#25901` to ShipStation's `25901`) but has no
+customer name on them, so it stays the financial record and ShipStation stays the
+customer record.
 
 The query runs at line grain and the builder groups it into orders, so the SKU
 detail and the order totals come from the same rows.
@@ -88,16 +99,19 @@ against a known ~$13.47. With repeats dropped it lands at $12.66, and the
 blended figure at $8.51 — in the band the weekly report reports ($7.69 for a
 wider mix that includes the cheap Shopify and Michaels USPS volume).
 
-**Coverage as of 2026-08-31: 37,861 of 42,462 shipments priced ($573,412),
-$9.47 per unit** — 97–99% of March through July, 86% of August. Two sources got
-it there: a current Stamps.com print history (`--costs`) and the weekly cost
-report's per-order roll-up (`--order-costs`, below), which carries FedEx through
-Aug 24 and reaches the orders with no tracking number at all.
+**Coverage as of 2026-09-01: 40,642 of 42,431 shipments priced (96%), $718,332,
+$10.54 per unit.** Ship dates and tracking now come from the warehouse feed, so
+Michaels sits at 98% and Shopify at 94% where both were near zero on the
+marketplace feeds alone.
 
-What remains unpriced is almost entirely the last stretch of August, where FedEx
-has not billed yet. A shipment shows a dash for one of two reasons:
+**A zero freight charge in the 945 means "not reported", not "free".** The median
+USPS row is 0.00. Reading it as a real amount priced thousands of shipments at $0
+and made every USPS invoice look like pure overbilling against a zero label —
+`NULLIF(freightChargeShipment, 0)` is load-bearing.
 
-1. **The invoice hasn't been loaded.** Note the two carriers behave differently:
+A shipment shows a dash for one of two reasons:
+
+1. **Neither the warehouse nor an invoice reported a charge.** Note the two carriers behave differently:
    FedEx bills weeks in arrears, so a recent FedEx shipment genuinely has no
    invoice yet — but **Stamps.com print history is available the same day**. A
    Stamps shipment with no cost means nobody handed the builder a current
@@ -105,7 +119,21 @@ has not billed yet. A shipment shows a dash for one of two reasons:
    to `--costs` and those shipments price immediately, right up to today.
 2. **There was no tracking number to match on** — see the 3PL join below.
 
-### The order-level cost report — the second cost source
+### The audit signal: label against invoice
+
+Both figures are kept, never resolved away. `label_cost` is what the warehouse
+recorded; the invoice is what the carrier actually billed; the difference is the
+audit number.
+
+On the 21,091 orders where both exist: label $239,323, invoice $267,202 —
+**+11.6%**. 57% match to the cent, and 6,774 orders were billed over by $34,053
+in total. The portal reports it as "Billed over label", with an Overbilling
+filter and a panel ranking the SKUs it lands on.
+
+Before trusting a variance figure, check the zero rule above: an early version
+showed +49.5% purely because unreported USPS freight was being read as $0.00.
+
+### The order-level cost report — a cross-check, no longer required
 
 The weekly shipping cost pipeline emits a reconciled per-order roll-up
 (`all_orders_shipping_costs_<date>.md`): order number, marketplace, ship date,
@@ -132,7 +160,10 @@ one to keep. The page's tooltip says which join produced each number; an
 order-level figure is labelled "(order match)", which on a split order is the
 whole order's cost rather than one package's.
 
-### Orders with no tracking number — the 3PL join
+### Orders with no tracking number — the 3PL join (superseded)
+
+The 945 feed now supplies tracking for Michaels and Shopify directly, so `--3pl`
+is only useful for a window the feed does not cover.
 
 Michaels and Shopify orders arrive from ShipStation with no tracking number, so
 there is nothing for a carrier invoice to match and they showed no cost at all.

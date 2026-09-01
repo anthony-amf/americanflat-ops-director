@@ -67,8 +67,17 @@ def _post(url, payload, token):
     req.add_header("Content-Type", "application/json")
     if token:
         req.add_header("Authorization", "Bearer " + token)
-    with urllib.request.urlopen(req, timeout=300) as resp:
-        return json.load(resp)
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            return json.load(resp)
+    except urllib.error.HTTPError as err:
+        # BigQuery puts the useful part (which column, which line) in the body.
+        detail = err.read().decode("utf-8", "replace")
+        try:
+            detail = json.loads(detail)["error"]["message"]
+        except Exception:
+            pass
+        sys.exit("BigQuery %s: %s" % (err.code, detail))
 
 
 def query(sql, token, page_size=20000):
@@ -102,8 +111,57 @@ def query(sql, token, page_size=20000):
 # The unified shipment query
 # --------------------------------------------------------------------------
 SQL = r"""
+-- ---------------------------------------------------------------------------
+-- The warehouse 945 feed is the spine for how a shipment actually went out:
+-- ship date, carrier, tracking, freight charge, keyed by order number, daily
+-- for all four warehouses. The marketplace feeds supply who ordered and what.
+--
+-- Order numbers line up across all four marketplaces once a Michaels order is
+-- reduced to its digits — THP6600107706404869-2 at ShipStation is
+-- 6600107706404869 at the warehouse. Everything else matches as-is.
+-- ---------------------------------------------------------------------------
 WITH
--- ---- Target: Acenda ship advices (item grain) + fulfillments (tracking) ----
+pkg AS (
+  SELECT
+    REGEXP_REPLACE(REGEXP_REPLACE(UPPER(orderNumber), r'^THP', ''), r'-[0-9]+$', '') AS okey,
+    cartonTracking,
+    MIN(shipDate)                    AS ship_date,
+    ANY_VALUE(carrierScac)           AS scac,
+    ANY_VALUE(warehouse)             AS warehouse,
+    -- The feed is line-grain, one row per SKU per carton, and repeats the
+    -- shipment's freight charge on each. Collapse to the package before summing
+    -- or a three-line carton is billed three times.
+    -- A zero here means the warehouse did not report a charge, not that the
+    -- shipment was free — the median USPS row is 0.00. Treating it as a real
+    -- amount priced thousands of shipments at $0 and made every USPS invoice
+    -- look like pure overbilling against a zero label.
+    MAX(NULLIF(freightChargeShipment, 0))  AS package_cost
+  FROM `americanflat.finance.shipment_reconciliation`
+  WHERE orderNumber IS NOT NULL AND orderNumber != ''
+  GROUP BY okey, cartonTracking
+),
+ship AS (
+  SELECT
+    okey,
+    MIN(ship_date)                                        AS ship_date,
+    ANY_VALUE(scac)                                       AS scac,
+    ANY_VALUE(warehouse)                                  AS warehouse,
+    -- An order can leave in several cartons under different tracking numbers,
+    -- so its freight is the sum across them; the first tracking is the handle.
+    -- Verified equal to summing per shipmentIdentification: the feed states a
+    -- shipment's freight once and leaves the sibling cartons null.
+    SUM(package_cost)                                     AS ship_cost,
+    COUNT(DISTINCT cartonTracking)                        AS packages,
+    ARRAY_AGG(cartonTracking IGNORE NULLS ORDER BY cartonTracking LIMIT 1)[SAFE_OFFSET(0)] AS tracking,
+    -- Every package on the order. An invoice is per package, so pricing a
+    -- multi-package order from one tracking number would swap one package's
+    -- bill for the whole order's freight.
+    STRING_AGG(DISTINCT cartonTracking, ",")              AS tracking_all
+  FROM pkg
+  GROUP BY okey
+),
+
+-- ---- Target: Acenda ship advices (item grain) ----
 tgt_orders AS (
   SELECT
     shipAdviceId,
@@ -119,19 +177,15 @@ tgt_orders AS (
   GROUP BY shipAdviceId
 ),
 tgt_ship AS (
-  -- One order can have several fulfillments. Take the earliest as *the* shipment
-  -- and read its carrier and tracking off that same row: pulling each field with
-  -- ANY_VALUE independently pairs a UPS tracking number with a FedEx label.
   SELECT
     shipAdviceId,
     SAFE_CAST(SUBSTR(first.dateShipped, 1, 10) AS DATE)        AS ship_date,
     first.carrier                                              AS carrier,
     first.trackingNumber                                       AS tracking
   FROM (
-    SELECT
-      shipAdviceId,
-      ARRAY_AGG(STRUCT(dateShipped, carrier, trackingNumber)
-                ORDER BY dateShipped, trackingNumber LIMIT 1)[OFFSET(0)] AS first
+    SELECT shipAdviceId,
+           ARRAY_AGG(STRUCT(dateShipped, carrier, trackingNumber)
+                     ORDER BY dateShipped, trackingNumber LIMIT 1)[OFFSET(0)] AS first
     FROM `americanflat.acenda.fulfillment_raw`
     WHERE status != 'canceled'
     GROUP BY shipAdviceId
@@ -140,6 +194,7 @@ tgt_ship AS (
 tgt AS (
   SELECT 'Target' AS marketplace, o.order_number, o.order_ref, o.customer, o.city, o.state,
          o.order_date, s.ship_date, o.raw_status, s.carrier, s.tracking,
+         UPPER(o.order_number) AS okey,
          i.sku, i.productName AS product, i.quantity AS qty,
          i.unitPrice AS unit_price, i.totalItemPrice AS line_total
   FROM `americanflat.acenda.ship_advice_raw` i
@@ -147,7 +202,7 @@ tgt AS (
   LEFT JOIN tgt_ship s USING (shipAdviceId)
 ),
 
--- ---- Macy's: Mirakl order feed (line grain) ----
+-- ---- Macy's: Mirakl order feed ----
 mac_orders AS (
   SELECT
     orderId                                                    AS order_ref,
@@ -167,7 +222,7 @@ mac_orders AS (
 mac AS (
   SELECT "Macy's" AS marketplace, o.order_number, o.order_ref, o.customer, o.city, o.state,
          o.order_date, o.ship_date, o.raw_status, o.carrier, o.tracking,
-         -- productShopSku is our own SKU; productSku is Macy's internal id.
+         UPPER(o.order_number) AS okey,
          COALESCE(NULLIF(l.productShopSku, ''), l.offerSku, l.productSku) AS sku,
          l.productTitle AS product, l.quantity AS qty,
          l.linePrice AS unit_price, l.lineTotalPrice AS line_total
@@ -175,7 +230,11 @@ mac AS (
   JOIN mac_orders o ON o.order_ref = l.orderId
 ),
 
--- ---- Michaels + Shopify: ShipStation order feed (no shipment feed since 2023) ----
+-- ---- Michaels + Shopify: the ShipStation order feed ----
+-- ShipStation is the only feed carrying customer names for these two. The
+-- shopify dataset holds the same orders (7,279 against 7,259 for the same
+-- window, its `name` being #25901 to ShipStation's 25901) but has no name on
+-- them, so it stays the financial record and this stays the customer record.
 ss_orders AS (
   SELECT
     orderId,
@@ -197,23 +256,40 @@ ss AS (
          o.customer, o.city, o.state, o.order_date,
          CAST(NULL AS DATE) AS ship_date, o.raw_status, o.carrier,
          CAST(NULL AS STRING) AS tracking,
+         REGEXP_REPLACE(REGEXP_REPLACE(UPPER(o.order_number), r'^THP', ''), r'-[0-9]+$', '') AS okey,
          l.sku, l.itemName AS product, l.quantity AS qty,
          l.unitPrice AS unit_price, l.lineTotal AS line_total
   FROM `americanflat.shipstation.orders_clean` l
   JOIN ss_orders o ON o.orderId = l.orderId
   WHERE l.storeName IN ('AMF Michaels', 'Manual Michaels Orders',
                         'Shopify', 'Manual Shopify Orders')
-)
+),
 
--- One row per order line. The three CTEs project the same columns in the same
--- order, so a positional UNION ALL is safe; the builder groups them into orders.
-SELECT * FROM (
+orders AS (
   SELECT * FROM tgt
   UNION ALL SELECT * FROM mac
   UNION ALL SELECT * FROM ss
 )
-WHERE COALESCE(ship_date, order_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL @DAYS DAY)
-ORDER BY COALESCE(ship_date, order_date) DESC
+
+SELECT
+  o.marketplace, o.order_number, o.order_ref, o.customer, o.city, o.state,
+  o.order_date,
+  -- The marketplace's own ship date and tracking win where it has them, since
+  -- that is what the customer was told; the warehouse fills the rest in.
+  COALESCE(o.ship_date, s.ship_date)              AS ship_date,
+  COALESCE(o.tracking, s.tracking)                AS tracking,
+  s.tracking_all                                  AS tracking_all,
+  COALESCE(o.carrier, s.scac)                     AS carrier,
+  o.raw_status,
+  s.ship_cost                                     AS label_cost,
+  s.warehouse                                     AS warehouse,
+  s.packages                                      AS packages,
+  o.sku, o.product, o.qty, o.unit_price, o.line_total
+FROM orders o
+LEFT JOIN ship s ON s.okey = o.okey
+WHERE COALESCE(o.ship_date, s.ship_date, o.order_date)
+      >= DATE_SUB(CURRENT_DATE(), INTERVAL @DAYS DAY)
+ORDER BY COALESCE(o.ship_date, s.ship_date, o.order_date) DESC
 """
 
 
@@ -615,13 +691,37 @@ GROUP BY tracking
 def attach_costs(rows, costs):
     """Put the carrier charge on each order, by its tracking number."""
     for r in rows:
-        hit = costs.get(norm_tracking(r["tracking"])) if r["tracking"] else None
-        r["ship_cost"] = round(hit["cost"], 2) if hit else None
-        # Carried alongside the total, never folded into it: cost per unit can then
-        # be read either all-in or on base freight alone, from the same rows.
-        r["ship_base"] = round(hit["base"], 2) if hit else None
-        r["ship_adjustment"] = round(hit["adjustment"], 2) if hit else None
-        r["cost_source"] = hit["source"] if hit else ""
+        # Price the order from every package it shipped in, not just the first.
+        # A partial match would understate it, so the invoice only takes over
+        # when all of them are billed; otherwise the warehouse figure stands.
+        parcels = [norm_tracking(t) for t in (r.get("tracking_all") or [])]
+        if not parcels and r["tracking"]:
+            parcels = [norm_tracking(r["tracking"])]
+        found = [costs[t] for t in parcels if t in costs]
+        hit = None
+        if found and len(found) == len(parcels):
+            hit = {"cost": round(sum(f["cost"] for f in found), 2),
+                   "base": round(sum(f["base"] for f in found), 2),
+                   "adjustment": round(sum(f["adjustment"] for f in found), 2),
+                   "source": found[0]["source"]}
+        label = r.get("label_cost")
+        if hit:
+            # The carrier's bill wins outright — it is the actual charge, and the
+            # label only ever knew the quote.
+            r["ship_cost"] = round(hit["cost"], 2)
+            r["ship_base"] = round(hit["base"], 2)
+            r["ship_adjustment"] = round(hit["adjustment"], 2)
+            r["cost_source"] = hit["source"]
+            # Where both exist, the gap between them is the audit signal: the
+            # label's quote against what actually got billed.
+            r["label_variance"] = (round(r["ship_cost"] - label, 2)
+                                   if label is not None else None)
+        else:
+            r["ship_cost"] = label
+            r["ship_base"] = label
+            r["ship_adjustment"] = 0.0 if label is not None else None
+            r["cost_source"] = (r["carrier"] + " (label)") if label is not None else ""
+            r["label_variance"] = None
     return rows
 
 
@@ -659,7 +759,13 @@ def normalize(rows):
                 "ship_date": ship or "",
                 "carrier": norm_carrier(r.get("carrier")),
                 "tracking": (r.get("tracking") or "").strip(),
+                "tracking_all": [t for t in (r.get("tracking_all") or "").split(",") if t],
                 "status": norm_status(r.get("raw_status"), ship),
+                "warehouse": (r.get("warehouse") or "").strip(),
+                # What the label charged, straight from the warehouse feed. The
+                # invoice overlay may replace it below; until then it is the cost.
+                "label_cost": (round(float(r["label_cost"]), 2)
+                               if r.get("label_cost") not in (None, "") else None),
                 "items": [],
             }
         sku = (r.get("sku") or "").strip()
@@ -728,6 +834,7 @@ def encode(rows):
             # shipment that cost nothing, and the page has to show them differently.
             r.get("ship_cost"), idx(sources, r.get("cost_source") or ""),
             r.get("ship_adjustment") or 0,
+            r.get("label_variance"),
         ])
     return {"rows": data, "mkt": mkts, "carrier": carriers, "status": statuses,
             "state": states, "products": products, "source": sources,
@@ -889,7 +996,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .mp-count { color: var(--muted); font-size: 13px; margin-left: auto; font-variant-numeric: tabular-nums; }
 
   .mp-tablewrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); overflow-x: auto; }
-  @media (min-width: 1320px) { .mp-tablewrap { overflow-x: visible; } }
+  @media (min-width: 1560px) { .mp-tablewrap { overflow-x: visible; } }
   .mp-table { border-collapse: collapse; width: 100%; min-width: 860px; }
   .mp-table thead th {
     position: sticky; top: var(--toolbar-h, 56px); background: var(--thead); z-index: 1;
@@ -965,7 +1072,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   <section class="mp-panels">
     <div class="panel"><h2>Shipments by marketplace</h2><p class="hint" id="hint-mkt"></p><div id="chart-mkt"></div></div>
     <div class="panel"><h2>Shipments by carrier</h2><p class="hint" id="hint-car"></p><div id="chart-car"></div></div>
-    <div class="panel"><h2>Re-rated SKUs</h2><p class="hint" id="hint-sku"></p><div id="chart-sku"></div></div>
+    <div class="panel"><h2>Overbilled SKUs</h2><p class="hint" id="hint-sku"></p><div id="chart-sku"></div></div>
   </section>
 
   <p class="mp-note" id="gapnote"></p>
@@ -977,7 +1084,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     <select id="f-car" aria-label="Filter by carrier"><option value="">All carriers</option></select>
     <select id="f-status" aria-label="Filter by status"><option value="">All statuses</option></select>
     <select id="f-track" aria-label="Filter by tracking"><option value="">Tracking: any</option><option value="yes">Has tracking</option><option value="no">No tracking</option></select>
-    <select id="f-adj" aria-label="Filter by carrier re-rate"><option value="">Re-rates: any</option><option value="yes">Re-rated only</option><option value="no">No re-rate</option></select>
+    <select id="f-adj" aria-label="Filter by carrier re-rate"><option value="">Overbilling: any</option><option value="yes">Billed over label</option><option value="no">Billed at label</option></select>
     <span class="mp-count" id="count"></span>
   </div>
 
@@ -1021,7 +1128,7 @@ const num = n => n.toLocaleString("en-US");
 // Rows arrive as dictionary-encoded arrays (40k+ of them), so unpack once into
 // objects the filter/sort can read by name without re-indexing on every pass.
 const C = {SHIP:0, ORDER:1, MKT:2, NUM:3, CUST:4, CITY:5, STATE:6, UNITS:7, SKUS:8,
-           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15, ADJ:16};
+           CAR:9, TRK:10, ST:11, VALUE:12, ITEMS:13, COST:14, CSRC:15, ADJ:16, LVAR:17};
 const P = {SKU:0, NAME:1};   // products table
 const L = {P:0, QTY:1, UNIT:2, TOTAL:3};  // one line item
 const iso = d => d < 0 ? "" : new Date(EPOCH + d * DAY).toISOString().slice(0, 10);
@@ -1041,6 +1148,11 @@ const DATA = RAW.rows.map((r, i) => {
     cost: r[C.COST] == null ? null : r[C.COST],
     csrc: RAW.source[r[C.CSRC]] || "",
     adj: r[C.ADJ] || 0,
+    // What the carrier billed above what the warehouse said the label cost.
+    // Broader than the Stamps re-rate: it covers every carrier, and it is only
+    // meaningful where both figures exist.
+    lvar: r[C.LVAR] == null ? null : r[C.LVAR],
+    over: r[C.LVAR] != null ? Math.max(r[C.LVAR], 0) : (r[C.ADJ] || 0),
     // One lowercase haystack per row, built once: search stays instant at 40k rows.
     // SKUs are in it (people look up "who bought MW0808DWOOD"); product titles are
     // not — they are long, near-duplicate, and would triple the page's memory.
@@ -1091,8 +1203,9 @@ function kpiCards(rows) {
   const priced = rows.filter(r => r.cost != null);
   const cost = priced.reduce((a, r) => a + r.cost, 0);
   const pricedUnits = priced.reduce((a, r) => a + r.units, 0);
-  const adj = priced.reduce((a, r) => a + r.adj, 0);
-  const nAdj = priced.filter(r => r.adj).length;
+  const adj = priced.reduce((a, r) => a + r.over, 0);
+  const nAdj = priced.filter(r => r.over).length;
+  const comparable = rows.filter(r => r.lvar != null);
   const cards = [
     {label: "Shipments", value: num(rows.length),
      sub: num(rows.filter(r => r.st === "Shipped").length) + " shipped" +
@@ -1105,13 +1218,15 @@ function kpiCards(rows) {
     // Not the weekly report's blended CPU: this is only the shipments an invoice
     // has been matched to, and it excludes nothing the way that report does.
     {label: "Cost per unit", value: pricedUnits ? money(cost / pricedUnits) : "\u2014",
-     sub: pricedUnits ? (adj ? money((cost - adj) / pricedUnits) + " before re-rates"
+     sub: pricedUnits ? (adj ? money((cost - adj) / pricedUnits) + " at label rates"
                              : "on " + num(pricedUnits) + " priced units") : ""},
     // Kept out of the cost-per-unit card on purpose: a re-rate is real money but
     // it is a different question from what it costs to ship a unit.
-    {label: "Re-rates billed", value: adj ? money0(adj) : "\u2014",
-     sub: adj ? nAdj + " shipment" + (nAdj === 1 ? "" : "s") + " \u00b7 " +
-                (cost ? (adj / cost * 100).toFixed(1) + "% of cost" : "") : "none found"},
+    {label: "Billed over label", value: adj ? money0(adj) : "\u2014",
+     sub: adj ? num(nAdj) + " shipment" + (nAdj === 1 ? "" : "s") +
+                (cost ? " \u00b7 " + (adj / cost * 100).toFixed(1) + "% of cost" : "")
+              : (comparable.length ? "nothing over on " + num(comparable.length) + " comparable"
+                                   : "no label figure to compare")},
     {label: "Avg days to ship", value: avgSpan == null ? "\u2014" : avgSpan.toFixed(1),
      sub: spans.length ? "on " + num(spans.length) + " rows" : "no ship dates"},
   ];
@@ -1143,13 +1258,13 @@ function chart(elId, hintId, key, rows, hint) {
 function skuChart(rows) {
   const agg = {};
   for (const r of rows) {
-    if (!r.adj) continue;
+    if (!r.over) continue;
     const items = (r.items || []).filter(l => RAW.products[l[L.P]] && RAW.products[l[L.P]][P.SKU]);
     const units = items.reduce((a, l) => a + l[L.QTY], 0);
     if (!units) continue;
     for (const l of items) {
       const sku = RAW.products[l[L.P]][P.SKU];
-      agg[sku] = (agg[sku] || 0) + r.adj * (l[L.QTY] / units);
+      agg[sku] = (agg[sku] || 0) + r.over * (l[L.QTY] / units);
     }
   }
   const items = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -1159,8 +1274,8 @@ function skuChart(rows) {
     '<div class="bar-track"><div class="bar-fill" style="width:' + (amt / max * 100).toFixed(1) +
     '%;background:var(--warn)"></div></div><div class="amt">' + money(amt) + '</div></div>'
   ).join("") : '<div class="bar-row"><div class="name" style="grid-column:1/-1;color:var(--muted)">No re-rated shipments in the current filter</div></div>';
-  document.getElementById("hint-sku").textContent = rows.some(r => r.adj)
-    ? "Charges added after the label, split across an order's items"
+  document.getElementById("hint-sku").textContent = rows.some(r => r.over)
+    ? "Billed above the label, split across an order's items"
     : "Nothing re-rated here";
 }
 
@@ -1187,8 +1302,8 @@ function filtered() {
     if (fs && r.st !== fs) return false;
     if (ft === "yes" && !r.trk) return false;
     if (ft === "no" && r.trk) return false;
-    if (fa === "yes" && !r.adj) return false;
-    if (fa === "no" && r.adj) return false;
+    if (fa === "yes" && !r.over) return false;
+    if (fa === "no" && r.over) return false;
     if (fmo && (r.shipIso || r.orderIso).slice(0, 7) !== fmo) return false;
     if (term && !r.hay.includes(term)) return false;
     return true;
@@ -1241,8 +1356,12 @@ function lineRows(r) {
     '<p class="linecost">Carrier charge: <b>' + money(r.cost) + '</b>' +
     (r.csrc ? ' (' + esc(r.csrc) + ')' : "") +
     (r.units ? ' &middot; ' + money(r.cost / r.units) + ' per unit' : "") +
-    (r.adj ? '<br><span class="linereRate">' + money(r.cost - r.adj) + ' at the label, ' +
-             '<b>' + money(r.adj) + '</b> re-rated by the carrier afterwards</span>' : "") +
+    (r.lvar != null && Math.abs(r.lvar) > 0.005
+      ? '<br><span class="linereRate">Warehouse recorded ' + money(r.cost - r.lvar) +
+        ' for the label; the carrier billed <b>' + money(r.lvar) + '</b> ' +
+        (r.lvar > 0 ? 'more' : 'less') + '</span>'
+      : (r.adj ? '<br><span class="linereRate">' + money(r.cost - r.adj) + ' at the label, ' +
+                 '<b>' + money(r.adj) + '</b> re-rated by the carrier afterwards</span>' : "")) +
     '</p>';
   return '<table class="lines"><thead><tr><th>SKU</th><th>Item</th>' +
     '<th class="num">Qty</th><th class="num">Unit</th><th class="num">Line total</th></tr></thead>' +
@@ -1281,8 +1400,8 @@ function rowHtml(r) {
     '<td class="num">' + (r.cost == null
       ? '<span class="dash" title="No carrier invoice matched to this tracking number yet">&mdash;</span>'
       : '<span title="' + esc(r.csrc || "carrier") + ' invoice">' + money(r.cost) + '</span>' +
-        (r.adj ? ' <small class="rerate" title="Re-rated by the carrier after the label">+' +
-                 money(r.adj) + '</small>' : "")) + '</td>' +
+        (r.over ? ' <small class="rerate" title="Billed above what the label cost">+' +
+                  money(r.over) + '</small>' : "")) + '</td>' +
     '<td>' + (r.car ? esc(r.car) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + trk + '</td>' +
     '<td>' + status + '</td></tr>';
