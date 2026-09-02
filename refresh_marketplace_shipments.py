@@ -1224,6 +1224,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
     <select id="f-mkt" aria-label="Filter by marketplace"><option value="">All marketplaces</option></select>
     <select id="f-month" aria-label="Filter by month"><option value="">All months</option></select>
     <select id="f-wh" aria-label="Filter by warehouse"><option value="">All warehouses</option></select>
+    <select id="f-state" aria-label="Filter by destination state"><option value="">All states</option></select>
     <select id="f-car" aria-label="Filter by carrier"><option value="">All carriers</option></select>
     <select id="f-status" aria-label="Filter by status"><option value="">All statuses</option></select>
     <select id="f-track" aria-label="Filter by tracking"><option value="">Tracking: any</option><option value="yes">Has tracking</option><option value="no">No tracking</option></select>
@@ -1278,7 +1279,7 @@ const NCOLS = EXEC ? 10 : 13;
 // is gone only confuses, and the overbilling panel is the operational question
 // this page is deliberately not asking.
 if (EXEC) {
-  for (const sel of ["#f-status", "#f-track", "#f-adj"]) {
+  for (const sel of ["#f-status", "#f-track", "#f-adj", "#f-state"]) {
     const el = document.querySelector(sel);
     if (el) el.remove();
   }
@@ -1471,10 +1472,12 @@ const fMkt = document.getElementById("f-mkt"), fMonth = document.getElementById(
       fCar = document.getElementById("f-car"), fStatus = elOrNull("f-status"),
       fTrack = elOrNull("f-track"), fAdj = elOrNull("f-adj"),
       fWh = document.getElementById("f-wh"), fRs = document.getElementById("f-rs"),
+      fState = elOrNull("f-state"),
       q = document.getElementById("q");
 uniq("mkt").forEach(m => fMkt.add(new Option(m, m)));
 uniq("car").forEach(c => fCar.add(new Option(c, c)));
 uniq("wh").forEach(w => fWh.add(new Option(w, w)));
+if (fState) uniq("state").forEach(st => fState.add(new Option(st, st)));
 if (fStatus) uniq("st").forEach(s => fStatus.add(new Option(s, s)));
 [...new Set(DATA.map(r => (r.shipIso || r.orderIso).slice(0, 7)).filter(Boolean))].sort().reverse()
   .forEach(ym => fMonth.add(new Option(fmtMonth(ym), ym)));
@@ -1484,11 +1487,13 @@ let sortKey = "ship", sortDir = -1;
 function filtered() {
   const term = q.value.trim().toLowerCase();
   const fm = fMkt.value, fmo = fMonth.value, fc = fCar.value, fs = valOf(fStatus),
-        ft = valOf(fTrack), fa = valOf(fAdj), fw = fWh.value, frs = fRs.value;
+        ft = valOf(fTrack), fa = valOf(fAdj), fw = fWh.value, frs = fRs.value,
+        fst = valOf(fState);
   const rows = DATA.filter(r => {
     if (fm && r.mkt !== fm) return false;
     if (fc && r.car !== fc) return false;
     if (fw && r.wh !== fw) return false;
+    if (fst && r.state !== fst) return false;
     // Standard is the default view: a reship or a hand-raised order is real
     // money but neither is a normal sale, and both skew cost per unit.
     if (frs === "standard" && (r.rs || r.manual)) return false;
@@ -1634,8 +1639,9 @@ function paint(reset) {
     // The question this answers is "where does this warehouse actually ship to",
     // so when a warehouse is selected the hint says so rather than staying generic.
     chart("chart-st", "hint-st", "state", current,
-          fWh.value ? "Top destinations shipping from " + fWh.value
-                    : "Top destinations in the current filter", 12);
+          valOf(fState) ? "Only " + valOf(fState) + " in the current filter"
+            : fWh.value ? "Top destinations shipping from " + fWh.value
+                        : "Top destinations in the current filter", 12);
     skuChart(current);
   }
 }
@@ -1649,7 +1655,7 @@ document.getElementById("rows").addEventListener("click", e => {
 });
 
 document.getElementById("more").addEventListener("click", () => { shown += 1000; paint(false); });
-[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj, fWh, fRs].filter(Boolean).forEach(el =>
+[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj, fWh, fRs, fState].filter(Boolean).forEach(el =>
   el.addEventListener("input", () => paint(true)));
 
 document.querySelectorAll(".mp-table thead th[data-k]").forEach(th => {

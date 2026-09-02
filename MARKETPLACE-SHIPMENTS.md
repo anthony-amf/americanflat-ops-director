@@ -398,10 +398,17 @@ and sums the rest into one `N more` row. That row carries no bar: it is a count
 of states, not a measurement, and an empty track next to the panel's largest
 number reads as zero.
 
-Worth knowing what it shows: filtered to **New Jersey**, the top destination is
-**California** (3,064 shipments against NJ's own 965). The east-coast warehouse
-sends its largest single share of volume to the far coast, which is the expensive
-direction on every carrier &mdash; a routing question, not a rate question.
+A **destination state** filter sits beside the warehouse one in the toolbar &mdash;
+ships-from next to ships-to &mdash; so a warehouse and a state combine into one lane.
+When a state is selected the panel's hint says so rather than claiming to rank
+anything, since there is only one bar left to rank.
+
+Worth knowing what this shows. Filtered to **New Jersey**, the top destination is
+**California** (3,064 shipments against NJ's own 965): the east-coast warehouse
+sends its largest single share of volume to the far coast. Narrow to that lane
+&mdash; New Jersey to CA &mdash; and cost per unit is **$14.06 against $10.61 for New
+Jersey overall** and $10.58 across everything. The lane is a third more expensive
+than the average shipment, which is a routing question rather than a rate one.
 
 ## The executive page
 
