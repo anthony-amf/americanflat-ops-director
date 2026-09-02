@@ -913,9 +913,15 @@ def day_num(iso):
     return (dt.date.fromisoformat(iso) - EPOCH).days
 
 
-def encode(rows):
+def encode(rows, exec_view=False):
     """Dictionary-encode everything repetitive: 40k orders and 50k line items go
-    into the page as arrays of small integers plus one products table."""
+    into the page as arrays of small integers plus one products table.
+
+    On the executive page the withheld fields are blanked here, not merely hidden
+    by the UI: order value, tracking number and the label-variance figures never
+    reach the file, so viewing source does not recover them. Positions are kept
+    so the reader's index constants stay the same for both pages.
+    """
     mkts, carriers, statuses, states, products, sources = [], [], [], [], [], [""]
     warehouses = [""]
     pidx = {}
@@ -935,18 +941,20 @@ def encode(rows):
     data = []
     for r in rows:
         items = [[product_idx(i["sku"], i["product"]), i["qty"],
-                  i["unit_price"], i["line_total"]] for i in r["items"]]
+                  0 if exec_view else i["unit_price"],
+                  0 if exec_view else i["line_total"]] for i in r["items"]]
         data.append([
             day_num(r["ship_date"]), day_num(r["order_date"]),
             idx(mkts, r["marketplace"]), r["order_number"], r["customer"],
             r["city"], idx(states, r["state"]), r["units"], r["skus"],
-            idx(carriers, r["carrier"]), r["tracking"], idx(statuses, r["status"]),
-            r["value"], items,
+            idx(carriers, r["carrier"]),
+            "" if exec_view else r["tracking"], idx(statuses, r["status"]),
+            0 if exec_view else r["value"], items,
             # null, not 0: no invoice for this shipment is a different fact from a
             # shipment that cost nothing, and the page has to show them differently.
             r.get("ship_cost"), idx(sources, r.get("cost_source") or ""),
-            r.get("ship_adjustment") or 0,
-            r.get("label_variance"),
+            0 if exec_view else (r.get("ship_adjustment") or 0),
+            None if exec_view else r.get("label_variance"),
             idx(warehouses, r.get("warehouse") or ""),
             (1 if r.get("reship") else 0) | (2 if r.get("manual") else 0),
         ])
@@ -1080,7 +1088,11 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   .kpi .sub { font-size: 12.5px; font-weight: 500; color: var(--muted); margin-top: 3px;
     font-variant-numeric: tabular-nums; min-height: 1.2em; }
 
+  /* Track count follows the panels actually present: the executive page drops
+     the overbilling panel, and a fixed three-column grid would leave its
+     column standing empty. */
   .mp-panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
+  .mp-panels:has(> .panel:nth-child(2):last-child) { grid-template-columns: repeat(2, 1fr); }
   @media (max-width: 1180px) { .mp-panels { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 780px) { .mp-panels { grid-template-columns: 1fr; } }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 17px 19px; box-shadow: var(--shadow); }
@@ -1224,12 +1236,12 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
         <th data-k="cust" tabindex="0">Customer<span class="arrow">&#9660;</span></th>
         <th data-k="dest" tabindex="0">Destination<span class="arrow">&#9660;</span></th>
         <th data-k="units" class="num" tabindex="0">Units<span class="arrow">&#9660;</span></th>
-        <th data-k="value" class="num" tabindex="0">Order value<span class="arrow">&#9660;</span></th>
+        <th data-exec-hide data-k="value" class="num" tabindex="0">Order value<span class="arrow">&#9660;</span></th>
         <th data-k="cost" class="num" tabindex="0">Ship cost<span class="arrow">&#9660;</span></th>
         <th data-k="wh" tabindex="0">Ships from<span class="arrow">&#9660;</span></th>
         <th data-k="car" tabindex="0">Carrier<span class="arrow">&#9660;</span></th>
-        <th data-k="trk" tabindex="0">Tracking<span class="arrow">&#9660;</span></th>
-        <th data-k="st" tabindex="0">Status<span class="arrow">&#9660;</span></th>
+        <th data-exec-hide data-k="trk" tabindex="0">Tracking<span class="arrow">&#9660;</span></th>
+        <th data-exec-hide data-k="st" tabindex="0">Status<span class="arrow">&#9660;</span></th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
@@ -1245,6 +1257,28 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
 <script>
 const RAW = __DATA__;
 const KPI = __KPI__;
+// The executive page is the same data with the operational detail withheld —
+// see --audience in the CLI. Everything it hides is hidden here, in one place.
+const EXEC = __EXEC__;
+const EXEC_HIDE_KPI = new Set(["Order value", "Billed over label", "Avg days to ship"]);
+// A control the executive page removed is absent, not empty, so every read of
+// one goes through these rather than throwing on a null.
+const elOrNull = id => document.getElementById(id);
+const valOf = el => (el ? el.value : "");
+const NCOLS = EXEC ? 10 : 13;
+
+// Strip the executive page down before anything paints. A filter whose column
+// is gone only confuses, and the overbilling panel is the operational question
+// this page is deliberately not asking.
+if (EXEC) {
+  for (const sel of ["#f-status", "#f-track", "#f-adj"]) {
+    const el = document.querySelector(sel);
+    if (el) el.remove();
+  }
+  const sku = document.querySelector("#chart-sku");
+  if (sku && sku.closest(".panel")) sku.closest(".panel").remove();
+  document.querySelectorAll(".mp-table thead th[data-exec-hide]").forEach(th => th.remove());
+}
 
 const EPOCH = Date.parse(RAW.epoch + "T00:00:00Z");
 const DAY = 86400000;
@@ -1360,7 +1394,8 @@ function kpiCards(rows) {
     {label: "Avg days to ship", value: avgSpan == null ? "\u2014" : avgSpan.toFixed(1),
      sub: spans.length ? "on " + num(spans.length) + " rows" : "no ship dates"},
   ];
-  document.getElementById("kpis").innerHTML = cards.map(k =>
+  document.getElementById("kpis").innerHTML =
+    cards.filter(k => !(EXEC && EXEC_HIDE_KPI.has(k.label))).map(k =>
     '<div class="kpi"><div class="label">' + k.label + '</div>' +
     '<div class="value">' + k.value + '</div>' +
     '<div class="sub">' + (k.sub || "") + '</div></div>'
@@ -1386,6 +1421,7 @@ function chart(elId, hintId, key, rows, hint) {
 // its items by unit share &mdash; the surcharge is charged on the box, not one line,
 // so this points at the culprit rather than claiming to prove it.
 function skuChart(rows) {
+  if (!document.getElementById("chart-sku")) return;   // removed on the executive page
   const agg = {};
   for (const r of rows) {
     if (!r.over) continue;
@@ -1411,14 +1447,14 @@ function skuChart(rows) {
 
 const uniq = key => [...new Set(DATA.map(r => r[key]).filter(Boolean))].sort();
 const fMkt = document.getElementById("f-mkt"), fMonth = document.getElementById("f-month"),
-      fCar = document.getElementById("f-car"), fStatus = document.getElementById("f-status"),
-      fTrack = document.getElementById("f-track"), fAdj = document.getElementById("f-adj"),
+      fCar = document.getElementById("f-car"), fStatus = elOrNull("f-status"),
+      fTrack = elOrNull("f-track"), fAdj = elOrNull("f-adj"),
       fWh = document.getElementById("f-wh"), fRs = document.getElementById("f-rs"),
       q = document.getElementById("q");
 uniq("mkt").forEach(m => fMkt.add(new Option(m, m)));
 uniq("car").forEach(c => fCar.add(new Option(c, c)));
 uniq("wh").forEach(w => fWh.add(new Option(w, w)));
-uniq("st").forEach(s => fStatus.add(new Option(s, s)));
+if (fStatus) uniq("st").forEach(s => fStatus.add(new Option(s, s)));
 [...new Set(DATA.map(r => (r.shipIso || r.orderIso).slice(0, 7)).filter(Boolean))].sort().reverse()
   .forEach(ym => fMonth.add(new Option(fmtMonth(ym), ym)));
 
@@ -1426,8 +1462,8 @@ let sortKey = "ship", sortDir = -1;
 
 function filtered() {
   const term = q.value.trim().toLowerCase();
-  const fm = fMkt.value, fmo = fMonth.value, fc = fCar.value, fs = fStatus.value,
-        ft = fTrack.value, fa = fAdj.value, fw = fWh.value, frs = fRs.value;
+  const fm = fMkt.value, fmo = fMonth.value, fc = fCar.value, fs = valOf(fStatus),
+        ft = valOf(fTrack), fa = valOf(fAdj), fw = fWh.value, frs = fRs.value;
   const rows = DATA.filter(r => {
     if (fm && r.mkt !== fm) return false;
     if (fc && r.car !== fc) return false;
@@ -1487,14 +1523,17 @@ function lineRows(r) {
     return '<tr><td class="sku">' + esc(p[P.SKU] || "\u2014") + '</td>' +
       '<td class="prod">' + esc(p[P.NAME]) + '</td>' +
       '<td class="num">' + num(l[L.QTY]) + '</td>' +
-      '<td class="num">' + money(l[L.UNIT]) + '</td>' +
-      '<td class="num">' + money(l[L.TOTAL]) + '</td></tr>';
+      // Per-line revenue is the same fact the Order value column carried, so it
+      // leaves with it rather than surviving one click deeper.
+      (EXEC ? "" : '<td class="num">' + money(l[L.UNIT]) + '</td>' +
+                   '<td class="num">' + money(l[L.TOTAL]) + '</td>') + '</tr>';
   }).join("");
   const costLine = r.cost == null ? "" :
     '<p class="linecost">Carrier charge: <b>' + money(r.cost) + '</b>' +
     (r.csrc ? ' (' + esc(r.csrc) + ')' : "") +
     (r.units ? ' &middot; ' + money(r.cost / r.units) + ' per unit' : "") +
-    (r.lvar != null && Math.abs(r.lvar) > 0.005
+    (EXEC ? "" :
+     r.lvar != null && Math.abs(r.lvar) > 0.005
       ? '<br><span class="linereRate">Warehouse recorded ' + money(r.cost - r.lvar) +
         ' for the label; the carrier billed <b>' + money(r.lvar) + '</b> ' +
         (r.lvar > 0 ? 'more' : 'less') + '</span>'
@@ -1502,10 +1541,12 @@ function lineRows(r) {
                  '<b>' + money(r.adj) + '</b> re-rated by the carrier afterwards</span>' : "")) +
     '</p>';
   return '<table class="lines"><thead><tr><th>SKU</th><th>Item</th>' +
-    '<th class="num">Qty</th><th class="num">Unit</th><th class="num">Line total</th></tr></thead>' +
+    '<th class="num">Qty</th>' +
+    (EXEC ? "" : '<th class="num">Unit</th><th class="num">Line total</th>') + '</tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
     (r.items.length > 1 ? '<tfoot><tr><td colspan="2"></td><td class="num">' + num(r.units) +
-      '</td><td></td><td class="num">' + money(r.value) + '</td></tr></tfoot>' : "") +
+      '</td>' + (EXEC ? "" : '<td></td><td class="num">' + money(r.value) + '</td>') +
+      '</tr></tfoot>' : "") +
     '</table>' + costLine;
 }
 
@@ -1536,7 +1577,7 @@ function rowHtml(r) {
     '<td class="cust">' + (r.cust ? esc(r.cust) : '<span class="dash" title="This marketplace redacts the customer name after the order ages out">&mdash;</span>') + '</td>' +
     '<td class="dest">' + (r.dest ? esc(r.dest) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td class="num">' + num(r.units) + (r.skus > 1 ? ' <small style="color:var(--muted)">/' + r.skus + '</small>' : "") + '</td>' +
-    '<td class="num">' + (r.value ? money(r.value) : '<span class="dash">&mdash;</span>') + '</td>' +
+    (EXEC ? "" : '<td class="num">' + (r.value ? money(r.value) : '<span class="dash">&mdash;</span>') + '</td>') +
     '<td class="num">' + (r.cost == null
       ? '<span class="dash" title="No carrier invoice matched to this tracking number yet">&mdash;</span>'
       : '<span title="' + esc(r.csrc || "carrier") + ' invoice">' + money(r.cost) + '</span>' +
@@ -1544,10 +1585,9 @@ function rowHtml(r) {
                   money(r.over) + '</small>' : "")) + '</td>' +
     '<td class="dest">' + (r.wh ? esc(r.wh) : '<span class="dash">&mdash;</span>') + '</td>' +
     '<td>' + (r.car ? esc(r.car) : '<span class="dash">&mdash;</span>') + '</td>' +
-    '<td>' + trk + '</td>' +
-    '<td>' + status + '</td></tr>';
+    (EXEC ? "" : '<td>' + trk + '</td>' + '<td>' + status + '</td>') + '</tr>';
   return open
-    ? main + '<tr class="linedetail"><td colspan="13">' + lineRows(r) + '</td></tr>'
+    ? main + '<tr class="linedetail"><td colspan="' + NCOLS + '">' + lineRows(r) + '</td></tr>'
     : main;
 }
 
@@ -1555,7 +1595,7 @@ function paint(reset) {
   if (reset) { current = filtered(); shown = PAGE; }
   document.getElementById("rows").innerHTML =
     current.slice(0, shown).map(rowHtml).join("") ||
-    '<tr><td colspan="13" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
+    '<tr><td colspan="' + NCOLS + '" style="color:var(--muted);padding:22px 12px">No shipments match the current filter.</td></tr>';
   const left = current.length - shown;
   const wrap = document.getElementById("morewrap");
   wrap.hidden = left <= 0;
@@ -1583,7 +1623,7 @@ document.getElementById("rows").addEventListener("click", e => {
 });
 
 document.getElementById("more").addEventListener("click", () => { shown += 1000; paint(false); });
-[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj, fWh, fRs].forEach(el =>
+[q, fMkt, fMonth, fCar, fStatus, fTrack, fAdj, fWh, fRs].filter(Boolean).forEach(el =>
   el.addEventListener("input", () => paint(true)));
 
 document.querySelectorAll(".mp-table thead th[data-k]").forEach(th => {
@@ -1674,9 +1714,14 @@ function csvCell(v) {
   return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
+// An export that hands back the columns the page withheld would defeat the
+// point of withholding them.
+const EXEC_HIDE_CSV = new Set(["Order value", "Tracking", "Status", "Billed over label"]);
+const COLUMNS = CSV_COLUMNS.filter(c => !(EXEC && EXEC_HIDE_CSV.has(c[0])));
+
 function csvOf(rows) {
-  const out = [CSV_COLUMNS.map(c => csvCell(c[0])).join(",")];
-  for (const r of rows) out.push(CSV_COLUMNS.map(c => csvCell(c[1](r))).join(","));
+  const out = [COLUMNS.map(c => csvCell(c[0])).join(",")];
+  for (const r of rows) out.push(COLUMNS.map(c => csvCell(c[1](r))).join(","));
   // The BOM is what makes Excel read it as UTF-8 rather than mangling names.
   return "\ufeff" + out.join("\r\n") + "\r\n";
 }
@@ -1730,10 +1775,18 @@ paint(true);
 """
 
 
-def render(rows, kpi):
+def render(rows, kpi, exec_view=False):
     return (TEMPLATE
-            .replace("__DATA__", json.dumps(encode(rows), separators=(",", ":")))
-            .replace("__KPI__", json.dumps(kpi, separators=(",", ":"))))
+            .replace("__DATA__", json.dumps(encode(rows, exec_view),
+                                            separators=(",", ":")))
+            .replace("__KPI__", json.dumps(kpi, separators=(",", ":")))
+            .replace("__EXEC__", "true" if exec_view else "false")
+            .replace("Marketplace Shipments</title>",
+                     ("Shipments Overview" if exec_view else "Marketplace Shipments")
+                     + "</title>")
+            .replace("<h1>Marketplace Shipments</h1>",
+                     "<h1>" + ("Shipments Overview" if exec_view
+                               else "Marketplace Shipments") + "</h1>"))
 
 
 # --------------------------------------------------------------------------
@@ -1767,6 +1820,12 @@ def main():
     ap.add_argument("--cost-table", metavar="TABLE",
                     help="BigQuery table of parcel charges (tracking, amount, carrier), "
                          "e.g. americanflat.marketplaces.parcel_charges")
+    ap.add_argument("--audience", choices=("ops", "exec"), default="ops",
+                    help="ops (default) is the full portal. exec is the same "
+                         "data with the operational detail withheld: no order "
+                         "value, no billed-over-label, no days-to-ship, and no "
+                         "tracking or status column \u2014 a page to share "
+                         "upward without inviting a side project")
     ap.add_argument("--include-cancelled", action="store_true",
                     help="keep cancelled orders, which are dropped by default")
     ap.add_argument("--source", choices=["feeds", "ledger"], default="feeds",
@@ -1827,7 +1886,7 @@ def main():
     kpi = kpi_block(rows, args.days, filled)
 
     with open(args.out, "w") as fh:
-        fh.write(render(rows, kpi))
+        fh.write(render(rows, kpi, args.audience == "exec"))
     size = os.path.getsize(args.out)
     print("%s: %d shipments, %.1f MB" % (args.out, len(rows), size / 1e6), file=sys.stderr)
 

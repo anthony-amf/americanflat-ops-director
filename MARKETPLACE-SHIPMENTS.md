@@ -386,6 +386,48 @@ Unlike the Yusen artifact this one is not gated on a row fingerprint: the 945
 feed lands new shipments every day, so a no-change morning is the exception
 rather than the rule and the check would rarely pay for itself.
 
+## The executive page
+
+`--audience exec` builds a second, deliberately thinner page from the same query,
+published separately as **Shipments Overview**
+(`https://claude.ai/code/artifact/920bcbe7-4d40-414c-b46b-e13c997864cd`). It is
+for sharing upward: enough to see volume and what shipping costs, without the
+operational detail that invites a side project.
+
+```bash
+python3 refresh_marketplace_shipments.py --audience exec \
+    --out /tmp/shipments_overview.html --charges data/parcel_charges.ndjson.gz
+```
+
+What it drops, and why each one goes as a set rather than alone:
+
+| Gone | Also gone with it |
+|---|---|
+| Order value | the per-line Unit and Line total in an expanded order |
+| Billed over label | the Overbilled SKUs panel, the Overbilling filter, the re-rate note under an expanded order |
+| Avg days to ship | &mdash; |
+| Tracking column | the Tracking filter |
+| Status column | the Status filter |
+
+Leaving a filter whose column is gone, or a whole panel about a number the page
+no longer shows, would read as an oversight rather than a decision &mdash; so each
+removal takes its dependants with it.
+
+**The withheld fields are absent from the file, not merely hidden.** `encode()`
+blanks order value, tracking, the label variance and the per-line prices when
+building this page, so viewing source does not recover them. Positions in the row
+array are kept so both pages share one reader. The page is 4.9 MB against the
+full portal's 6.2 MB, which is the withheld data not being there.
+
+Four KPI cards remain (shipments, units, shipping cost, cost per unit), two
+panels, and five filters (marketplace, month, warehouse, carrier, order type).
+The CSV export drops the same columns the page does &mdash; an export that handed
+them back would defeat the point.
+
+Both pages come from one query and one set of rules. A change to how a shipment
+is counted, priced or excluded lands on both, which is the reason this is a flag
+rather than a second script.
+
 ## A note on what is on the page
 
 Customer names, cities, states, and what each person ordered are on it; email

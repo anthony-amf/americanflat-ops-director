@@ -197,7 +197,12 @@ cost report downloads. The weekly report's own per-order roll-up
 joined by order number — that is the only thing that prices Michaels and Shopify,
 which have no tracking number to match on. Note the two carriers differ on lag: FedEx bills weeks
 behind, but **Stamps.com print history is same-day**, so an unpriced Stamps
-shipment means nobody loaded a current export. Full detail:
+shipment means nobody loaded a current export. A second, thinner artifact for sharing upward &mdash; **Shipments Overview**
+(`https://claude.ai/code/artifact/920bcbe7-4d40-414c-b46b-e13c997864cd`) &mdash; comes
+off the same builder with `--audience exec`: no order value, no billed-over-label,
+no days-to-ship, no tracking or status column, and the filters and panels those
+fed removed with them. The withheld fields are blanked in `encode()`, so they are
+not in the file to be read out of source. Full detail:
 `MARKETPLACE-SHIPMENTS.md`.
 
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
