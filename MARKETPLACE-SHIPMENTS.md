@@ -386,6 +386,23 @@ Unlike the Yusen artifact this one is not gated on a row fingerprint: the 945
 feed lands new shipments every day, so a no-change morning is the exception
 rather than the rule and the check would rarely pay for itself.
 
+### Shipments by state
+
+The fourth panel answers "where does this warehouse actually ship to". It
+recomputes on the current filter like the other panels, so selecting a warehouse
+turns it into that warehouse's destination profile &mdash; and the hint says which
+warehouse, so a screenshot of it is not ambiguous.
+
+Fifty states will not list the way four marketplaces do, so it shows the top 12
+and sums the rest into one `N more` row. That row carries no bar: it is a count
+of states, not a measurement, and an empty track next to the panel's largest
+number reads as zero.
+
+Worth knowing what it shows: filtered to **New Jersey**, the top destination is
+**California** (3,064 shipments against NJ's own 965). The east-coast warehouse
+sends its largest single share of volume to the far coast, which is the expensive
+direction on every carrier &mdash; a routing question, not a rate question.
+
 ## The executive page
 
 `--audience exec` builds a second, deliberately thinner page from the same query,

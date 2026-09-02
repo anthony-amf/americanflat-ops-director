@@ -1093,6 +1093,12 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
      column standing empty. */
   .mp-panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 26px; }
   .mp-panels:has(> .panel:nth-child(2):last-child) { grid-template-columns: repeat(2, 1fr); }
+  .mp-panels:has(> .panel:nth-child(4)) { grid-template-columns: repeat(2, 1fr); }
+  /* The tail row is a count, not a measurement. An empty track reads as a bar at
+     zero, which is the opposite of true — it is the largest number on the panel —
+     so the track goes rather than sitting there unfilled. */
+  .bar-rest .name, .bar-rest .amt { color: var(--muted); }
+  .bar-rest .bar-track { visibility: hidden; }
   @media (max-width: 1180px) { .mp-panels { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 780px) { .mp-panels { grid-template-columns: 1fr; } }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 17px 19px; box-shadow: var(--shadow); }
@@ -1207,6 +1213,7 @@ TEMPLATE = r"""<title>Marketplace Shipments</title>
   <section class="mp-panels">
     <div class="panel"><h2>Shipments by marketplace</h2><p class="hint" id="hint-mkt"></p><div id="chart-mkt"></div></div>
     <div class="panel"><h2>Shipments by carrier</h2><p class="hint" id="hint-car"></p><div id="chart-car"></div></div>
+    <div class="panel"><h2>Shipments by state</h2><p class="hint" id="hint-st"></p><div id="chart-st"></div></div>
     <div class="panel"><h2>Overbilled SKUs</h2><p class="hint" id="hint-sku"></p><div id="chart-sku"></div></div>
   </section>
 
@@ -1275,8 +1282,10 @@ if (EXEC) {
     const el = document.querySelector(sel);
     if (el) el.remove();
   }
-  const sku = document.querySelector("#chart-sku");
-  if (sku && sku.closest(".panel")) sku.closest(".panel").remove();
+  for (const sel of ["#chart-sku", "#chart-st"]) {
+    const el = document.querySelector(sel);
+    if (el && el.closest(".panel")) el.closest(".panel").remove();
+  }
   document.querySelectorAll(".mp-table thead th[data-exec-hide]").forEach(th => th.remove());
 }
 
@@ -1302,6 +1311,7 @@ const DATA = RAW.rows.map((r, i) => {
     ship: r[C.SHIP], order: r[C.ORDER], shipIso, orderIso,
     mkt: RAW.mkt[r[C.MKT]], num: r[C.NUM] || "", cust: r[C.CUST] || "",
     dest: city + (city && state ? ", " : "") + state,
+    state: state,
     units: r[C.UNITS], skus: r[C.SKUS],
     car: RAW.carrier[r[C.CAR]] || "", trk: r[C.TRK] || "", st: RAW.status[r[C.ST]],
     value: r[C.VALUE], items: r[C.ITEMS] || [],
@@ -1402,19 +1412,30 @@ function kpiCards(rows) {
   ).join("");
 }
 
-function chart(elId, hintId, key, rows, hint) {
+function chart(elId, hintId, key, rows, hint, cap) {
+  const el = document.getElementById(elId);
+  if (!el) return;
   const agg = {};
   for (const r of rows) { const k = r[key] || "\u2014 none"; agg[k] = (agg[k] || 0) + 1; }
-  const items = Object.entries(agg).sort((a, b) => b[1] - a[1]);
+  const all = Object.entries(agg).sort((a, b) => b[1] - a[1]);
+  // Four marketplaces and six carriers list in full; fifty states do not, so the
+  // tail is summed into one row rather than dropped — the total still adds up.
+  const items = cap ? all.slice(0, cap) : all;
+  const restN = all.slice(items.length).reduce((a, b) => a + b[1], 0);
+  const restStates = all.length - items.length;
   const max = Math.max(...items.map(i => i[1]), 1);
-  document.getElementById(elId).innerHTML = items.length ? items.map(([name, n]) => {
+  el.innerHTML = (items.length ? items.map(([name, n]) => {
     const color = key === "mkt" ? "var(" + mktVar(name) + ", var(--accent))" : "var(--accent)";
     const pct = (n / max * 100).toFixed(1);
     return '<div class="bar-row"><div class="name" title="' + esc(name) + '">' + esc(name) + '</div>' +
       '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
       '<div class="amt">' + num(n) + '</div></div>';
-  }).join("") : '<div class="bar-row"><div class="name" style="grid-column:1/-1;color:var(--muted)">Nothing matches the current filter</div></div>';
-  document.getElementById(hintId).textContent = hint;
+  }).join("") : '<div class="bar-row"><div class="name" style="grid-column:1/-1;color:var(--muted)">Nothing matches the current filter</div></div>')
+    + (restN ? '<div class="bar-row bar-rest"><div class="name">' + num(restStates) +
+               ' more</div><div class="bar-track"></div><div class="amt">' + num(restN) +
+               '</div></div>' : "");
+  const hintEl = document.getElementById(hintId);
+  if (hintEl) hintEl.textContent = hint;
 }
 
 // Which SKUs the carrier keeps re-rating. An order's adjustment is split across
@@ -1610,6 +1631,11 @@ function paint(reset) {
     kpiCards(current);
     chart("chart-mkt", "hint-mkt", "mkt", current, "Shipments in the current filter");
     chart("chart-car", "hint-car", "car", current, "Carrier as recorded on the shipment");
+    // The question this answers is "where does this warehouse actually ship to",
+    // so when a warehouse is selected the hint says so rather than staying generic.
+    chart("chart-st", "hint-st", "state", current,
+          fWh.value ? "Top destinations shipping from " + fWh.value
+                    : "Top destinations in the current filter", 12);
     skuChart(current);
   }
 }
