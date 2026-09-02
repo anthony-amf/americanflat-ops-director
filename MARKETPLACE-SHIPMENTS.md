@@ -247,6 +247,34 @@ bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect \
 After that, `--cost-table americanflat.marketplaces.parcel_charges` prices the
 portal straight from BigQuery with no files to hand it.
 
+Until that table exists, `data/parcel_charges.ndjson.gz` stands in for it. It is
+the same parsed, de-duplicated charge lines `--costs-ndjson` writes, committed to
+the repo so a run that cannot reach the raw exports still prices the page:
+
+```bash
+python3 refresh_marketplace_shipments.py --charges data/parcel_charges.ndjson.gz
+```
+
+`--charges` and `--costs` produce identical output — verified on 2026-09-02, both
+folding 39,742 charges onto 40,379 of 42,007 shipments at $10.58 a unit. That
+matters because the **scheduled refresh has no other cost source**: the FedEx and
+Stamps.com exports are files on a laptop, and without them the page falls back to
+the warehouse label charge alone, losing the invoice-over-label rule and the
+overbilling panel with it.
+
+The snapshot ages at whatever rate invoices are loaded. Refresh it alongside the
+weekly cost files and commit it:
+
+```bash
+python3 refresh_marketplace_shipments.py --days 30 \
+    --costs ~/Downloads/week-of-YYYY-MM-DD \
+    --costs-ndjson /tmp/charges.ndjson && gzip -c /tmp/charges.ndjson \
+    > data/parcel_charges.ndjson.gz
+```
+
+Between refreshes the newest shipments simply show no cost yet, which is the
+honest answer — a dash means no invoice has been matched, not free.
+
 **Cost per unit on this page is not the weekly report's CPU.** It is matched cost
 over the units on matched shipments only, and it excludes none of what that
 report deliberately excludes (TikTok sample sends, wholesale, LTL). Use it to
@@ -324,8 +352,31 @@ either). The page is one self-contained HTML file, ~5.6 MB at 180 days: 42k
 orders and 50k line items, dictionary-encoded (the ~4,200 distinct products are
 stored once and referenced by index) and painted 250 rows at a time.
 
-No schedule yet. If it earns one, the Yusen artifact's gated pattern is the model
-— fingerprint the rows, skip the republish when nothing changed.
+### The daily refresh
+
+A Routine rebuilds and republishes the portal every morning at **7:30 AM ET**
+(`30 11 * * *` UTC; the cron is evaluated in UTC, so it shifts an hour against
+the clock when daylight saving ends). Each firing starts a fresh cloud session
+that clones this repo, runs
+
+```bash
+python3 refresh_marketplace_shipments.py \
+    --out /tmp/marketplace_shipments.html \
+    --charges data/parcel_charges.ndjson.gz
+```
+
+and republishes to the artifact URL above with `url:` — never without it.
+
+Two things the schedule depends on, and both are worth checking if a morning run
+looks wrong. It needs the builder on the branch it clones, so once this work is
+on `main` the fallback checkout in the Routine's prompt stops mattering. And it
+needs `data/parcel_charges.ndjson.gz` to be current, per **Keeping it current**
+above — a stale snapshot does not produce wrong costs, it produces missing ones
+on recent shipments.
+
+Unlike the Yusen artifact this one is not gated on a row fingerprint: the 945
+feed lands new shipments every day, so a no-change morning is the exception
+rather than the rule and the check would rarely pay for itself.
 
 ## A note on what is on the page
 

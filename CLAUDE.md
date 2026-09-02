@@ -158,8 +158,13 @@ two placeholders, and confirm every `r.<field>` the template reads is emitted by
 **The Marketplace Shipments portal** is the second artifact — Target, Macy's,
 Michaels and Shopify orders, searchable by order number, customer name or
 tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
-Built by this repo's `refresh_marketplace_shipments.py` — no schedule, republish
-with `url:` like the Yusen one. **`finance.shipment_reconciliation` (the daily
+Built by this repo's `refresh_marketplace_shipments.py`, refreshed daily at
+7:30 AM ET by the `refresh-marketplace-shipments-daily` Routine — republish
+with `url:` like the Yusen one. That scheduled run cannot reach the FedEx and
+Stamps.com exports (they are laptop files), so it prices from
+`--charges data/parcel_charges.ndjson.gz`, a committed snapshot of the parsed
+charge lines; refresh that snapshot whenever new invoices are loaded or recent
+shipments quietly stop showing a cost. **`finance.shipment_reconciliation` (the daily
 EDI 945 feed from all four warehouses) is the spine**: ship date, carrier,
 tracking, packages and freight charge, keyed by order number, joined to the
 marketplace order feeds (`acenda` = Target, `macys`, `shipstation` = Michaels +

@@ -26,6 +26,7 @@ Usage:
 import argparse
 import csv
 import datetime as dt
+import gzip
 import json
 import os
 import re
@@ -520,28 +521,66 @@ def load_costs(paths):
             files.append(p)
     seen, costs, lines, repeats = set(), {}, [], 0
     for path in files:
-        n = 0
-        for tracking, amount, carrier, date, quoted in _cost_rows(path):
-            key = (tracking, date, amount)
-            if key in seen:
-                repeats += 1
-                continue
-            seen.add(key)
-            entry = costs.setdefault(tracking, {"cost": 0.0, "base": 0.0,
-                                                "adjustment": 0.0, "source": carrier})
-            entry["cost"] = round(entry["cost"] + amount, 2)
-            # Where the export states the quoted price, the difference is the
-            # carrier's later re-rate. Where it does not, the first charge on a
-            # tracking number is the base and anything after it is an adjustment.
-            base = quoted if quoted is not None else (amount if not entry["base"] else 0.0)
-            entry["base"] = round(entry["base"] + base, 2)
-            entry["adjustment"] = round(entry["cost"] - entry["base"], 2)
-            lines.append({"tracking": tracking, "amount": round(amount, 2),
-                          "carrier": carrier, "charge_date": iso_date(date),
-                          "charge_class": "base" if base else "adjustment",
-                          "quoted": round(quoted, 2) if quoted is not None else None})
-            n += 1
+        n, dupes = _fold_charges(_cost_rows(path), seen, costs, lines)
+        repeats += dupes
         print("  %-46s %6d charges" % (os.path.basename(path)[:46], n), file=sys.stderr)
+    if repeats:
+        print("  %6d repeated invoice lines ignored" % repeats, file=sys.stderr)
+    return costs, lines
+
+
+def _fold_charges(rows, seen, costs, lines):
+    """Fold (tracking, amount, carrier, date, quoted) charge rows into the shared
+    accumulators, applying both rules above. Returns (kept, repeats) so the
+    caller can report per file."""
+    kept = repeats = 0
+    for tracking, amount, carrier, date, quoted in rows:
+        key = (tracking, date, amount)
+        if key in seen:
+            repeats += 1
+            continue
+        seen.add(key)
+        entry = costs.setdefault(tracking, {"cost": 0.0, "base": 0.0,
+                                            "adjustment": 0.0, "source": carrier})
+        entry["cost"] = round(entry["cost"] + amount, 2)
+        # Where the export states the quoted price, the difference is the
+        # carrier's later re-rate. Where it does not, the first charge on a
+        # tracking number is the base and anything after it is an adjustment.
+        base = quoted if quoted is not None else (amount if not entry["base"] else 0.0)
+        entry["base"] = round(entry["base"] + base, 2)
+        entry["adjustment"] = round(entry["cost"] - entry["base"], 2)
+        lines.append({"tracking": tracking, "amount": round(amount, 2),
+                      "carrier": carrier, "charge_date": iso_date(date),
+                      "charge_class": "base" if base else "adjustment",
+                      "quoted": round(quoted, 2) if quoted is not None else None})
+        kept += 1
+    return kept, repeats
+
+
+def load_charges(path):
+    """Read charges already parsed out of the invoice exports, as written by
+    --costs-ndjson (plain or gzipped newline-delimited JSON).
+
+    The raw FedEx and Stamps.com exports are files on someone's laptop, so a
+    scheduled refresh cannot reach them. This snapshot travels with the repo
+    instead and gives the unattended run the same per-tracking costs a manual
+    --costs run produces. Refresh it by re-running with --costs and
+    --costs-ndjson whenever new invoices are loaded.
+    """
+    opener = gzip.open if path.lower().endswith(".gz") else open
+    def rows():
+        with opener(path, "rt", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                r = json.loads(line)
+                yield (norm_tracking(r["tracking"]), float(r["amount"]),
+                       r.get("carrier") or "Other", r.get("charge_date") or "",
+                       r.get("quoted"))
+    seen, costs, lines = set(), {}, []
+    kept, repeats = _fold_charges(rows(), seen, costs, lines)
+    print("  %-46s %6d charges" % (os.path.basename(path)[:46], kept), file=sys.stderr)
     if repeats:
         print("  %6d repeated invoice lines ignored" % repeats, file=sys.stderr)
     return costs, lines
@@ -1717,6 +1756,11 @@ def main():
                     help="the weekly shipping cost report's per-order roll-up "
                          "(all_orders_shipping_costs_*.md), joined by order number "
                          "to price orders that have no tracking number")
+    ap.add_argument("--charges", metavar="PATH",
+                    help="charges already parsed out of the invoice exports "
+                         "(the NDJSON --costs-ndjson writes, plain or .gz). "
+                         "Lets a scheduled run price shipments without the raw "
+                         "FedEx / Stamps files, which live on a laptop")
     ap.add_argument("--costs-ndjson", metavar="PATH",
                     help="write the parsed, de-duplicated charges as newline-delimited "
                          "JSON for loading into marketplaces.parcel_charges")
@@ -1751,6 +1795,9 @@ def main():
     if args.costs:
         print("Reading parcel charges:", file=sys.stderr)
         costs, charge_lines = load_costs(args.costs)
+    elif args.charges:
+        print("Reading parcel charges:", file=sys.stderr)
+        costs, charge_lines = load_charges(args.charges)
     if args.cost_table:
         for r in query(COST_TABLE_SQL % args.cost_table, token):
             costs[norm_tracking(r["tracking"])] = {"cost": float(r["cost"] or 0),
