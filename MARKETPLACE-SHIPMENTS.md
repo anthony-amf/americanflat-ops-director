@@ -354,6 +354,14 @@ stored once and referenced by index) and painted 250 rows at a time.
 
 ### The daily refresh
 
+**Disabled as of 2026-09-02.** Two manual test firings built the page correctly
+and then ended without republishing — the artifact's version id did not move
+either time, and no duplicate artifact was minted, so the publish call never
+landed. The build half is proven: the same command run by hand from a clean
+checkout produces the right page. What is unexplained is why a Routine-fired
+session does not publish; the suspicion is that such a session does not get the
+Artifact tool, but that was never confirmed. Re-enable once it is.
+
 A Routine rebuilds and republishes the portal every morning at **7:30 AM ET**
 (`30 11 * * *` UTC; the cron is evaluated in UTC, so it shifts an hour against
 the clock when daylight saving ends). Each firing starts a fresh cloud session

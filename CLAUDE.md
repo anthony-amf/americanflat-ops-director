@@ -158,9 +158,12 @@ two placeholders, and confirm every `r.<field>` the template reads is emitted by
 **The Marketplace Shipments portal** is the second artifact — Target, Macy's,
 Michaels and Shopify orders, searchable by order number, customer name or
 tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
-Built by this repo's `refresh_marketplace_shipments.py`, refreshed daily at
-7:30 AM ET by the `refresh-marketplace-shipments-daily` Routine
-(`trig_013WHohBn5FnzrVrMqf2C431`) — republish
+Built by this repo's `refresh_marketplace_shipments.py`. A daily 7:30 AM ET
+Routine exists (`refresh-marketplace-shipments-daily`,
+`trig_013WHohBn5FnzrVrMqf2C431`) but is **disabled** — two test firings on
+2026-09-02 built the page and then finished without republishing, artifact
+version unchanged both times, cause not yet found. Refresh by hand meanwhile;
+republish
 with `url:` like the Yusen one. That scheduled run cannot reach the FedEx and
 Stamps.com exports (they are laptop files), so it prices from
 `--charges data/parcel_charges.ndjson.gz`, a committed snapshot of the parsed
