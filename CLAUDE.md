@@ -159,7 +159,8 @@ two placeholders, and confirm every `r.<field>` the template reads is emitted by
 Michaels and Shopify orders, searchable by order number, customer name or
 tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
 Built by this repo's `refresh_marketplace_shipments.py`, refreshed daily at
-7:30 AM ET by the `refresh-marketplace-shipments-daily` Routine — republish
+7:30 AM ET by the `refresh-marketplace-shipments-daily` Routine
+(`trig_013WHohBn5FnzrVrMqf2C431`) — republish
 with `url:` like the Yusen one. That scheduled run cannot reach the FedEx and
 Stamps.com exports (they are laptop files), so it prices from
 `--charges data/parcel_charges.ndjson.gz`, a committed snapshot of the parsed
