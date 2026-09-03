@@ -155,6 +155,59 @@ the live artifact, extract from `<title>` to the last `</script>`, restore the
 two placeholders, and confirm every `r.<field>` the template reads is emitted by
 `normalize()`. Do this whenever the page design changes.
 
+**The Marketplace Shipments portal** is the second artifact — Target, Macy's,
+Michaels and Shopify orders, searchable by order number, customer name or
+tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
+Built by this repo's `refresh_marketplace_shipments.py`. A daily 7:30 AM ET
+Routine exists (`refresh-marketplace-shipments-daily`,
+`trig_013WHohBn5FnzrVrMqf2C431`) but is **disabled** — two test firings on
+2026-09-02 built the page and then finished without republishing, artifact
+version unchanged both times, cause not yet found. Refresh by hand meanwhile;
+republish
+with `url:` like the Yusen one. Stamps.com charges now live in BigQuery as
+`finance.stamps_shipping_costs` (2026-04-30 onward, no FedEx) — pass
+`--stamps-table`, which layers on top of rather than replacing
+`--charges data/parcel_charges.ndjson.gz`, the committed snapshot that still
+carries FedEx and the earlier Stamps history. **Every USPS tracking number in
+that table is Excel-escaped** (`="0004…"`) while UPS is bare, so a raw join
+matches 0% of USPS and prices ~$47k of spend at nothing; normalize both sides to
+letters and digits. **`finance.shipment_reconciliation` (the daily
+EDI 945 feed from all four warehouses) is the spine**: ship date, carrier,
+tracking, packages and freight charge, keyed by order number, joined to the
+marketplace order feeds (`acenda` = Target, `macys`, `shipstation` = Michaels +
+Shopify) which supply the customer and the line items. Two traps in that feed: a
+**zero freight charge means "not reported", not free** (the median USPS row is
+0.00 — `NULLIF(freightChargeShipment, 0)`, or thousands of shipments price at $0
+and every USPS invoice looks like overbilling), and the freight is stated once
+per shipment with sibling cartons left null, so collapse to the package before
+summing. Michaels order numbers need the `THP` prefix and `-N` suffix stripped
+to match; the others join as-is. Three facts it is built
+around: ShipStation's *shipment* feed stopped loading in Oct 2023, so
+Michaels/Shopify rows have no ship date or tracking, and so no shipping cost
+until `--3pl` recovers all three from the weekly warehouse shipped-order reports
+(keyed by order number; strip the `THP` prefix and `-N` suffix off a Michaels
+order to match); Target Plus redacts customer names ~45
+days after the order and the sync rewrites the rows in place, which is why
+`sql/marketplace_shipments_setup.sql` defines a durable ledger table whose MERGE
+never overwrites a captured fact with a blank; and **no order feed carries what
+shipping cost** (acenda's `cost` is 0.00 on every row), so `--costs` joins the
+FedEx/Stamps invoice exports by tracking number. Those stacked Drive sheets
+repeat the same invoice line across overlapping weekly exports — de-dupe on
+(tracking, date, amount) or CPU comes out ~3x high. The durable fix is
+`marketplaces.parcel_charges`, loaded weekly from the same files the shipping
+cost report downloads. The weekly report's own per-order roll-up
+(`all_orders_shipping_costs_*.md`) is a second cost source via `--order-costs`,
+joined by order number — that is the only thing that prices Michaels and Shopify,
+which have no tracking number to match on. Note the two carriers differ on lag: FedEx bills weeks
+behind, but **Stamps.com print history is same-day**, so an unpriced Stamps
+shipment means nobody loaded a current export. A second, thinner artifact for sharing upward &mdash; **Shipments Overview**
+(`https://claude.ai/code/artifact/920bcbe7-4d40-414c-b46b-e13c997864cd`) &mdash; comes
+off the same builder with `--audience exec`: no order value, no billed-over-label,
+no days-to-ship, no tracking or status column, and the filters and panels those
+fed removed with them. The withheld fields are blanked in `encode()`, so they are
+not in the file to be read out of source. Full detail:
+`MARKETPLACE-SHIPMENTS.md`.
+
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's
 `refresh_yusen_dashboard.py`. Other processes re-export it from a base template,
