@@ -1762,10 +1762,14 @@ function csvName() {
   const bits = ["marketplace-shipments"];
   if (fMkt.value) bits.push(fMkt.value.replace(/[^A-Za-z0-9]/g, ""));
   if (fWh.value) bits.push(fWh.value.replace(/[^A-Za-z0-9]/g, ""));
+  if (valOf(fState)) bits.push(valOf(fState));
   if (fMonth.value) bits.push(fMonth.value);
   if (fRs.value === "reship") bits.push("reships");
   if (fRs.value === "manual") bits.push("manual");
-  if (fAdj.value === "yes") bits.push("overbilled");
+  // valOf, not .value: the executive page removes this control, and reading
+  // .value off the missing node threw inside the export's own try — which the
+  // catch then reported to the user as "Export unavailable".
+  if (valOf(fAdj) === "yes") bits.push("overbilled");
   return bits.join("-") + ".csv";
 }
 
