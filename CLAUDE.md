@@ -164,11 +164,14 @@ Routine exists (`refresh-marketplace-shipments-daily`,
 2026-09-02 built the page and then finished without republishing, artifact
 version unchanged both times, cause not yet found. Refresh by hand meanwhile;
 republish
-with `url:` like the Yusen one. That scheduled run cannot reach the FedEx and
-Stamps.com exports (they are laptop files), so it prices from
-`--charges data/parcel_charges.ndjson.gz`, a committed snapshot of the parsed
-charge lines; refresh that snapshot whenever new invoices are loaded or recent
-shipments quietly stop showing a cost. **`finance.shipment_reconciliation` (the daily
+with `url:` like the Yusen one. Stamps.com charges now live in BigQuery as
+`finance.stamps_shipping_costs` (2026-04-30 onward, no FedEx) — pass
+`--stamps-table`, which layers on top of rather than replacing
+`--charges data/parcel_charges.ndjson.gz`, the committed snapshot that still
+carries FedEx and the earlier Stamps history. **Every USPS tracking number in
+that table is Excel-escaped** (`="0004…"`) while UPS is bare, so a raw join
+matches 0% of USPS and prices ~$47k of spend at nothing; normalize both sides to
+letters and digits. **`finance.shipment_reconciliation` (the daily
 EDI 945 feed from all four warehouses) is the spine**: ship date, carrier,
 tracking, packages and freight charge, keyed by order number, joined to the
 marketplace order feeds (`acenda` = Target, `macys`, `shipstation` = Michaels +

@@ -497,7 +497,7 @@ def _read_xlsx(path):
     return [dict(zip(header, r)) for r in rows]
 
 
-def load_costs(paths):
+def load_costs(paths, book=None):
     """(tracking -> {"cost", "source"}, list of the distinct charge lines).
 
     Two rules, and both matter:
@@ -519,7 +519,9 @@ def load_costs(paths):
                       if f.lower().endswith((".csv", ".xlsx", ".xls"))]
         else:
             files.append(p)
-    seen, costs, lines, repeats = set(), {}, [], 0
+    book = book or new_charge_book()
+    seen, costs, lines = book["seen"], book["costs"], book["lines"]
+    repeats = 0
     for path in files:
         n, dupes = _fold_charges(_cost_rows(path), seen, costs, lines)
         repeats += dupes
@@ -557,7 +559,53 @@ def _fold_charges(rows, seen, costs, lines):
     return kept, repeats
 
 
-def load_charges(path):
+def new_charge_book():
+    """The accumulators the two folding rules run against. Shared so several
+    sources can layer: BigQuery carries Stamps.com from 2026-04-30, the committed
+    snapshot carries FedEx and the Stamps history before that, and a line present
+    in both collapses on the (tracking, date, amount) rule rather than doubling."""
+    return {"seen": set(), "costs": {}, "lines": []}
+
+
+STAMPS_TABLE_SQL = r"""
+SELECT tracking_number,
+       CAST(ship_date AS STRING)              AS charge_date,
+       carrier,
+       amount_paid,
+       IFNULL(adjusted_amount, 0)             AS adjusted_amount
+FROM `%s`
+WHERE tracking_number IS NOT NULL AND tracking_number != ''
+"""
+
+
+def load_stamps_table(table, token, book):
+    """Stamps.com charges straight from BigQuery.
+
+    Two things this has to get right and a plain join does not:
+
+    Tracking is stored as the export wrote it, so every USPS number arrives
+    Excel-escaped (`="0004..."`) while UPS arrives bare. Joining on the raw
+    column matches 98% of UPS rows and 0% of USPS ones — 5,420 shipments and
+    $62k that would price at nothing. norm_tracking keeps letters and digits.
+
+    `amount_paid` is already final: a re-rated label reads quoted + adjusted =
+    paid, so the quoted figure is paid - adjusted, and adding the adjustment on
+    top would count it twice.
+    """
+    rows = ((norm_tracking(r["tracking_number"]),
+             float(r["amount_paid"] or 0),
+             norm_carrier(r["carrier"]) or "Other",
+             r["charge_date"] or "",
+             round(float(r["amount_paid"] or 0) - float(r["adjusted_amount"] or 0), 2))
+            for r in query(STAMPS_TABLE_SQL % table, token))
+    kept, repeats = _fold_charges(rows, book["seen"], book["costs"], book["lines"])
+    print("  %-46s %6d charges" % (table.split(".")[-1][:46], kept), file=sys.stderr)
+    if repeats:
+        print("  %6d already carried by another source" % repeats, file=sys.stderr)
+    return book
+
+
+def load_charges(path, book=None):
     """Read charges already parsed out of the invoice exports, as written by
     --costs-ndjson (plain or gzipped newline-delimited JSON).
 
@@ -578,8 +626,9 @@ def load_charges(path):
                 yield (norm_tracking(r["tracking"]), float(r["amount"]),
                        r.get("carrier") or "Other", r.get("charge_date") or "",
                        r.get("quoted"))
-    seen, costs, lines = set(), {}, []
-    kept, repeats = _fold_charges(rows(), seen, costs, lines)
+    book = book or new_charge_book()
+    costs, lines = book["costs"], book["lines"]
+    kept, repeats = _fold_charges(rows(), book["seen"], costs, lines)
     print("  %-46s %6d charges" % (os.path.basename(path)[:46], kept), file=sys.stderr)
     if repeats:
         print("  %6d repeated invoice lines ignored" % repeats, file=sys.stderr)
@@ -1853,6 +1902,12 @@ def main():
     ap.add_argument("--costs-ndjson", metavar="PATH",
                     help="write the parsed, de-duplicated charges as newline-delimited "
                          "JSON for loading into marketplaces.parcel_charges")
+    ap.add_argument("--stamps-table", metavar="TABLE",
+                    nargs="?", const="americanflat.finance.stamps_shipping_costs",
+                    help="Stamps.com charges from BigQuery, layered on top of "
+                         "--charges / --costs rather than replacing them (that "
+                         "table starts 2026-04-30 and holds no FedEx). Defaults "
+                         "to americanflat.finance.stamps_shipping_costs")
     ap.add_argument("--cost-table", metavar="TABLE",
                     help="BigQuery table of parcel charges (tracking, amount, carrier), "
                          "e.g. americanflat.marketplaces.parcel_charges")
@@ -1886,13 +1941,18 @@ def main():
         print("  tracking filled in on %d shipments the marketplace feed left blank"
               % filled, file=sys.stderr)
 
-    costs, charge_lines = {}, []
+    book = new_charge_book()
+    costs, charge_lines = book["costs"], book["lines"]
+    if args.costs or args.charges or args.stamps_table:
+        print("Reading parcel charges:", file=sys.stderr)
+    # BigQuery first, so its lines are the ones kept where a file repeats them:
+    # the table is the maintained source and the snapshot is the fallback.
+    if args.stamps_table:
+        load_stamps_table(args.stamps_table, token, book)
     if args.costs:
-        print("Reading parcel charges:", file=sys.stderr)
-        costs, charge_lines = load_costs(args.costs)
+        load_costs(args.costs, book)
     elif args.charges:
-        print("Reading parcel charges:", file=sys.stderr)
-        costs, charge_lines = load_charges(args.charges)
+        load_charges(args.charges, book)
     if args.cost_table:
         for r in query(COST_TABLE_SQL % args.cost_table, token):
             costs[norm_tracking(r["tracking"])] = {"cost": float(r["cost"] or 0),

@@ -247,7 +247,40 @@ bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect \
 After that, `--cost-table americanflat.marketplaces.parcel_charges` prices the
 portal straight from BigQuery with no files to hand it.
 
-Until that table exists, `data/parcel_charges.ndjson.gz` stands in for it. It is
+### Stamps.com in BigQuery
+
+`americanflat.finance.stamps_shipping_costs` landed 2026-09-02: 20,528 rows, one
+per tracking number, **2026-04-30 to 2026-08-31**, $239,109 paid of which $23,147
+is carrier adjustment. `--stamps-table` reads it.
+
+It is layered on top of the file sources, not a replacement, because it does not
+cover everything: **no FedEx at all**, and no Stamps before 2026-04-30, while the
+portal's window reaches back 180 days. BigQuery is folded first so its lines win
+where a file repeats them, and the (tracking, date, amount) rule collapses the
+overlap — on the 2026-09-02 build, 20,528 BigQuery lines plus 19,799 new file
+lines with 20,489 collapsing, for 39,779 distinct charges. The two agree to the
+cent on every row sampled, `adjusted_amount` included.
+
+**The USPS tracking trap is in the table.** Tracking is stored as the export
+wrote it, so all 5,420 USPS rows are Excel-escaped (`="0004010549…"`) and all
+15,108 UPS rows are bare. Measured against the 945 feed:
+
+| Carrier | Rows | Raw join | Normalized |
+|---|---|---|---|
+| UPS | 15,108 | 98.3% | 98.5% |
+| USPS | 5,420 | **0.0%** | 75.9% |
+
+A join on the raw column silently prices 4,114 USPS shipments — about $47,000 of
+spend — at nothing, and nothing in the data looks wrong while it happens. Anyone
+querying this table must normalize both sides to letters and digits:
+`REGEXP_REPLACE(UPPER(tracking_number), r'[^A-Z0-9]', '')`. Worth fixing at
+ingest so the next person does not have to know.
+
+`amount_paid` is already final. A re-rated label reads quoted + adjusted = paid,
+so the quoted figure is `amount_paid - adjusted_amount`; adding the adjustment on
+top double-counts it.
+
+For anything the table does not cover, `data/parcel_charges.ndjson.gz` stands in. It is
 the same parsed, de-duplicated charge lines `--costs-ndjson` writes, committed to
 the repo so a run that cannot reach the raw exports still prices the page:
 
