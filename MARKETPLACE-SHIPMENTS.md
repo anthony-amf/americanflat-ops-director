@@ -280,6 +280,31 @@ ingest so the next person does not have to know.
 so the quoted figure is `amount_paid - adjusted_amount`; adding the adjustment on
 top double-counts it.
 
+### Loading it weekly
+
+The plan is to upload the previous week's costs each week. `sql/stamps_weekly_load.sql`
+is the load, and the operative word in it is MERGE, not append. Two reasons, and
+each is enough on its own:
+
+- **The exports overlap.** A weekly export re-states shipments the last one
+  covered. Appending stacks the same charge two or three times &mdash; exactly what
+  the Drive sheets do, where 4,266 of the FedEx sheet's 7,963 rows are repeats
+  and summing them raw put Target's cost per unit at $35.92 against a real ~$13.
+  In a spreadsheet that is recoverable; in a table other people query, every
+  number downstream is quietly wrong and nothing looks broken.
+- **Stamps re-rates after the fact.** A label already loaded can pick up an
+  adjustment days later &mdash; that is the $23,147 sitting in the table now. A load
+  that skips tracking numbers it has seen keeps the original quote and loses the
+  re-rate, which is the audit signal.
+
+The invariant to check after every load is `COUNT(*) = COUNT(DISTINCT
+tracking_number)`. It holds today at 20,528. The day it stops holding, every
+total built on the table is inflated.
+
+Weekly loading also means **an unpriced Stamps shipment from the last few days is
+normal**, not a missing export. The page note says so; it used to say the
+opposite, back when the only source was a same-day print-history file.
+
 For anything the table does not cover, `data/parcel_charges.ndjson.gz` stands in. It is
 the same parsed, de-duplicated charge lines `--costs-ndjson` writes, committed to
 the repo so a run that cannot reach the raw exports still prices the page:

@@ -1742,8 +1742,8 @@ const costNote = KPI.cost_lo
   ? " <b>Ship cost</b> is the carrier's own invoice, matched by tracking number, and this build covers shipments from " +
     fmtDate(KPI.cost_lo) + " to " + fmtDate(KPI.cost_hi) + ". " +
     "FedEx bills weeks behind, so its recent shipments genuinely have no invoice yet. " +
-    "<b>Stamps.com print history is available the same day</b> &mdash; a Stamps shipment with no cost means its export " +
-    "has not been loaded into this build, not that the charge is pending."
+    "<b>Stamps.com is loaded weekly</b> &mdash; UPS and USPS shipments from the past few days will " +
+    "show no cost until the next load, which is normal. Older ones still blank are not."
   : " <b>Ship cost</b> is empty: no carrier invoices were loaded into this build.";
 document.getElementById("gapnote").innerHTML = (gaps.length
   ? "<b>Known gap:</b> most " + gaps.join(" and ") + " rows carry no ship date or tracking number. " +
