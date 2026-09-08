@@ -243,6 +243,16 @@ def main() -> int:
     if r.returncode != 0:
         fail("the rate-card merge refused — nothing further attempted")
 
+    # 7 — the MSA rates themselves (Anthony, 2026-09-08). Its own step and its own
+    # script: the merge above ADDS facts the card lacked, this OVERWRITES numbers it
+    # already had, and the two deserve to be read separately.
+    print("\n--- MSA rates ---")
+    cmd = [sys.executable, str(HERE / "align_card_to_msa.py"), str(card_p)]
+    r = subprocess.run(cmd + (["--write"] if write else []), capture_output=True, text=True)
+    print("\n".join("  " + l for l in (r.stdout or r.stderr).rstrip().split("\n")))
+    if r.returncode != 0:
+        fail("the MSA rate alignment refused — nothing further attempted")
+
     print("\n--- skill.toml / CHANGELOG.md / SKILL.md ---")
     if base == TARGET_VERSION:
         print(f"  already at {TARGET_VERSION}")

@@ -66,6 +66,42 @@ the New Jersey 5% labour tax appearing on receiving invoices as "NJ BILL OF RIGH
 SURCHARGE" — the same charge under different wording, which a match on "labor tax"
 misses.
 
+### The card now carries the MSA's rates
+
+Anthony's decision (2026-09-08): the MSA rates are the rates validation uses, even
+though the MSA is still the unsigned 7.15.2026 draft. Until now the card held the
+pre-MSA Notion numbers and the code worked around them.
+
+31 rates move. Almost every one by exactly -8.0%, the June 2026 cut; storage drops
+24-34%; the LTL pallet rises to the $10.00 AF-9 all-in while the separate
+stretchwrap line goes to zero, which is one restructure rather than two changes.
+
+| | card held | MSA |
+|---|---|---|
+| storage, New Jersey | $5.98 | **$4.34** |
+| storage, Fontana | $5.90 | **$4.47** |
+| storage, South Carolina | $5.09 | **$3.35** |
+| LTL pallet, all three sites | $5.87-$6.14 | **$10.00 all-in** |
+| LTL stretchwrap, all three sites | $4.69-$5.88 | **none — inside the pallet** |
+
+**No invoice changes verdict.** All 381 ledger rows were run through this release
+with each card: identical statuses, identical variances. Nothing reprices, nothing
+new is disputed, no `valid` stamp is lost. The validator reads only
+`storage.<site>` and `admin_vas.<site>` from the card, so the 27 LTL and
+small-parcel values are reference data that no code path executes yet — corrected
+so the card stops contradicting the contract, not to change a result.
+
+What does change is one piece of noise. A storage invoice validated with `--detail`
+carried "billed $4.34/pallet is BELOW the card's $5.98 — stale card, not a dispute"
+on every single pass. Billed now matches the card, so the note is gone — and a
+genuinely above-card storage rate becomes visible again instead of being lost
+among a caveat that fired on everything.
+
+Applied by `align_card_to_msa.py`, deliberately its own step: the additions above
+supply facts the card lacked, this overwrites numbers it already had, and the two
+should be reviewable separately.
+
+
 ### Effect on the ledger
 
 Nineteen invoices resolved. All eleven hourly VAS jobs now read `valid` ($15,984, none
