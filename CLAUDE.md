@@ -158,19 +158,38 @@ supporting-doc links in BigQuery — deliberately not backfilled, the generators
 rewrite them to `drive.google.com/file/d/<id>/view` at render time (any
 non-dashboard consumer of `supporting_doc_url` needs the same rewrite).
 
-**The cloud refresher's template is a SNAPSHOT and goes stale.** The gated
-refresher on branch `claude/website-auto-refresh-efficiency-9x474j`
-(`refresh_artifact_dashboard.py` + `dashboard_template.html`) renders from a
-copy of the published page with the `const DATA` / `const KPI` literals swapped
-for `/*DATA*/` / `/*KPI*/`. When the artifact's design changes anywhere else
-(e.g. the Mac generators adding the validation UI), that snapshot silently
-falls behind and republishing it **downgrades the live page**. Caught 2026-08-07:
+**What the Routines actually run is NOT in this repo.** Both firings clone
+`americanflat/Ops` and run `tools/yusen_dashboard_refresh.py run --published
+<the file the Artifact read saved>`; that tool carries its own page template and
+uses the published file only to recover the fingerprint (nothing in the cloud
+environment can store it — the BigQuery state write is denied and the Ops repo is
+read-only to the firing session). A session scoped to `anthony-amf` cannot reach
+`americanflat/Ops`, so **the template that actually publishes the page can only be
+edited from the Mac or an Ops-scoped session.** This repo's
+`refresh_artifact_dashboard.py` + `dashboard_template.html` are the earlier
+version of that same tool, kept here because they are editable from a cloud
+session and are the reference copy of the page's design.
+
+**Any such template is a SNAPSHOT and goes stale.** It is the published page with
+the `const DATA` / `const KPI` literals swapped for `/*DATA*/` / `/*KPI*/`, so when
+the page's design changes anywhere else, the snapshot silently falls behind and
+republishing it **downgrades the live page**. This has now happened twice. 2026-08-07:
 the snapshot predated the Validated column entirely, and its query projected 13
-columns with no validation fields — `normalize()` also whitelists fields, so
-both the SELECT *and* the whitelist need the new columns. Fix procedure: WebFetch
-the live artifact, extract from `<title>` to the last `</script>`, restore the
-two placeholders, and confirm every `r.<field>` the template reads is emitted by
-`normalize()`. Do this whenever the page design changes.
+columns with no validation fields — `normalize()` also whitelists fields, so both
+the SELECT *and* the whitelist need the new columns. 2026-09-03: a publish dropped
+the sticky column headers and the whole mark-paid basket, and the loss went
+unnoticed for six days because the gate reported NO_CHANGE and nobody diffed the
+page. Restored 2026-09-09 (the CSS recovered byte-for-byte from a saved diff; the
+basket's JS had to be rewritten).
+
+So the check is now mechanical, not a procedure to remember: pass
+`--published <live page>` to `refresh_artifact_dashboard.py` and it compares the
+template against the live page with both literals blanked. Any difference at all
+and it refuses, prints the diff and queries nothing. `--accept-template-drift`
+overrides it — that is how a deliberate design change ships. **The Ops copy has no
+such guard yet; adding one there is what actually protects the page.** Also still
+worth confirming by hand when the design changes: every `r.<field>` the template
+reads must be emitted by `normalize()`.
 
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's
