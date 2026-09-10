@@ -97,17 +97,40 @@ instead of the sequential script.
 The ledger has more than one writer, and they disagree. Before concluding anything
 about why a row reads the way it does, establish which one wrote it.
 
-**The live validator is a cloud Routine, not the Mac skill.**
-`yusen-nightly-validation-2am-mt` (`trig_01YG7tbcgDnpBRKkxo1KDHok` is the dashboard
-one — this is a separate trigger, enabled, `0 8 * * *`) fires daily and is a Claude
-session that reads two runbooks **from branch `main-07xt41` of this repo** and
-executes them: `docs/CLOUD-SWEEP-RUNBOOK.md` (phase 1, contract) then
-`docs/STEDI-NIGHTLY-RUNBOOK.md` (phase 2, shipping). The sweep runbook unzips the
-committed `yusen-invoice-validator.skill` into `/tmp/skill` and imports
-`validate_rate_card` from it. So **the deploy path for cloud validator behaviour is:
-edit the skill, repackage, commit the `.skill`, push to `main-07xt41`** — no Mac and
-no published skill repo involved. `yusen-cloud-validation-sweep-midday` covers the
-same ground but is DISABLED (last fired 2026-08-11); do not assume it runs.
+**The live validator is a cloud Routine, not the Mac skill.** Every one of these is
+a Claude session that reads a runbook **from branch `main-07xt41` of this repo** and
+executes it. The sweep runbook unzips the committed `yusen-invoice-validator.skill`
+into `/tmp/skill` and imports `validate_rate_card` from it, so **the deploy path for
+cloud validator behaviour is: edit the skill, repackage, commit the `.skill`, push
+to `main-07xt41`** — no Mac and no published skill repo involved.
+
+Real trigger IDs, read from `list_triggers` on 2026-09-10 (an earlier note here
+guessed one of these wrong — check, don't copy):
+
+| Routine | id | cron (UTC) | on? | does |
+|---|---|---|---|---|
+| `yusen-nightly-validation-2am-mt` | `trig_016vL18kChzAxpv7tfZjqzyS` | `0 8 * * *` | yes | phase 1 contract, then phase 2 Stedi |
+| `yusen-cloud-validation-sweep-midday` | `trig_01GQSfBrEkUVPJj6MqbkSn5D` | `0 17 * * *` | yes | contract only, no Stedi |
+| `yusen-stedi-nightly` | `trig_019Drs2eEgyRt9G3DPu8rwJS` | `0 6 * * *` | yes | Stedi only — **see the overlap note** |
+| `refresh-yusen-artifact-830am-330pm` | `trig_01YG7tbcgDnpBRKkxo1KDHok` | `30 12,19 * * 1-5` | yes | dashboard |
+| `refresh-yusen-artifact-noon-6pm` | `trig_01PrPh79KQSXtmK2fK9MBBVr` | `0 16,22 * * 1-5` | yes | dashboard |
+
+The **midday pass was re-enabled 2026-09-10** (Anthony) as a second chance the same
+day, now that phase 1 actually runs. Its schedule was `0 14,17 * * *` (two firings);
+cut to the single `0 17 * * *` = 11:00 MT, since one pass serves the purpose. It is
+**contract-only and must never call Stedi** — those lookups are metered and the
+nightly owns them. Its prompt was rewritten at the same time: the old one described
+itself as one of a three-a-day scheme that no longer exists, and enabling it on that
+text would have been worse than leaving it off.
+
+**Unresolved overlap — do not assume this is intentional.** `yusen-stedi-nightly`
+is enabled and runs `STEDI-NIGHTLY-RUNBOOK.md` at 06:00 UTC, which is the same
+runbook the nightly validation runs as its phase 2 at 08:00 UTC. Two problems: the
+Stedi lookups are metered, so duplicate work costs real money; and 06:00 is *before*
+phase 1, the reverse of the documented order (phase 1 first, so a row clearing both
+axes gets its valid stamp the same night). It also has no recorded run despite a
+daily cron since 2026-08-06. Left alone pending a decision — flagged to Anthony
+2026-09-10.
 
 **The cloud run owns the ledger** (Anthony, 2026-09-10). The Mac sweep
 `com.americanflat.yusen-validator-sweep` is to be `launchctl unload`ed — steps and
