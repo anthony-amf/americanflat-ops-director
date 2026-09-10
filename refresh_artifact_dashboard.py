@@ -21,12 +21,26 @@ Output contract (stdout, last line, machine-readable for the calling session):
 Exit status is 0 for both; a non-zero exit means the refresh genuinely failed
 and the artifact should be left alone.
 
-The page design is NOT generated here. `dashboard_template.html` is the exact
-published page with its `const DATA` / `const KPI` literals swapped for
-placeholders, so a refresh only ever changes data — never layout, colors, or
-the light/dark theming the artifact host relies on. Editing the design means
-editing that template; the row schema below must stay in sync with the fields
-the template's render() reads.
+The page design is NOT generated here. `dashboard_template.html` is the published
+page with its `const DATA` / `const KPI` literals swapped for placeholders, so a
+refresh only ever changes data — never layout, colors, or the light/dark theming
+the artifact host relies on. Editing the design means editing that template; the
+row schema below must stay in sync with the fields the template's render() reads.
+
+That makes the template a SNAPSHOT, and a snapshot goes stale: when the page's
+design changes anywhere else, republishing from an old snapshot silently deletes
+whatever the page gained in between. It has happened twice — the snapshot once
+predated the Validated column, and the page published on 2026-09-03 dropped the
+sticky column headers and the mark-paid basket, which then sat missing for six
+days because nothing checks.
+
+So pass `--published <file>` with the live page (the file the Artifact read tool
+saves) and the template is checked against it before anything is rendered: with
+both literals blanked out, the two must match byte for byte. They differ only if
+one side has features the other lacks, which is exactly the bug — so the refresh
+REFUSES and prints the diff rather than publishing a downgrade. `--accept-template-drift`
+overrides it, for the one legitimate case: the template is deliberately ahead
+because you are shipping a design change.
 
 BigQuery access works two ways so the same file runs anywhere:
   * REST against bigquery.googleapis.com — used in Claude Code cloud sessions,
@@ -39,6 +53,7 @@ Usage:
     python3 refresh_artifact_dashboard.py --force          # ignore fingerprint
     python3 refresh_artifact_dashboard.py --check-only     # report, write nothing
     python3 refresh_artifact_dashboard.py --out /tmp/d.html --state /tmp/s.json
+    python3 refresh_artifact_dashboard.py --published <live-page.html>   # guarded
 """
 import argparse
 import hashlib
@@ -262,6 +277,69 @@ def load_state(path: Path) -> dict:
 
 
 # --------------------------------------------------------------------------
+# Template drift guard
+# --------------------------------------------------------------------------
+
+# `const DATA = [...];` / `const KPI = {...};` — the only two things a refresh is
+# allowed to change. Non-greedy up to the first `];`/`};` that ends a line, which is
+# how both literals are written on one line each.
+_DATA_LIT = re.compile(r"const DATA\s*=\s*(?:/\*DATA\*/|\[.*?\])\s*;", re.S)
+_KPI_LIT = re.compile(r"const KPI\s*=\s*(?:/\*KPI\*/|\{.*?\})\s*;", re.S)
+
+
+def page_shell(html: str) -> str:
+    """The page with its two data literals blanked and the viewer's wrapper stripped.
+
+    Everything else — every byte of CSS, markup and script — is design, and design is
+    what must not move on a data refresh. The artifact viewer wraps the published page
+    in its own doctype/head/body, so keep only what was authored: `<title>` through the
+    last `</script>`.
+    """
+    i = html.find("<title>")
+    j = html.rfind("</script>")
+    if i > -1 and j > -1:
+        html = html[i:j + len("</script>")]
+    html = _DATA_LIT.sub("const DATA = /*DATA*/;", html, count=1)
+    html = _KPI_LIT.sub("const KPI = /*KPI*/;", html, count=1)
+    return html.strip()
+
+
+def check_template(template: str, published_path: Path) -> None:
+    """Refuse to render when the template is not the live page's design.
+
+    A difference in either direction is a real problem, so neither is waved through:
+    the template behind the page means publishing deletes features, and the template
+    ahead of the page means an unreviewed design change is about to ship. The caller
+    passes --accept-template-drift when the second one is the intent.
+    """
+    live = published_path.read_text(encoding="utf-8", errors="replace")
+    a, b = page_shell(live), page_shell(template)
+    if a == b:
+        print("  template matches the live page's design (data literals aside)")
+        return
+    import difflib
+    diff = list(difflib.unified_diff(
+        a.splitlines(), b.splitlines(),
+        fromfile="live page (published)", tofile="dashboard_template.html",
+        lineterm="", n=1,
+    ))
+    lost = sum(1 for d in diff if d.startswith("-") and not d.startswith("---"))
+    gained = sum(1 for d in diff if d.startswith("+") and not d.startswith("+++"))
+    print(f"\n  TEMPLATE DRIFT: {lost} line(s) on the live page are not in the template, "
+          f"{gained} line(s) in the template are not on the live page")
+    for line in diff[:80]:
+        print("   " + line)
+    if len(diff) > 80:
+        print(f"    … {len(diff) - 80} more diff line(s)")
+    raise SystemExit(
+        "\nERROR: refusing to render — publishing this template would change the page's\n"
+        "design, not just its data. Either bring the template up to the live page (see\n"
+        "the '-' lines above) or, if the design change is intended and reviewed, re-run\n"
+        "with --accept-template-drift."
+    )
+
+
+# --------------------------------------------------------------------------
 # Rendering
 # --------------------------------------------------------------------------
 
@@ -304,11 +382,26 @@ def main() -> None:
                     help="render even when the fingerprint is unchanged")
     ap.add_argument("--check-only", action="store_true",
                     help="report whether a republish is needed; write nothing")
+    ap.add_argument("--published",
+                    help="the live page (the file the Artifact read tool saves); the "
+                         "template is checked against its design before rendering")
+    ap.add_argument("--accept-template-drift", action="store_true",
+                    help="render even though the template's design differs from the "
+                         "live page — for shipping a reviewed design change")
     args = ap.parse_args()
 
     template_path = Path(args.template)
     if not template_path.exists():
         raise SystemExit(f"ERROR: template not found: {template_path}")
+
+    if args.published:
+        published = Path(args.published)
+        if not published.exists():
+            raise SystemExit(f"ERROR: --published file not found: {published}")
+        if args.accept_template_drift:
+            print("  --accept-template-drift: design check skipped")
+        else:
+            check_template(template_path.read_text(encoding="utf-8"), published)
 
     state_path = Path(args.state)
     previous = load_state(state_path)

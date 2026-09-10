@@ -115,7 +115,16 @@
   .bar-fill { height: 100%; border-radius: 5px; }
   .bar-row .amt { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
 
-  .yid-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+
+  /* Search + filters ride along at the top of the viewport, and the column headers
+     park directly under them (--toolbar-h is measured in JS, because the toolbar
+     wraps to two rows on a narrow window and a hardcoded offset would gap or overlap). */
+  .yid-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    position: sticky; top: 0; z-index: 4; background: var(--paper);
+    padding: 10px 0; margin-bottom: 2px; box-shadow: 0 1px 0 var(--line); }
+  /* On a phone the filters wrap to ~200px — freezing a quarter of the screen costs
+     more than it gives, so JS drops the pin when the bar gets tall for the viewport. */
+  .yid-toolbar.nostick { position: static; box-shadow: none; }
   .yid-toolbar input[type="search"], .yid-toolbar select {
     font: inherit; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px;
     background: var(--panel); color: var(--ink);
@@ -128,9 +137,18 @@
   .yid-count { color: var(--muted); font-size: 13px; margin-left: auto; font-variant-numeric: tabular-nums; }
 
   .yid-tablewrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); overflow-x: auto; }
+  /* A container with overflow-x:auto is a scroll container on BOTH axes, and a sticky
+     thead inside one sticks to *it*, not the page — which is why the headers never
+     froze. Once the window is wide enough that the table can't overflow, drop the
+     clipping so the headers stick to the viewport instead. Narrower than this the
+     table still needs its own horizontal scroll, so headers scroll away as before.
+     1320px, not 1100: the table's natural width is ~1205px + 42px of wrap chrome, so
+     at 1100 the uncliped table pushed the whole PAGE into horizontal scroll. The
+     extra ~75px is headroom for a longer warehouse name or a wider amount. */
+  @media (min-width: 1320px) { .yid-tablewrap { overflow-x: visible; } }
   .yid-table { border-collapse: collapse; width: 100%; min-width: 720px; }
   .yid-table thead th {
-    position: sticky; top: 0; background: var(--thead); z-index: 1;
+    position: sticky; top: var(--toolbar-h, 56px); background: var(--thead); z-index: 1;
     text-align: left; font-size: 11.5px; font-weight: 650; color: var(--muted);
     text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 10px;
     border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; white-space: nowrap;
@@ -173,6 +191,30 @@
   .dash { color: var(--dash); }
   .yid-foot { color: var(--muted); font-size: 12px; margin-top: 18px; text-align: center; }
   @media (prefers-reduced-motion: no-preference) { .bar-fill { transition: width 0.25s ease; } }
+
+  /* Mark-paid basket. The page can't write to BigQuery — a published artifact has no
+     capability that reaches it — so clicks accumulate here and leave as one command. */
+  .mpbtn { display: block; margin-top: 5px; font: inherit; font-size: 11px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; color: var(--muted); background: transparent;
+    border: 1px dashed var(--dash); border-radius: 7px; padding: 2px 8px; }
+  .mpbtn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); border-style: solid; }
+  .mpbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .mpbtn.on { color: var(--ok); border-color: var(--ok); border-style: solid;
+    background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  .mpbtn:disabled { cursor: not-allowed; opacity: .45; }
+  .mptray { position: sticky; bottom: 0; z-index: 3; margin-top: 14px;
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 12px 16px; box-shadow: 0 -2px 12px rgba(20, 30, 40, 0.10);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .mptray[hidden] { display: none; }
+  .mptray .mpsum { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mptray .mplist { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere; flex: 1; min-width: 160px; }
+  .mptray .mpwarn { color: var(--warn); font-size: 12px; font-weight: 600; }
+  .mptray .mpacts { display: flex; gap: 8px; margin-left: auto; }
+  .mplink { font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--muted);
+    background: none; border: 0; padding: 3px 4px; text-decoration: underline; }
+  .mplink:hover { color: var(--ink); }
 </style>
 
 <div class="yid-root"><div class="yid-wrap">
@@ -219,6 +261,17 @@
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
+  </div>
+
+  <!-- Mark-paid basket. Hidden until something is selected. -->
+  <div class="mptray" id="mptray" hidden>
+    <span class="mpsum" id="mpsum"></span>
+    <span class="mplist" id="mplist"></span>
+    <span class="mpwarn" id="mpwarn"></span>
+    <span class="mpacts">
+      <button class="mplink" type="button" id="mpcopy">Copy mark-paid command</button>
+      <button class="mplink" type="button" id="mpclear">Clear</button>
+    </span>
   </div>
 
   <footer class="yid-foot" id="foot"></footer>
@@ -301,6 +354,14 @@ uniq("warehouse").forEach(w => fWh.add(new Option(w, w)));
 uniq("currency").forEach(c => fCur.add(new Option(c, c)));
 [...new Set(DATA.map(r => (r.date || "").slice(0, 7)).filter(Boolean))].sort().reverse()
   .forEach(ym => fMonth.add(new Option(fmtMonth(ym), ym)));
+
+
+// ---- mark-paid basket ------------------------------------------------------
+// A published artifact has no capability that reaches BigQuery, so the page cannot
+// mark anything paid itself. Selections accumulate here and leave as one command,
+// which is also the right shape for the standing rule that paid_at is only ever
+// written on an explicit confirmation — a person still runs it and still confirms.
+const basket = new Set();
 
 let sortKey = "date", sortDir = -1;
 const q = document.getElementById("q");
@@ -397,7 +458,8 @@ function render() {
       <td><button class="valbtn" data-vd="${i}" aria-expanded="false" title="Click for the full validation report">${valChip(r)}<span class="vcaret">▸</span></button></td>
       <td>${r.paid
         ? `<span class="chip" title="Paid ${esc(r.paid_at)}${r.paid_marked_by ? " by " + esc(r.paid_marked_by) : ""}" style="background:color-mix(in srgb, var(--ok) 15%, transparent);color:var(--ok)">✓ Paid</span>`
-        : `<span class="chip" style="background:color-mix(in srgb, var(--warn) 15%, transparent);color:var(--warn)">Unpaid</span>`}</td>
+        : `<span class="chip" style="background:color-mix(in srgb, var(--warn) 15%, transparent);color:var(--warn)">Unpaid</span>`}${
+        r.paid ? "" : `<button class="mpbtn${basket.has(r.invoice_number) ? " on" : ""}" type="button" data-mp="${esc(r.invoice_number)}" aria-pressed="${basket.has(r.invoice_number)}">${basket.has(r.invoice_number) ? "\u2713 in basket" : "+ mark paid"}</button>`}</td>
       <td class="notes" title="${esc(r.notes)}">${esc(r.notes)}</td>
       <td>${pdf}</td>
       <td>${doc}</td>
@@ -555,8 +617,110 @@ document.getElementById("rows").addEventListener("click", e => {
   btn.setAttribute("aria-expanded", open ? "true" : "false");
 });
 
+// Toggling a row in or out of the basket. Delegated for the same reason the
+// report toggle is: render() replaces the whole tbody on any filter or sort.
+document.getElementById("rows").addEventListener("click", e => {
+  const mp = e.target.closest(".mpbtn");
+  if (!mp) return;
+  const inv = mp.dataset.mp;
+  if (basket.has(inv)) basket.delete(inv); else basket.add(inv);
+  const on = basket.has(inv);
+  mp.classList.toggle("on", on);
+  mp.setAttribute("aria-pressed", String(on));
+  mp.textContent = on ? "\u2713 in basket" : "+ mark paid";
+  drawTray();
+});
+
+// The command a person runs to actually write paid_at. One invoice per line, so a
+// line can be dropped before running it, and --mark-paid per invoice because that
+// is the flag that stores the report card alongside the stamp.
+function markPaidCommand(rows) {
+  return ["cd ~/.claude/skills/yusen-invoice-validator"].concat(
+    rows.map(r => `python3 scripts/validate_rate_card.py ${r.invoice_number} --mark-paid`)
+  ).join("\n");
+}
+
+function drawTray() {
+  const tray = document.getElementById("mptray");
+  const rows = DATA.filter(r => basket.has(r.invoice_number));
+  tray.toggleAttribute("hidden", rows.length === 0);
+  if (!rows.length) return;
+  // Per currency, never a single meaningless sum: the ledger bills USD and EUR.
+  const byCur = {};
+  for (const r of rows) byCur[r.currency] = (byCur[r.currency] || 0) + r.amount;
+  const totals = Object.entries(byCur).sort((a, b) => b[1] - a[1])
+    .map(([c, a]) => money(a, c)).join(" \u00b7 ");
+  document.getElementById("mpsum").textContent =
+    `${rows.length} selected \u00b7 ${totals}`;
+  document.getElementById("mplist").textContent =
+    rows.map(r => r.invoice_number).join(", ");
+  // Anything not stamped valid is not cleared for payment — disputed rows least of
+  // all. Say so here rather than letting the basket imply the selection is approved.
+  const notClear = rows.filter(r => r.validation_status !== "valid");
+  const disputed = notClear.filter(r => r.validation_status === "disputed").length;
+  document.getElementById("mpwarn").textContent = notClear.length
+    ? `\u26a0 ${notClear.length} not cleared for payment` +
+      (disputed ? ` (${disputed} disputed)` : "")
+    : "";
+}
+
+document.getElementById("mpclear").addEventListener("click", () => {
+  basket.clear();
+  drawTray();
+  render();
+});
+
+// Same clipboard story as copyReport: the sandboxed iframe often blocks
+// navigator.clipboard, so fall back to a throwaway textarea, and if even that is
+// refused put the command on screen so it can be copied by hand.
+document.getElementById("mpcopy").addEventListener("click", () => {
+  const btn = document.getElementById("mpcopy");
+  const text = markPaidCommand(DATA.filter(r => basket.has(r.invoice_number)));
+  const flash = label => {
+    btn.textContent = label;
+    setTimeout(() => { btn.textContent = "Copy mark-paid command"; }, 1800);
+  };
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) { flash("Copied \u2713"); return; }
+    document.getElementById("mplist").textContent = text;
+    flash("Shown \u2014 copy it by hand");
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => flash("Copied \u2713"), fallback);
+  } else {
+    fallback();
+  }
+});
+
+// The column headers park under the sticky toolbar, and the toolbar's height is not
+// knowable from CSS: it wraps to two or three rows as the window narrows. Measure it
+// and publish the number as --toolbar-h. When the bar grows past a quarter of the
+// viewport, freezing it costs more screen than it gives, so unpin it instead.
+const toolbar = document.querySelector(".yid-toolbar");
+function measureToolbar() {
+  toolbar.classList.remove("nostick");
+  const h = Math.round(toolbar.getBoundingClientRect().height);
+  const tall = h > window.innerHeight * 0.25;
+  toolbar.classList.toggle("nostick", tall);
+  document.documentElement.style.setProperty("--toolbar-h", (tall ? 0 : h) + "px");
+}
+measureToolbar();
+addEventListener("resize", measureToolbar);
+if (window.ResizeObserver) new ResizeObserver(measureToolbar).observe(toolbar);
+
 document.getElementById("foot").textContent =
   "Snapshot generated " + KPI.generated + " · source: americanflat.finance.yusen_invoices · ask Claude to redeploy for fresh data";
 
 render();
+drawTray();
 </script>
