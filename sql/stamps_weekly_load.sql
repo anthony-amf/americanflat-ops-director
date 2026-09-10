@@ -1,5 +1,12 @@
 -- Weekly load for americanflat.finance.stamps_shipping_costs
 --
+-- SUPERSEDED 2026-09-10. `americanflat/Ops` now owns loading this table, via
+-- tools/stamps_shipping_costs_load.py there, and that tool is the one to use:
+-- it orders overlapping exports by supersession rather than by filename, and it
+-- refuses to load at all while the target holds escaped tracking numbers —
+-- a guard this file lacked and needed. Kept here because the portal documents
+-- what the table means, and because the reasoning below still applies.
+--
 -- Written 2026-09-03 for the plan to upload the previous week's shipping costs
 -- each week. The table is currently clean — 20,528 rows, 20,528 distinct
 -- tracking numbers — and the point of this file is to keep it that way.
@@ -60,7 +67,13 @@ USING (
     ORDER BY amount_paid DESC
   ) = 1
 ) AS s
-ON t.tracking_number = s.tracking_number
+-- Normalize BOTH sides. The source is cleaned above, but joining that against a
+-- raw target silently fails wherever the target still holds an escaped value:
+-- no match, so the row inserts instead of updating and the shipment counts
+-- twice. That is exactly what happened on 2026-09-10 — a load pushed the table
+-- to 25,948 rows and $297,557.98 against a true 20,528 and $239,109.04, because
+-- 5,420 escaped USPS rows could not be matched.
+ON REGEXP_REPLACE(UPPER(t.tracking_number), r'[^A-Z0-9]', '') = s.tracking_number
 
 -- A charge that moved is a re-rate, not a duplicate: take the new figures.
 WHEN MATCHED AND (

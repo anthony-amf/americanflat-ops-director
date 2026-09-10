@@ -12,6 +12,12 @@ files, and this repo's portal has neither.
 
 That reports what it would load and changes nothing. Add --write to merge.
 
+Scope note (2026-09-10): `americanflat/Ops` owns loading the Stamps table via
+tools/stamps_shipping_costs_load.py, so this script skips Stamps files unless
+told otherwise. FedEx is what it is for — no other tool loads that. Two tools
+writing one table is how the Stamps table got to 25,948 rows and $297,557.98
+against a true 20,528 and $239,109.04.
+
 Two tables, two different grains, because the carriers bill differently:
 
   finance.stamps_shipping_costs   one row per shipment. Stamps states a final
@@ -205,6 +211,10 @@ def main():
     ap.add_argument("--dir", help="the week's staging folder")
     ap.add_argument("--stamps", nargs="*", default=[], help="Stamps print history export(s)")
     ap.add_argument("--fedex", nargs="*", default=[], help="FedEx invoice export(s)")
+    ap.add_argument("--stamps-anyway", action="store_true",
+                    help="load Stamps too. Off by default: americanflat/Ops owns "
+                         "that table now, and two tools writing one table is how "
+                         "it got double-counted once already")
     ap.add_argument("--write", action="store_true",
                     help="actually merge. Without it, report only and change nothing")
     args = ap.parse_args()
@@ -222,6 +232,14 @@ def main():
                 stamps.append(full)
             elif any(h in low for h in FEDEX_HINTS):
                 fedex.append(full)
+    if stamps and not args.stamps_anyway:
+        print("Skipping %d Stamps file(s): americanflat/Ops owns that table now.\n"
+              "  Load them with tools/stamps_shipping_costs_load.py in that repo —\n"
+              "  it orders overlapping exports properly and refuses to run while\n"
+              "  the target holds escaped tracking numbers. Pass --stamps-anyway to\n"
+              "  override, but do not run both tools against one table.\n"
+              % len(stamps))
+        stamps = []
     if not stamps and not fedex:
         sys.exit("nothing to load — pass --dir with the week's folder, or --stamps/--fedex")
 

@@ -168,7 +168,17 @@ with `url:` like the Yusen one. Stamps.com charges now live in BigQuery as
 `finance.stamps_shipping_costs` (2026-04-30 onward, no FedEx) — pass
 `--stamps-table`, which layers on top of rather than replacing
 `--charges data/parcel_charges.ndjson.gz`, the committed snapshot that still
-carries FedEx and the earlier Stamps history. **Every USPS tracking number in
+carries FedEx and the earlier Stamps history. **`americanflat/Ops` owns loading
+that table**, via `tools/stamps_shipping_costs_load.py` there — this repo's
+`scripts/load_shipping_costs_to_bq.py` skips Stamps and does FedEx only, because
+two tools merging one table is how it reached 25,948 rows and $297,557.98
+against a true 20,528 and $239,109.04 on 2026-09-10. Loading overlapping exports
+by shell glob is the other half of that: the last file wins and a glob sorts by
+the date range in the filename, not by export recency, so a wide backfill (the
+newest and most adjusted) gets overwritten by stale weekly ones — worth $3,464
+on the September files. Load the single widest export, not `PrintHistory_*.csv`.
+A cross-tier `add_repo` to `americanflat/Ops` is refused from a session sourced
+on this repo (confirmed 2026-09-10), so that work needs its own session. **Every USPS tracking number in
 that table is Excel-escaped** (`="0004…"`) while UPS is bare, so a raw join
 matches 0% of USPS and prices ~$47k of spend at nothing; normalize both sides to
 letters and digits. **`finance.shipment_reconciliation` (the daily
