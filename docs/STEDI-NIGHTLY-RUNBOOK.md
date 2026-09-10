@@ -8,9 +8,15 @@ Small Parcel / LTL invoices so they stop parking at `needs_detail`. Written
 
 *Phase order is load-bearing: this phase may only stamp an invoice `valid` when the
 contract check is already on the row, so the contract pass runs first and an invoice
-clearing both axes gets its stamp the same night. The old standalone
-`yusen-stedi-nightly` Routine (2:00 AM ET) is retained but disabled — its work is
-folded in here.*
+clearing both axes gets its stamp the same night.*
+
+*The old standalone `yusen-stedi-nightly` Routine (`trig_019Drs2eEgyRt9G3DPu8rwJS`)
+is disabled as of 2026-09-10 (Anthony) — its work is folded in here. This document
+had said "retained but disabled" since 2026-08-11, but the live Routine was in fact
+ENABLED and firing every morning at 06:00 UTC, two hours BEFORE phase 1: the
+shipping axis ahead of the contract axis, exactly backwards. It wrote nothing on any
+of those runs, almost certainly for the reason the next section now guards against.
+Check the live config, not this sentence.*
 
 ## What this does, in one line
 
@@ -56,6 +62,42 @@ count on, so the way to keep this cheap is to query as few orders as possible �
 which is exactly what the work-list filters, the unmatched-only retry and the
 on-disk cache are for. If a bulk or date-range lookup turns out to exist, adopting
 it is a straight improvement; nobody is waiting on permission to look.
+
+## Guard 0b: is the validator actually unzipped?
+
+Steps 3 and 4 run scripts from `/tmp/skill/yusen-invoice-validator/`, and **nothing
+in this runbook puts them there** — phase 1's step 2 does. That is an invisible
+dependency in two situations that both now matter:
+
+* the nightly prompt says to attempt this phase even if phase 1 failed, and if
+  phase 1 died at its own step 2 then `/tmp/skill` does not exist;
+* this runbook used to be run standalone by `yusen-stedi-nightly`, where there was
+  no phase 1 at all. That Routine fired every morning for a month and wrote
+  nothing — this is the most likely reason.
+
+So check, and unzip it yourself if it is missing. Safe either way: if phase 1
+already did it, the check passes and nothing is re-extracted.
+
+```bash
+if [ ! -f /tmp/skill/yusen-invoice-validator/scripts/validate_stedi.py ]; then
+  REPO="$(git rev-parse --show-toplevel 2>/dev/null || echo /home/user/americanflat-ops-director)" && \
+    cd "$REPO" && git fetch --quiet origin main-07xt41 && \
+    PKG="$(mktemp /tmp/yusen-validator-XXXXXX.skill)" && \
+    git show origin/main-07xt41:yusen-invoice-validator.skill > "$PKG" && \
+    unzip -qo "$PKG" -d /tmp/skill
+fi
+ls /tmp/skill/yusen-invoice-validator/scripts/validate_stedi.py && \
+  ls /tmp/skill/yusen-invoice-validator/scripts/parse_invoice_excel.py && \
+  echo STEDI_SCRIPTS_OK
+```
+
+If `STEDI_SCRIPTS_OK` does not print, **STOP** and report that — do not proceed to
+call Stedi, because you would spend metered lookups with nothing able to parse the
+worksheet that tells you which orders to look up.
+
+**No `~` anywhere.** In this container `$HOME` is `/root` while the repo is under
+`/home/user/`, so `cd ~/americanflat-ops-director` fails silently in a chain. That
+one line is what disabled phase 1 for a month.
 
 ## Guard 1: is the API key present?
 

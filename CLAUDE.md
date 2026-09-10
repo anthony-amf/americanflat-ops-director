@@ -111,7 +111,7 @@ guessed one of these wrong — check, don't copy):
 |---|---|---|---|---|
 | `yusen-nightly-validation-2am-mt` | `trig_016vL18kChzAxpv7tfZjqzyS` | `0 8 * * *` | yes | phase 1 contract, then phase 2 Stedi |
 | `yusen-cloud-validation-sweep-midday` | `trig_01GQSfBrEkUVPJj6MqbkSn5D` | `0 17 * * *` | yes | contract only, no Stedi |
-| `yusen-stedi-nightly` | `trig_019Drs2eEgyRt9G3DPu8rwJS` | `0 6 * * *` | yes | Stedi only — **see the overlap note** |
+| `yusen-stedi-nightly` | `trig_019Drs2eEgyRt9G3DPu8rwJS` | `0 6 * * *` | **no** — disabled 2026-09-10 | superseded by the nightly's phase 2 |
 | `refresh-yusen-artifact-830am-330pm` | `trig_01YG7tbcgDnpBRKkxo1KDHok` | `30 12,19 * * 1-5` | yes | dashboard |
 | `refresh-yusen-artifact-noon-6pm` | `trig_01PrPh79KQSXtmK2fK9MBBVr` | `0 16,22 * * 1-5` | yes | dashboard |
 
@@ -123,14 +123,22 @@ nightly owns them. Its prompt was rewritten at the same time: the old one descri
 itself as one of a three-a-day scheme that no longer exists, and enabling it on that
 text would have been worse than leaving it off.
 
-**Unresolved overlap — do not assume this is intentional.** `yusen-stedi-nightly`
-is enabled and runs `STEDI-NIGHTLY-RUNBOOK.md` at 06:00 UTC, which is the same
-runbook the nightly validation runs as its phase 2 at 08:00 UTC. Two problems: the
-Stedi lookups are metered, so duplicate work costs real money; and 06:00 is *before*
-phase 1, the reverse of the documented order (phase 1 first, so a row clearing both
-axes gets its valid stamp the same night). It also has no recorded run despite a
-daily cron since 2026-08-06. Left alone pending a decision — flagged to Anthony
-2026-09-10.
+**`yusen-stedi-nightly` is disabled** (Anthony, 2026-09-10). It ran the same
+`STEDI-NIGHTLY-RUNBOOK.md` that the nightly validation runs as its phase 2, but at
+06:00 UTC — two hours *before* phase 1, i.e. the shipping axis ahead of the contract
+axis, the reverse of the order that exists so a row clearing both gets stamped the
+same night. The Stedi runbook had claimed since 2026-08-11 that this Routine was
+"retained but disabled"; it was not, it was enabled and firing every morning
+(`last_fired_at` 2026-09-10T06:08). **The listing's `last_run` field was empty,
+which is not the same as never firing — check `last_fired_at`.**
+
+It wrote nothing on any of those runs, and the likely reason is now guarded: steps
+3 and 4 of that runbook execute scripts from `/tmp/skill/`, which **only phase 1's
+step 2 ever created**. Run standalone there was no phase 1, so the scripts were
+never there. A new "Guard 0b" in the Stedi runbook checks for them and unzips the
+package itself if missing — which also makes the nightly prompt's "if phase 1 fails,
+still attempt phase 2" actually possible, instead of a no-op. Tested from both a
+warm and an empty `/tmp`.
 
 **The cloud run owns the ledger** (Anthony, 2026-09-10). The Mac sweep
 `com.americanflat.yusen-validator-sweep` is to be `launchctl unload`ed — steps and
