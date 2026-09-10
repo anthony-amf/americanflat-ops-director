@@ -282,32 +282,28 @@ top double-counts it.
 
 ### Loading both from the weekly report
 
-`scripts/load_shipping_costs_to_bq.py` loads a week of staged invoices into both
-tables. It is meant to run as the last step of the
-`download-weekly-shipping-reports` skill, on the Mac:
+`americanflat/Ops` owns loading these tables, via
+`tools/stamps_shipping_costs_load.py` there. Run it as the last step of the
+`download-weekly-shipping-reports` skill, on the Mac, against the week's staged
+export — see `SKILL-STEP-weekly-bq-load.md`.
 
-```bash
-python3 scripts/load_shipping_costs_to_bq.py \
-    --dir "~/Documents/Claude/Projects/Weekly Shipping Reports/<week folder>"
-# reports and changes nothing. Add --write to merge.
-```
+This repo had its own loader, `scripts/load_shipping_costs_to_bq.py`. It is
+retired and sits in `quarantine/2026-09-10/` with the reasoning: two tools
+merging one table is how `stamps_shipping_costs` reached 25,948 rows and
+$297,557.98 against a true 20,528 and $239,109.04. One tool per table.
 
-That folder is where the skill already stages its five files under canonical
-names, so the script finds the Stamps and FedEx exports itself. It runs there
-rather than in a cloud session because that is the only place the raw exports,
-gcloud's write credentials and a known week window exist at once.
+Two rules that came out of that, both worth keeping wherever the loading
+happens:
 
-It reuses the portal builder's parsers — same layouts, same refund skip, same
-tracking normalization — so a fix lands in one place rather than two. It reads
-the MERGE statements out of the two SQL files rather than holding a second copy,
-substituting that run's staging table for `@@STAGE@@` between the EXECUTABLE
-markers. Each run stages into a fresh dated table that BigQuery expires after a
-week, so nothing is replaced or overwritten.
+- **Normalize both sides of the merge join.** Cleaning the incoming rows is not
+  enough. Compared against a raw target column, an escaped value fails to match,
+  inserts instead of updating, and counts the shipment twice.
+- **Load one wide export, never a glob.** Last-occurrence-wins plus alphabetical
+  ordering means a wide backfill gets overwritten by stale weekly files. $3,464
+  understated on the September set.
 
-Verified against the current exports on 2026-09-10: 20,489 Stamps shipments
-(39 refunded or header rows skipped), and 3,697 FedEx charge lines across 3,688
-shipments after collapsing 4,266 repeated export lines — the same figures
-reached independently from the files.
+This repo still *reads* both tables, through `--stamps-table` and
+`--fedex-table`. That side is unaffected.
 
 ### FedEx, the same way
 

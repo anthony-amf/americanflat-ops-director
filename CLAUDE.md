@@ -169,10 +169,10 @@ with `url:` like the Yusen one. Stamps.com charges now live in BigQuery as
 `--stamps-table`, which layers on top of rather than replacing
 `--charges data/parcel_charges.ndjson.gz`, the committed snapshot that still
 carries FedEx and the earlier Stamps history. **`americanflat/Ops` owns loading
-that table**, via `tools/stamps_shipping_costs_load.py` there — this repo's
-`scripts/load_shipping_costs_to_bq.py` skips Stamps and does FedEx only, because
-two tools merging one table is how it reached 25,948 rows and $297,557.98
-against a true 20,528 and $239,109.04 on 2026-09-10. Loading overlapping exports
+that table**, via `tools/stamps_shipping_costs_load.py` there. This repo only
+reads these tables; its own loader was retired 2026-09-10 into
+`quarantine/2026-09-10/`, because two tools merging one table is how it reached
+25,948 rows and $297,557.98 against a true 20,528 and $239,109.04. Loading overlapping exports
 by shell glob is the other half of that: the last file wins and a glob sorts by
 the date range in the filename, not by export recency, so a wide backfill (the
 newest and most adjusted) gets overwritten by stale weekly ones — worth $3,464

@@ -24,74 +24,55 @@ actually billed. Load them now, while they are on disk and the week window is
 known — nothing downstream can reach these files later.
 
 ```bash
-cd "$OPS_DIRECTOR_REPO" && python3 scripts/load_shipping_costs_to_bq.py \
-  --dir "$STAGING_FOLDER" --write
+cd "$OPS_REPO" && python3 tools/stamps_shipping_costs_load.py load \
+  "$STAGING_FOLDER"/Stamps_PrintHistory_*.csv
 ```
 
-Both variables have real values by this point in the run: `$STAGING_FOLDER` is
-the folder Step 3 created, and `$OPS_DIRECTOR_REPO` is the local clone of
-`americanflat-ops-director`. If either is unset, resolve them before running
-rather than substituting a guess:
+`$OPS_REPO` is the local clone of `americanflat/Ops`, which owns loading these
+tables. `$STAGING_FOLDER` is the folder Step 3 created. Use `prepare` instead of
+`load` to parse and report without writing anything — worth doing first on any
+week that looks unusual.
 
-```bash
-OPS_DIRECTOR_REPO=$(find ~ -maxdepth 5 -path '*/scripts/load_shipping_costs_to_bq.py' \
-  2>/dev/null | head -1 | xargs -I{} dirname {} | xargs -I{} dirname {})
-```
+Three things about that command:
 
-The `cd` is load-bearing: the script reads the two SQL files by relative path.
+- **Load one export, not a glob.** The last occurrence of a tracking number
+  wins, and a shell glob orders files by the date range in the filename rather
+  than by when they were exported — so a wide backfill, usually the newest and
+  most adjusted, sorts early and gets overwritten by stale weekly ones. On the
+  September files that was worth $3,464.17 understated. The staging folder holds
+  one Stamps export per week, so the glob above is safe; it is
+  `~/Downloads/PrintHistory_*.csv` that is not.
+- **If impersonating the invoice writer fails, add `--no-impersonate`.**
+  `anthony@americanflat.com` cannot impersonate
+  `invoice-writer@americanflat.iam.gserviceaccount.com` — it lacks the token
+  creator role and cannot grant it to itself. Writing directly as `anthony@`
+  works and is the normal path.
+- **Read what it prints.** It reports the table's row count, distinct label
+  count and total after merging, and says whether they agree. `rows == distinct
+  labels` is the check: if they diverge, something is double-counting and every
+  number built on that table is inflated. Say so in the Slack post and DM
+  Anthony rather than quietly continuing.
 
-The script finds `Stamps_PrintHistory_*.csv` and `FedEx_Invoice_*_most-recent.csv`
-itself and ignores everything else in the folder, including the three 3PL
-reports. Without `--write` it reports what it would do and changes nothing — worth doing
-first on any week that looks unusual.
-
-It writes to two tables, and they are deliberately shaped differently:
-
-- `finance.stamps_shipping_costs` — one row per shipment. Stamps states a final
-  figure per label (quoted + adjusted = paid).
-- `finance.fedex_shipping_costs` — one row per invoice **line**. FedEx bills a
-  shipment again on a later invoice when it re-rates, and both lines are money
-  we paid, so a shipment's cost is the sum of its lines.
-
-Both merge rather than append: the weekly exports re-state shipments the last
-one covered, so appending would stack the same charge two or three times. In the
-FedEx sheet 7,965 rows carry only 3,697 distinct charges.
-
-**Read the checks it prints before moving on.** Each merge is followed by a
-verification query:
-
-- Stamps: `rows_total` must equal `distinct_tracking`, and `still_escaped` must
-  be 0.
-- FedEx: `must_be_zero_duplicate_lines` and `must_be_zero_escaped` must both be
-  0. `lines_total` being greater than `shipments` is **correct** there — that gap
-  is the re-rates.
-
-If any of those is wrong, the table is double-counting and every number built on
-it is inflated. Say so in the Slack post and DM Anthony; do not quietly continue.
+**FedEx has no loader yet.** `finance.fedex_shipping_costs` does not exist and
+nothing loads it, so the week's FedEx export is not going anywhere. When a
+loader lands in that repo, call it here too — the FedEx table is one row per
+invoice line rather than per shipment, because FedEx re-bills a shipment on a
+later invoice and both lines are real money.
 
 **If the load fails, do not abandon the run.** The Excel report is the week's
-deliverable and it is already written. Note the failure, carry on to Step 6, and
-include it in the Slack message. Two failures worth recognising:
+deliverable and it is already written by this point. Note the failure, carry on
+to Step 6, and include it in the Slack message.
 
-- *Table not found: fedex_shipping_costs* — the table has not been created yet.
-  Run `sql/fedex_shipping_costs_setup.sql` from the ops-director repo once, then
-  re-run this step.
-- *Permission denied* — the load needs gcloud's write credentials, so it only
-  works on the Mac. A cloud session has read-only BigQuery and will always fail
-  here.
-
-Append a line to `run_summary.txt` with the row counts loaded per table.
+Append a line to `run_summary.txt` with what was loaded.
 ````
-
----
 
 ## Three edits elsewhere in the same file
 
 **1. `## What it does`** — add a fourth numbered item before the Slack one:
 
-> 4. Loads the Stamps and FedEx exports into BigQuery
->    (`finance.stamps_shipping_costs`, `finance.fedex_shipping_costs`) so the
->    marketplace shipment portals price from a table instead of a stale file.
+> 4. Loads the Stamps export into BigQuery (`finance.stamps_shipping_costs`, via
+>    `americanflat/Ops`) so the marketplace shipment portals price from a
+>    maintained table instead of a stale file. FedEx has no loader yet.
 
 **2. `## Output`** — nothing new lands in the folder, so only the note under the
 tree needs a sentence:
@@ -107,7 +88,7 @@ tree needs a sentence:
 Optionally, one line in the Step 6 Slack message so a silent load failure cannot
 hide:
 
-> `BigQuery: NNN Stamps · NNN FedEx rows loaded` — or
+> `BigQuery: NNN Stamps labels loaded` — or
 > `BigQuery: :warning: load failed, see run_summary.txt`
 
 ---

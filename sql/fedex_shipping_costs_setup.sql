@@ -63,10 +63,11 @@ OPTIONS(description="FedEx invoice lines, one row per line. A shipment's cost is
 -- 20260202, so PARSE_DATE rather than a cast.
 
 -- Step 3 — merge.
--- >>> EXECUTABLE: scripts/load_shipping_costs_to_bq.py runs everything
--- between these markers, substituting @@STAGE@@ for that run's staging
--- table. Statements are split on ';' — keep them semicolon-terminated
--- and keep anything not meant to run outside the markers. >>>
+-- >>> EXECUTABLE: the statements between these markers are the load.
+-- Substitute @@STAGE@@ for the staging table holding that run's export.
+-- (The markers were read by scripts/load_shipping_costs_to_bq.py, retired
+-- 2026-09-10; they are kept because they still delimit what is runnable
+-- from the reasoning around it.) >>>
 MERGE `americanflat.finance.fedex_shipping_costs` AS t
 USING (
   SELECT
