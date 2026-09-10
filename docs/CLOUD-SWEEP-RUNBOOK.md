@@ -6,9 +6,11 @@ is still in BigQuery's streaming buffer. Phase 2 is `STEDI-NIGHTLY-RUNBOOK.md`, 
 straight after this one in the same session. A fresh session follows this file top
 to bottom. Written 2026-08-06; owner anthony@americanflat.com.*
 
-*Replaces the former three-a-day schedule (10 AM / 1 PM / 5:30 PM ET). There is no
-second pass: whatever this run leaves unfinished waits a full day, so prefer
-finishing an invoice properly over finishing the list quickly.*
+*Also run on its own by `yusen-cloud-validation-sweep-midday` at 11:00 MT — a
+contract-only second pass, re-enabled 2026-09-10. So on the CONTRACT axis there is a
+second chance the same day. On the SHIPPING axis there is not: the midday pass never
+calls Stedi, so whatever phase 2 leaves unfinished waits a full day. Either way,
+prefer finishing an invoice properly over finishing the list quickly.*
 
 ## Guard first: probe write access
 
