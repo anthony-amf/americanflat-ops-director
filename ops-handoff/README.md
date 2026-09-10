@@ -1,5 +1,18 @@
 # Restoring the Yusen dashboard's design in `americanflat/Ops`
 
+> **Wrong target, corrected 2026-09-10.** The Ops repo carries no page design; its
+> `tools/yusen_dashboard_refresh.py` is a wrapper that clones
+> `anthony-amf/americanflat-ops-director` at branch
+> `claude/website-auto-refresh-efficiency-9x474j` and renders from **that branch's**
+> `dashboard_template.html`. So the fix belonged on that branch all along, and it
+> was pushed there as `ec709bb`. Nothing in this folder needs to be carried to Ops.
+>
+> `check_template.py` and `resnapshot_template.py` are still worth keeping — they
+> answer "does this template still match the live page?" and "cut me a fresh one
+> from the live page", which stays useful wherever the template lives. The step-by-step
+> procedure below does not apply.
+
+
 Everything here is meant to be run **from the Mac, or from a session that can
 reach `americanflat/Ops`**. A cloud session scoped to `anthony-amf` cannot, which
 is why this folder exists instead of a commit over there.

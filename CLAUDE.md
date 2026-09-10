@@ -244,17 +244,32 @@ supporting-doc links in BigQuery — deliberately not backfilled, the generators
 rewrite them to `drive.google.com/file/d/<id>/view` at render time (any
 non-dashboard consumer of `supporting_doc_url` needs the same rewrite).
 
-**What the Routines actually run is NOT in this repo.** Both firings clone
-`americanflat/Ops` and run `tools/yusen_dashboard_refresh.py run --published
-<the file the Artifact read saved>`; that tool carries its own page template and
-uses the published file only to recover the fingerprint (nothing in the cloud
-environment can store it — the BigQuery state write is denied and the Ops repo is
-read-only to the firing session). A session scoped to `anthony-amf` cannot reach
-`americanflat/Ops`, so **the template that actually publishes the page can only be
-edited from the Mac or an Ops-scoped session.** This repo's
-`refresh_artifact_dashboard.py` + `dashboard_template.html` are the earlier
-version of that same tool, kept here because they are editable from a cloud
-session and are the reference copy of the page's design.
+**The page design IS in this repo — on the refresh branch, not on `main-07xt41`**
+(read from the Ops source 2026-09-10; two earlier notes here got this wrong).
+The Routines clone `americanflat/Ops` and run
+`tools/yusen_dashboard_refresh.py run --published <the file the Artifact read saved>`,
+but that tool is only a **wrapper**. Its constants are:
+
+    SOURCE_REPO   = https://github.com/anthony-amf/americanflat-ops-director
+    SOURCE_BRANCH = claude/website-auto-refresh-efficiency-9x474j
+
+It clones this repo at that branch and runs **that branch's**
+`refresh_artifact_dashboard.py` (with `--force --state <tmp> --out <tmp>`, and no
+`--published`), then fingerprints the render against the live page to decide whether
+to republish. Ops carries no page design at all — `grep -r yid-toolbar` over it
+returns nothing.
+
+So: **to change the published dashboard, edit `dashboard_template.html` on branch
+`claude/website-auto-refresh-efficiency-9x474j`.** Editing it on `main-07xt41` does
+nothing — the restoration was committed there on 2026-09-09 and was never in the
+path; it reached the branch on 2026-09-10 (`ec709bb`). `americanflat/Ops` is also
+reachable and pushable from a cloud session as of 2026-09-10, so nothing here needs
+the Mac.
+
+`mac-handoff/` and `ops-handoff/` were both built on the wrong premise (that the
+template lived in Ops and needed a human to carry it across). They are kept because
+`check_template.py` and `resnapshot_template.py` are still useful tools, but the
+handover procedure in `ops-handoff/README.md` targets the wrong repository.
 
 **Any such template is a SNAPSHOT and goes stale.** It is the published page with
 the `const DATA` / `const KPI` literals swapped for `/*DATA*/` / `/*KPI*/`, so when
