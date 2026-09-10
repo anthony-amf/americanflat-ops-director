@@ -109,20 +109,39 @@ edit the skill, repackage, commit the `.skill`, push to `main-07xt41`** — no M
 no published skill repo involved. `yusen-cloud-validation-sweep-midday` covers the
 same ground but is DISABLED (last fired 2026-08-11); do not assume it runs.
 
-**The Mac launchd sweep is the other writer, and it is on old rates.** As of
-2026-09-10 every one of the 66 storage rows quoting a rate quotes the *legacy*
-pre-MSA figure ($5.90 Fontana / $5.98 NJ / $5.09 SC) — while the committed package's
-card holds the MSA rates ($4.47 / $4.34 / $3.35) and its code reads
-`rates["storage"][site]`. The packaged validator cannot produce those notes, so
-something else wrote them: `com.americanflat.yusen-validator-sweep` on v1.4.0 with
-the old Notion card, running several times a day. It writes last and wins. **Until
-that job is stopped or upgraded, cloud-side rate fixes are invisible on the
-dashboard.**
+**The cloud run owns the ledger** (Anthony, 2026-09-10). The Mac sweep
+`com.americanflat.yusen-validator-sweep` is to be `launchctl unload`ed — steps and
+rollback in `mac-handoff/hand-the-ledger-to-the-cloud.md`. It had been the only
+thing actually writing, on v1.4.0 with the pre-MSA Notion card, which is why every
+one of the 66 storage rows quoting a rate quoted the legacy figure ($5.90 Fontana /
+$5.98 NJ / $5.09 SC) while the committed package's card holds the MSA rates and its
+code reads `rates["storage"][site]`. The packaged validator cannot produce those
+notes; that is how you tell the two writers apart in the data.
 
-**"The Routine succeeded" does not mean it wrote anything.** The 2026-09-10 08:04
-run reported SUCCEEDED and stamped zero rows. Both runbooks are written to exit
+**Why the cloud run wrote nothing for a month, and the lesson.** Step 2 of the
+sweep runbook began `cd ~/americanflat-ops-director`. In the container `$HOME` is
+`/root` and the repo is under `/home/user/`, so the `cd` failed, `unzip` found no
+archive, `VALIDATOR_OK` never printed, and the runbook's own guard then stopped the
+sweep — correctly, on a false premise. Every night: SUCCEEDED, 82 seconds, zero
+rows, 56 invoices waiting. Fixed 2026-09-10; the runbook now derives the repo root
+from `git rev-parse --show-toplevel` and **forbids `~` outright**. Never use `~` in
+a runbook a cloud Routine executes.
+
+A second latent break of the same shape: step 4 calls `apply_vas_pallet_check` and
+`apply_vas_labor_check` (v1.6.0+) while the preflight admitted anything 1.4+, so a
+1.5.x package passed the gate and died mid-step-4. The preflight now greps for the
+functions it is about to call.
+
+**"The Routine succeeded" does not mean it wrote anything.** Both runbooks exit
 quietly when there is nothing to do, so a clean finish is not evidence of work.
-Check `MAX(validated_at)` before believing a run did something.
+Check `MAX(validated_at)` before believing a run did something — it is the only
+number that distinguishes a real sweep from a skipped one.
+
+**The cloud path is proven end to end** (2026-09-10, from a cloud session): the
+write probe succeeds, the whole ledger reads over REST, Drive returns invoice PDFs
+(they spill to a tool-results file — decode with a script, never read the base64
+into context), and 758665 went `needs_detail` -> `valid` on 3,528 pallets x $4.34 =
+$15,311.52, exact. No Mac involved.
 
 ## Data & environment facts that bite
 

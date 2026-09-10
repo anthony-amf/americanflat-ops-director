@@ -1,5 +1,13 @@
 # Point the Mac sweep at validator v1.6.0
 
+> **Superseded 2026-09-10 by `hand-the-ledger-to-the-cloud.md`.** Anthony decided the
+> cloud nightly run owns the ledger, so the Mac sweep is being stopped rather than
+> upgraded — an unloaded job does not need a new version. This file is kept because
+> it is the reference for what the LaunchAgent actually runs, and it is what you
+> want if the Mac sweep is ever brought back as a fallback: bring it back on v1.6.0,
+> not on 1.4.0.
+
+
 The LaunchAgent `com.americanflat.yusen-validator-sweep` runs:
 
 ```

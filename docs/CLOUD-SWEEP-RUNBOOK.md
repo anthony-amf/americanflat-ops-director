@@ -45,23 +45,49 @@ WHERE clause excludes them; never re-judge them.
 
 ## 2. Get the validator — MUST be v1.4.0 or newer, verify it
 
-v1.4.0 (on the default branch since 2026-08-06) is the first release with both
-halves: the stickiness rules (a disputed stamp, a paid-valid stamp, and any
-human-set stamp survive an automated re-sweep) **and** the PDF line-level pass.
-Unzip the committed package and check before doing anything:
+**v1.6.0 or newer.** v1.4.0 was the first release with both the stickiness rules
+(a disputed stamp, a paid-valid stamp, and any human-set stamp survive an automated
+re-sweep) and the PDF line-level pass. Step 4 additionally calls
+`apply_vas_pallet_check` and `apply_vas_labor_check`, which arrived in v1.6.0 — so
+1.4.x and 1.5.x now pass this gate and then die halfway through step 4, having
+written nothing. The check below therefore tests for the functions it is about to
+call, not just a version string.
+
+**Do not use `~` anywhere in this runbook.** In this container `$HOME` is `/root`
+while the repo is checked out under `/home/user/`, so `cd ~/americanflat-ops-director`
+fails. That one line is why the nightly run wrote nothing from the day this runbook
+was written until 2026-09-10: the `cd` failed, `unzip` found no archive,
+`VALIDATOR_OK` never printed, and the rule below then correctly stopped the sweep.
+Every night it reported success and skipped the entire job. Take the repo root from
+git instead, and take the package from the branch rather than the working tree so it
+always matches the runbook you are reading.
 
 ```bash
-cd ~/americanflat-ops-director && git fetch origin && git pull --ff-only 2>/dev/null; \
-  unzip -qo yusen-invoice-validator.skill -d /tmp/skill && \
-  grep -qE 'version = "1\.([4-9]|[1-9][0-9])' /tmp/skill/yusen-invoice-validator/skill.toml && \
-  grep -q 'apply_line_pass' /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py && \
-  grep -q 'AUTO_WRITER' /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py && \
+REPO="$(git rev-parse --show-toplevel 2>/dev/null || echo /home/user/americanflat-ops-director)" && \
+  cd "$REPO" && git fetch --quiet origin main-07xt41 && \
+  PKG="$(mktemp /tmp/yusen-validator-XXXXXX.skill)" && \
+  git show origin/main-07xt41:yusen-invoice-validator.skill > "$PKG" && \
+  unzip -qo "$PKG" -d /tmp/skill && \
+  grep -qE 'version = "1\.([6-9]|[1-9][0-9])' /tmp/skill/yusen-invoice-validator/skill.toml && \
+  for fn in apply_line_pass AUTO_WRITER apply_vas_pallet_check apply_vas_labor_check merge_report; do \
+    grep -q "$fn" /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py || \
+      { echo "MISSING: $fn"; exit 1; }; \
+  done && \
+  grep '^version' /tmp/skill/yusen-invoice-validator/skill.toml && \
   echo VALIDATOR_OK
 ```
 
-If `VALIDATOR_OK` does not print, **STOP**: report "validator v1.4.0+ not
-available — sweep skipped" and change nothing. Never fall back to an older
-script; the older ones lack either the line pass or the stamp protections.
+If `VALIDATOR_OK` does not print, **STOP**: report "validator v1.6.0+ not
+available — sweep skipped", quote the `MISSING:` line if there is one, and change
+nothing. Never fall back to an older script; the older ones lack the line pass, the
+stamp protections, or the VAS checks step 4 calls.
+
+**Then prove the unzip actually happened**, because a silent skip here is what the
+whole failure looked like:
+
+```bash
+ls -la /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py
+```
 
 ```bash
 pip install pypdf cryptography cffi 2>/dev/null   # container pypdf is broken without these
