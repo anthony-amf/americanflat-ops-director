@@ -8,6 +8,10 @@ existing "Notify on Slack" becomes Step 6.**
 
 Three small edits elsewhere are listed at the bottom.
 
+Commands here use shell variables rather than `<angle brackets>`: a
+bracketed placeholder inside a fenced block reads as runnable and gets
+pasted verbatim, which is exactly what happened to the first draft.
+
 ---
 
 ## The new step
@@ -20,14 +24,26 @@ actually billed. Load them now, while they are on disk and the week window is
 known — nothing downstream can reach these files later.
 
 ```bash
-python3 <ops-director repo>/scripts/load_shipping_costs_to_bq.py \
-  --dir "<staging folder>" --write
+cd "$OPS_DIRECTOR_REPO" && python3 scripts/load_shipping_costs_to_bq.py \
+  --dir "$STAGING_FOLDER" --write
 ```
+
+Both variables have real values by this point in the run: `$STAGING_FOLDER` is
+the folder Step 3 created, and `$OPS_DIRECTOR_REPO` is the local clone of
+`americanflat-ops-director`. If either is unset, resolve them before running
+rather than substituting a guess:
+
+```bash
+OPS_DIRECTOR_REPO=$(find ~ -maxdepth 5 -path '*/scripts/load_shipping_costs_to_bq.py' \
+  2>/dev/null | head -1 | xargs -I{} dirname {} | xargs -I{} dirname {})
+```
+
+The `cd` is load-bearing: the script reads the two SQL files by relative path.
 
 The script finds `Stamps_PrintHistory_*.csv` and `FedEx_Invoice_*_most-recent.csv`
 itself and ignores everything else in the folder, including the three 3PL
-reports. Without `--write` it reports what it would do and changes nothing —
-useful if a run looks wrong.
+reports. Without `--write` it reports what it would do and changes nothing — worth doing
+first on any week that looks unusual.
 
 It writes to two tables, and they are deliberately shaped differently:
 
