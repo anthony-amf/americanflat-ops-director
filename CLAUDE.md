@@ -29,7 +29,11 @@ The **canonical skill source is NOT in this repo**. It lives at
 `~/.claude/skills/yusen-invoice-validator/` (SKILL.md, scripts/, references/).
 This repo carries:
 
-- `yusen-invoice-validator.skill` — the packaged zip of that source (committed artifact)
+- `yusen-invoice-validator.skill` — the packaged zip, **now v1.6.0** and NOT a dead
+  artifact: the nightly cloud validator unzips this very file and imports it (see
+  Who actually validates, below). Changing validator behaviour in the cloud means
+  repackaging and committing this. The superseded 1.5.0 zip is kept beside the
+  release scripts in `skill-updates/v1.6.0/superseded/`.
 - Root-level `*.py` validators (`rate-card-validator.py`, `invoice-stedi-validator.py`,
   `invoice-validator-demo.py`, `scripts/parse_invoice_excel.py`) — **stale dev
   predecessors** of the skill scripts. Do not edit these expecting behavior to
@@ -87,6 +91,38 @@ extraction JSON for `validate_nl_invoice.py`) and confirming statuses don't
 regress. For Stedi sweeps over ~1,000 orders, use a concurrent checker
 (ThreadPoolExecutor ~10 workers against `core.us.stedi.com/2023-08-01/transactions`)
 instead of the sequential script.
+
+## Who actually validates (checked 2026-09-10, not inferred)
+
+The ledger has more than one writer, and they disagree. Before concluding anything
+about why a row reads the way it does, establish which one wrote it.
+
+**The live validator is a cloud Routine, not the Mac skill.**
+`yusen-nightly-validation-2am-mt` (`trig_01YG7tbcgDnpBRKkxo1KDHok` is the dashboard
+one — this is a separate trigger, enabled, `0 8 * * *`) fires daily and is a Claude
+session that reads two runbooks **from branch `main-07xt41` of this repo** and
+executes them: `docs/CLOUD-SWEEP-RUNBOOK.md` (phase 1, contract) then
+`docs/STEDI-NIGHTLY-RUNBOOK.md` (phase 2, shipping). The sweep runbook unzips the
+committed `yusen-invoice-validator.skill` into `/tmp/skill` and imports
+`validate_rate_card` from it. So **the deploy path for cloud validator behaviour is:
+edit the skill, repackage, commit the `.skill`, push to `main-07xt41`** — no Mac and
+no published skill repo involved. `yusen-cloud-validation-sweep-midday` covers the
+same ground but is DISABLED (last fired 2026-08-11); do not assume it runs.
+
+**The Mac launchd sweep is the other writer, and it is on old rates.** As of
+2026-09-10 every one of the 66 storage rows quoting a rate quotes the *legacy*
+pre-MSA figure ($5.90 Fontana / $5.98 NJ / $5.09 SC) — while the committed package's
+card holds the MSA rates ($4.47 / $4.34 / $3.35) and its code reads
+`rates["storage"][site]`. The packaged validator cannot produce those notes, so
+something else wrote them: `com.americanflat.yusen-validator-sweep` on v1.4.0 with
+the old Notion card, running several times a day. It writes last and wins. **Until
+that job is stopped or upgraded, cloud-side rate fixes are invisible on the
+dashboard.**
+
+**"The Routine succeeded" does not mean it wrote anything.** The 2026-09-10 08:04
+run reported SUCCEEDED and stamped zero rows. Both runbooks are written to exit
+quietly when there is nothing to do, so a clean finish is not evidence of work.
+Check `MAX(validated_at)` before believing a run did something.
 
 ## Data & environment facts that bite
 
@@ -235,10 +271,13 @@ plain string replace will double-insert.
 - **Decision queue:** local memory doesn't sync — read `OPEN-ITEMS.md` (kept as
   a mirror; update it when decisions land).
 - **Credentials:** `STEDI_API_KEY` must be provided as an environment secret.
-  **BigQuery via the cloud proxy is READ-ONLY** — `SELECT` against
-  `bigquery.googleapis.com` works with proxy-injected auth (curl the REST API
-  directly), but DML/ALTER return permission-denied. All writes (stamps,
-  backfills, `--init`) run from the Mac's gcloud ADC. Notion/Drive/Gmail/Slack
+  **BigQuery reads AND WRITES work from a cloud session** — `SELECT` and `UPDATE`
+  both go through `bigquery.googleapis.com` with proxy-injected auth (curl the REST
+  API directly). Verified 2026-09-09: thirteen `[STEDI]` stamps written from a cloud
+  session, and again 2026-09-10 reading the whole ledger. The older note here said
+  writes were denied and that all stamps had to run from the Mac's gcloud ADC; that
+  is wrong and it nearly stopped a cloud sweep being attempted at all. Table
+  creation (`tables.create`) is still not granted, so `--init` remains a Mac job. Notion/Drive/Gmail/Slack
   MCP connectors work in cloud; Chrome automation does not; there is **no `gh`
   CLI** — use the GitHub MCP tools.
 - **PDF tooling:** the container's `pypdf` is broken until
