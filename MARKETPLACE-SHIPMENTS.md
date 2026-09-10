@@ -473,13 +473,22 @@ stored once and referenced by index) and painted 250 rows at a time.
 
 ### The daily refresh
 
-**Disabled as of 2026-09-02.** Two manual test firings built the page correctly
-and then ended without republishing — the artifact's version id did not move
-either time, and no duplicate artifact was minted, so the publish call never
-landed. The build half is proven: the same command run by hand from a clean
-checkout produces the right page. What is unexplained is why a Routine-fired
-session does not publish; the suspicion is that such a session does not get the
-Artifact tool, but that was never confirmed. Re-enable once it is.
+**Re-enabled 2026-09-10, publishing still unproven.** Two manual test firings on
+2026-09-02 built the page correctly and then ended without republishing — the
+artifact's version id did not move either time, and no duplicate was minted, so
+the publish call never landed. The build half is proven; why a Routine-fired
+session does not publish was never established. The suspicion was that such a
+session lacks the Artifact tool, and that was never confirmed either.
+
+It is enabled anyway, because a run that builds and fails to publish costs
+nothing and the next real firing is the cheapest available test. Its prompt now
+asks the run to report exactly where publishing stopped and whether the tool was
+available at all — that answer is worth more than a clean summary.
+
+**How to tell whether a firing worked:** the artifact's version id, or the build
+stamp on the page itself. A Routine reporting success is not evidence — the run
+status only says the session finished without erroring, which both failed
+firings did.
 
 A Routine rebuilds and republishes the portal every morning at **7:30 AM ET**
 (`30 11 * * *` UTC; the cron is evaluated in UTC, so it shifts an hour against
@@ -494,12 +503,11 @@ python3 refresh_marketplace_shipments.py \
 
 and republishes to the artifact URL above with `url:` — never without it.
 
-Two things the schedule depends on, and both are worth checking if a morning run
-looks wrong. It needs the builder on the branch it clones, so once this work is
-on `main` the fallback checkout in the Routine's prompt stops mattering. And it
-needs `data/parcel_charges.ndjson.gz` to be current, per **Keeping it current**
-above — a stale snapshot does not produce wrong costs, it produces missing ones
-on recent shipments.
+The builder is on `main` as of the PR #4 merge, so the prompt no longer hunts for
+a feature branch. What the schedule still depends on is
+`data/parcel_charges.ndjson.gz` staying current enough to carry FedEx, per
+**Keeping it current** above — a stale snapshot does not produce wrong costs, it
+produces missing ones on recent shipments.
 
 Unlike the Yusen artifact this one is not gated on a row fingerprint: the 945
 feed lands new shipments every day, so a no-change morning is the exception

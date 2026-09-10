@@ -158,13 +158,18 @@ two placeholders, and confirm every `r.<field>` the template reads is emitted by
 **The Marketplace Shipments portal** is the second artifact — Target, Macy's,
 Michaels and Shopify orders, searchable by order number, customer name or
 tracking (`https://claude.ai/code/artifact/53c82d03-9788-4ac2-a2a3-ca5322ad458f`).
-Built by this repo's `refresh_marketplace_shipments.py`. A daily 7:30 AM ET
-Routine exists (`refresh-marketplace-shipments-daily`,
-`trig_013WHohBn5FnzrVrMqf2C431`) but is **disabled** — two test firings on
-2026-09-02 built the page and then finished without republishing, artifact
-version unchanged both times, cause not yet found. Refresh by hand meanwhile;
-republish
-with `url:` like the Yusen one. Stamps.com charges now live in BigQuery as
+Built by this repo's `refresh_marketplace_shipments.py`. A daily 7:30 AM ET Routine
+refreshes it (`refresh-marketplace-shipments-daily`,
+`trig_013WHohBn5FnzrVrMqf2C431`), **re-enabled 2026-09-10** after the builder
+landed on `main` — its prompt no longer hunts for a feature branch. It runs
+`--stamps-table --charges data/parcel_charges.ndjson.gz`; both are needed, since
+the table starts 2026-04-30 and holds no FedEx. **Its publishing is unproven:**
+two firings on 2026-09-02 built the page correctly and then ended without
+republishing, artifact version unchanged both times and no duplicate minted, and
+the cause was never found. Verify by whether the page's build stamp moves —
+`--dump-dom` the artifact and read `KPI.built`, or compare the version id in the
+filename `action:"read"` saves. If it is still not publishing, refresh by hand;
+republish with `url:` like the Yusen one, or a duplicate artifact gets minted. Stamps.com charges now live in BigQuery as
 `finance.stamps_shipping_costs` (2026-04-30 onward, no FedEx) — pass
 `--stamps-table`, which layers on top of rather than replacing
 `--charges data/parcel_charges.ndjson.gz`, the committed snapshot that still
