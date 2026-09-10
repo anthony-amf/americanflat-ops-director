@@ -63,6 +63,10 @@ OPTIONS(description="FedEx invoice lines, one row per line. A shipment's cost is
 -- 20260202, so PARSE_DATE rather than a cast.
 
 -- Step 3 — merge.
+-- >>> EXECUTABLE: scripts/load_shipping_costs_to_bq.py runs everything
+-- between these markers, substituting @@STAGE@@ for that run's staging
+-- table. Statements are split on ';' — keep them semicolon-terminated
+-- and keep anything not meant to run outside the markers. >>>
 MERGE `americanflat.finance.fedex_shipping_costs` AS t
 USING (
   SELECT
@@ -76,7 +80,7 @@ USING (
     Source_File                                           AS source_file,
     CURRENT_TIMESTAMP()                                   AS ingested_at,
     SESSION_USER()                                        AS ingested_by
-  FROM `americanflat.finance._stage_fedex_weekly`
+  FROM `@@STAGE@@`
   WHERE Tracking_Number IS NOT NULL
     AND CAST(Tracking_Number AS STRING) != ''
     AND Net_Charge IS NOT NULL
@@ -106,6 +110,8 @@ SELECT
   CAST(MAX(ship_date) AS STRING)                                  AS last_ship,
   CAST(MAX(invoice_date) AS STRING)                               AS last_invoice
 FROM `americanflat.finance.fedex_shipping_costs`;
+-- <<< END EXECUTABLE <<<
+
 
 -- What a consumer should join to. Per-shipment, with the re-rate split out —
 -- the same shape the portal builds in memory today.

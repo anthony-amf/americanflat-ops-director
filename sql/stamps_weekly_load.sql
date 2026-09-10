@@ -30,6 +30,10 @@
 --     americanflat:finance._stage_stamps_weekly ~/Downloads/PrintHistory_*.csv
 
 -- Step 2 — merge it in.
+-- >>> EXECUTABLE: scripts/load_shipping_costs_to_bq.py runs everything
+-- between these markers, substituting @@STAGE@@ for that run's staging
+-- table. Statements are split on ';' — keep them semicolon-terminated
+-- and keep anything not meant to run outside the markers. >>>
 MERGE `americanflat.finance.stamps_shipping_costs` AS t
 USING (
   SELECT
@@ -46,7 +50,7 @@ USING (
     amount_paid, adjusted_amount,
     order_id, reference_1, cost_code, to_name, to_zip,
     source_file, CURRENT_TIMESTAMP() AS ingested_at, SESSION_USER() AS ingested_by
-  FROM `americanflat.finance._stage_stamps_weekly`
+  FROM `@@STAGE@@`
   WHERE tracking_number IS NOT NULL
     AND CAST(tracking_number AS STRING) != ''
   -- One row per tracking number even within a single export, keeping the row
@@ -82,6 +86,8 @@ SELECT COUNT(*) AS rows_total,
        MIN(ship_date) AS first_ship,
        MAX(ship_date) AS last_ship
 FROM `americanflat.finance.stamps_shipping_costs`;
+-- <<< END EXECUTABLE <<<
+
 
 -- One backfill, once, to strip the escaping from the 5,420 USPS rows already
 -- loaded. Safe to re-run; it is a no-op after the first time.

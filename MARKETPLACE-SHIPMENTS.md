@@ -280,6 +280,35 @@ ingest so the next person does not have to know.
 so the quoted figure is `amount_paid - adjusted_amount`; adding the adjustment on
 top double-counts it.
 
+### Loading both from the weekly report
+
+`scripts/load_shipping_costs_to_bq.py` loads a week of staged invoices into both
+tables. It is meant to run as the last step of the
+`download-weekly-shipping-reports` skill, on the Mac:
+
+```bash
+python3 scripts/load_shipping_costs_to_bq.py \
+    --dir "~/Documents/Claude/Projects/Weekly Shipping Reports/<week folder>"
+# reports and changes nothing. Add --write to merge.
+```
+
+That folder is where the skill already stages its five files under canonical
+names, so the script finds the Stamps and FedEx exports itself. It runs there
+rather than in a cloud session because that is the only place the raw exports,
+gcloud's write credentials and a known week window exist at once.
+
+It reuses the portal builder's parsers — same layouts, same refund skip, same
+tracking normalization — so a fix lands in one place rather than two. It reads
+the MERGE statements out of the two SQL files rather than holding a second copy,
+substituting that run's staging table for `@@STAGE@@` between the EXECUTABLE
+markers. Each run stages into a fresh dated table that BigQuery expires after a
+week, so nothing is replaced or overwritten.
+
+Verified against the current exports on 2026-09-10: 20,489 Stamps shipments
+(39 refunded or header rows skipped), and 3,697 FedEx charge lines across 3,688
+shipments after collapsing 4,266 repeated export lines — the same figures
+reached independently from the files.
+
 ### FedEx, the same way
 
 `sql/fedex_shipping_costs_setup.sql` creates
