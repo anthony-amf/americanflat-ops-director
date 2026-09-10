@@ -280,6 +280,42 @@ ingest so the next person does not have to know.
 so the quoted figure is `amount_paid - adjusted_amount`; adding the adjustment on
 top double-counts it.
 
+### FedEx, the same way
+
+`sql/fedex_shipping_costs_setup.sql` creates
+`americanflat.finance.fedex_shipping_costs` and loads it weekly.
+`--fedex-table` reads it. **The table does not exist yet** &mdash; creating one needs
+`bigquery.tables.create`, which a cloud session does not have, so this file is a
+spec to run from the Mac.
+
+It is not a copy of the Stamps table, and the difference is the point.
+
+| | Stamps | FedEx |
+|---|---|---|
+| Grain | one row per shipment | one row per **invoice line** |
+| Merge key | tracking | (tracking, invoice date, amount) |
+| A shipment's cost | `amount_paid` | `SUM(net_charge)` |
+| Invariant | rows = distinct tracking | rows **&gt;** distinct tracking is correct |
+
+Stamps states a final figure per label. FedEx bills a shipment and then bills it
+again on a later invoice when it re-rates one, and both lines are money we paid:
+tracking 476147675207 carries $26.67 on the 2026-02-02 invoice and $13.09 on the
+2026-02-16 one, and that shipment cost $39.76.
+
+Keying FedEx on tracking alone would drop the later line. Measured on the current
+export that is 9 of 3,688 shipments and $151.33 of $100,883.90 &mdash; 0.2%, small.
+The correct key is worth it anyway because it costs nothing and the wrong one
+fails without a symptom.
+
+What does still need de-duplicating is the export overlap, and it is heavy: 7,965
+rows in the sheet hold only 3,697 distinct charges. The three-part key separates
+a repeated export line from a genuine re-rate without having to judge which is
+which. Two of those 7,965 rows are stray header rows from stacked exports, so the
+load has to tolerate a non-numeric amount rather than fail on it.
+
+FedEx tracking numbers arrive clean &mdash; no Excel escaping in any of the 7,965
+rows, unlike every USPS row in the Stamps export.
+
 ### Loading it weekly
 
 The plan is to upload the previous week's costs each week. `sql/stamps_weekly_load.sql`

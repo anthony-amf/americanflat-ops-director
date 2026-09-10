@@ -605,6 +605,43 @@ def load_stamps_table(table, token, book):
     return book
 
 
+FEDEX_TABLE_SQL = r"""
+SELECT tracking_number,
+       CAST(invoice_date AS STRING) AS charge_date,
+       net_charge
+FROM `%s`
+WHERE tracking_number IS NOT NULL AND tracking_number != ''
+  AND net_charge IS NOT NULL
+"""
+
+
+def load_fedex_table(table, token, book):
+    """FedEx invoice lines from BigQuery.
+
+    One row per invoice LINE, not per shipment, which is the opposite of the
+    Stamps table and deliberate: FedEx bills a shipment again on a later invoice
+    when it re-rates one, and what we paid is the sum of those lines. The folding
+    rules already handle exactly this — sum per tracking number, count a line
+    once per (tracking, date, amount) — so the table's grain and the page's
+    arithmetic agree without special-casing.
+
+    No quoted figure is passed: FedEx does not state one, so the first charge on
+    a tracking number stands as the base and anything after it reads as the
+    carrier's re-rate, which is what a later invoice is.
+    """
+    rows = ((norm_tracking(r["tracking_number"]),
+             float(r["net_charge"] or 0),
+             "FedEx",
+             r["charge_date"] or "",
+             None)
+            for r in query(FEDEX_TABLE_SQL % table, token))
+    kept, repeats = _fold_charges(rows, book["seen"], book["costs"], book["lines"])
+    print("  %-46s %6d charges" % (table.split(".")[-1][:46], kept), file=sys.stderr)
+    if repeats:
+        print("  %6d already carried by another source" % repeats, file=sys.stderr)
+    return book
+
+
 def load_charges(path, book=None):
     """Read charges already parsed out of the invoice exports, as written by
     --costs-ndjson (plain or gzipped newline-delimited JSON).
@@ -1908,6 +1945,12 @@ def main():
                          "--charges / --costs rather than replacing them (that "
                          "table starts 2026-04-30 and holds no FedEx). Defaults "
                          "to americanflat.finance.stamps_shipping_costs")
+    ap.add_argument("--fedex-table", metavar="TABLE",
+                    nargs="?", const="americanflat.finance.fedex_shipping_costs",
+                    help="FedEx invoice lines from BigQuery, layered like "
+                         "--stamps-table. Does not exist yet; "
+                         "sql/fedex_shipping_costs_setup.sql creates it. "
+                         "Defaults to americanflat.finance.fedex_shipping_costs")
     ap.add_argument("--cost-table", metavar="TABLE",
                     help="BigQuery table of parcel charges (tracking, amount, carrier), "
                          "e.g. americanflat.marketplaces.parcel_charges")
@@ -1943,12 +1986,14 @@ def main():
 
     book = new_charge_book()
     costs, charge_lines = book["costs"], book["lines"]
-    if args.costs or args.charges or args.stamps_table:
+    if args.costs or args.charges or args.stamps_table or args.fedex_table:
         print("Reading parcel charges:", file=sys.stderr)
     # BigQuery first, so its lines are the ones kept where a file repeats them:
-    # the table is the maintained source and the snapshot is the fallback.
+    # the tables are the maintained sources and the snapshot is the fallback.
     if args.stamps_table:
         load_stamps_table(args.stamps_table, token, book)
+    if args.fedex_table:
+        load_fedex_table(args.fedex_table, token, book)
     if args.costs:
         load_costs(args.costs, book)
     elif args.charges:
