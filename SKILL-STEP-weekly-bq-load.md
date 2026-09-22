@@ -2,11 +2,12 @@
 
 Paste-ready text for the skill's canonical source on the Mac
 (`~/.claude/skills/download-weekly-shipping-reports/SKILL.md`), then repackage
-per the change workflow in CLAUDE.md. Written 2026-09-10 from the synced copy of
-that skill, so it matches its current numbering: **it inserts as Step 5 and the
-existing "Notify on Slack" becomes Step 6.**
+per the change workflow in CLAUDE.md. Written 2026-09-10 and re-checked against the
+synced copy on 2026-09-16 — the skill is unchanged, so the numbering still
+holds: **it inserts as Step 5 and the existing "Notify on Slack" becomes
+Step 6.**
 
-Three small edits elsewhere are listed at the bottom.
+Four small edits elsewhere are listed at the bottom.
 
 Commands here use shell variables rather than `<angle brackets>`: a
 bracketed placeholder inside a fenced block reads as runnable and gets
@@ -24,14 +25,22 @@ actually billed. Load them now, while they are on disk and the week window is
 known — nothing downstream can reach these files later.
 
 ```bash
+STAGING_FOLDER="$HOME/Documents/Claude/Projects/Weekly Shipping Reports/{prev_monday}_to_{this_monday}"
+OPS_REPO="$HOME/path/to/Ops"
+
 cd "$OPS_REPO" && python3 tools/stamps_shipping_costs_load.py load \
   "$STAGING_FOLDER"/Stamps_PrintHistory_*.csv
 ```
 
-`$OPS_REPO` is the local clone of `americanflat/Ops`, which owns loading these
-tables. `$STAGING_FOLDER` is the folder Step 3 created. Use `prepare` instead of
-`load` to parse and report without writing anything — worth doing first on any
-week that looks unusual.
+Set both before running: `$STAGING_FOLDER` is the dated folder Step 3 created
+(the path shape is in `## Output`), and `$OPS_REPO` is the local clone of
+`americanflat/Ops`, which owns loading these tables. The rest of this skill
+writes paths as `<staging folder>`; this step uses a variable instead because a
+bracketed placeholder inside a fenced block reads as runnable and gets pasted
+verbatim.
+
+Use `prepare` instead of `load` to parse and report without writing anything —
+worth doing first on any week that looks unusual.
 
 Three things about that command:
 
@@ -53,11 +62,12 @@ Three things about that command:
   number built on that table is inflated. Say so in the Slack post and DM
   Anthony rather than quietly continuing.
 
-**FedEx has no loader yet.** `finance.fedex_shipping_costs` does not exist and
-nothing loads it, so the week's FedEx export is not going anywhere. When a
-loader lands in that repo, call it here too — the FedEx table is one row per
-invoice line rather than per shipment, because FedEx re-bills a shipment on a
-later invoice and both lines are real money.
+**FedEx has no loader yet** (still true as of 2026-09-16).
+`finance.fedex_shipping_costs` does not exist and nothing loads it, so the
+week's FedEx export is not going anywhere. When a loader lands in that repo,
+call it here too — the FedEx table is one row per invoice line rather than per
+shipment, because FedEx re-bills a shipment on a later invoice and both lines
+are real money.
 
 **If the load fails, do not abandon the run.** The Excel report is the week's
 deliverable and it is already written by this point. Note the failure, carry on
@@ -66,9 +76,10 @@ to Step 6, and include it in the Slack message.
 Append a line to `run_summary.txt` with what was loaded.
 ````
 
-## Three edits elsewhere in the same file
+## Four edits elsewhere in the same file
 
-**1. `## What it does`** — add a fourth numbered item before the Slack one:
+**1. `## What it does`** — insert a new item 4 before the Slack one, which
+becomes item 5:
 
 > 4. Loads the Stamps export into BigQuery (`finance.stamps_shipping_costs`, via
 >    `americanflat/Ops`) so the marketplace shipment portals price from a
@@ -84,6 +95,16 @@ tree needs a sentence:
 
 > The scheduled run does the full chain: download → stage → cost report →
 > **BigQuery load** → Slack notify.
+
+**4. `## Requirements`** — the load needs two things the list does not yet
+mention. Add them after the `shipping-cost-report` bullet:
+
+> - A local clone of **`americanflat/Ops`**, which owns
+>   `tools/stamps_shipping_costs_load.py`. Step 5 calls it; without the clone
+>   there is nothing to load with.
+> - **gcloud application-default credentials** for `anthony@americanflat.com`,
+>   with BigQuery write on `americanflat.finance`. The cloud proxy is read-only,
+>   so this load only ever works from the Mac.
 
 Optionally, one line in the Step 6 Slack message so a silent load failure cannot
 hide:
