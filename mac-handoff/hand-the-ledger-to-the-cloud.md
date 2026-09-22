@@ -1,5 +1,11 @@
 # Make the cloud Routine the only writer
 
+> **NOT DONE — checked 2026-09-22.** The unload below was never run. The Mac sweep
+> is still loaded, still on v1.4.0, and swept all 396 rows at 16:30–16:58 UTC today.
+> See `stop-the-mac-sweep-2026-09-22.md` for the current evidence and for the part
+> this document does not cover: the 390 stale "OK to pay" verdicts it has left
+> behind, which the unload alone does not clear.
+
 Anthony's decision, 2026-09-10: the cloud nightly run owns the ledger.
 
 **This supersedes `point-launchd-at-1.6.0.md` in this folder.** That file is kept
