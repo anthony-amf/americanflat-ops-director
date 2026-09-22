@@ -1,0 +1,168 @@
+--- a/scripts/invoice_processor.py
++++ b/scripts/invoice_processor.py
+@@ -128,7 +128,15 @@
+ # the standard way to hand the pipeline an invoice that bypassed email (e.g.
+ # bill.com-only or rebilled invoices). The BigQuery dedupe makes re-forwards safe.
+ US_QUERY = ('subject:"Invoice #" (from:Taylored from:FMI OR from:no-reply@tpservices.com)'
+-            ' OR (subject:"Fwd: Invoice #" from:americanflat.com)')
++            ' OR (subject:"Fwd: Invoice #" from:americanflat.com)'
++            # Anything a person forwards INTO the pipeline inbox counts, whatever
++            # they titled it. The "Fwd: Invoice #" clause above needs that exact
++            # phrase in the subject, and a forward that misses it is skipped in
++            # silence -- three AR-resent invoices (755367/755477/755501) sat
++            # unseen for five days in 2026-09 under the subject the vendor thread
++            # already had. Breadth is safe here: the Yusen/Taylored marker check
++            # in find_invoice_emails drops anything unrelated without alerting.
++            ' OR (from:americanflat.com to:administrator@americanflat.com)')
+ 
+ # The three international Yusen streams use different senders/subjects and carry
+ # no "Invoice #" in the subject. They are OFF by default and only included when
+@@ -299,6 +307,19 @@
+         return ""
+ 
+ 
++# A US invoice prints its number beside the invoice date in the header block
++# ("INVOICE  7110  759181 09/18/2026"). The "Invoice No." caption is laid out
++# far from its value, so match the number-then-date pair rather than the label.
++# Verified selective: exactly one hit in an 854 KB storage invoice.
++_US_INVOICE_NO_RE = re.compile(r'\b(\d{6})\s+(\d{2}/\d{2}/\d{4})\b')
++
++
++def invoice_no_from_text(pdf_text):
++    """Return the invoice number printed on a US invoice PDF, or None."""
++    m = _US_INVOICE_NO_RE.search(pdf_text)
++    return m.group(1) if m else None
++
++
+ def parse_invoice_data(pdf_text, invoice_number, subject=""):
+     """
+     Parse a Taylored / Yusen Logistics invoice.
+@@ -647,7 +668,9 @@
+         headers = msg['payload'].get('headers', [])
+         sender = next((h['value'] for h in headers if h['name'] == 'From'), "").lower()
+         yusen_sender = any(k in sender for k in ("taylored", "tpservices", "yusen-logistics"))
+-        if inv in existing_invoices:
++        # Only a classic one-invoice email can be dismissed on its subject alone.
++        # A forward carrying several PDFs is judged per PDF, further down.
++        if len(pdf_paths) <= 1 and inv in existing_invoices:
+             print(f"   ⊘ Already in BigQuery — skipping to avoid a duplicate.")
+             save_processed_email(email_id)
+             continue
+@@ -707,44 +730,80 @@
+                 save_processed_email(email_id)
+             continue
+ 
+-        text = extract_text(pdf)
+-        if not text.strip():
+-            # Scanned/image PDFs extract no text, so the Yusen-marker check below
+-            # can never clear them — and real invoices arrive this way (10 scanned
+-            # SC invoices were silently dropped here on 2026-07-09). Alert instead
+-            # of dropping quietly; retire forwarded copies so the alert fires once.
+-            print("   ⚠ PDF has no extractable text (likely scanned) — Slack alert sent.")
+-            send_slack_notification(inv, link,
+-                "PDF has no extractable text (likely a scanned invoice) — needs "
+-                "manual review/ingestion before it can reach BigQuery.")
+-            if not yusen_sender:
+-                save_processed_email(email_id)
+-            continue
+-        if not yusen_sender and "YUSEN" not in text.upper() and "TAYLORED" not in text.upper():
+-            print("   ⊘ PDF has no Yusen/Taylored marker — not ours; ignoring silently.")
++        # --- US (Taylored / FMI) invoices ------------------------------------
++        # Walk EVERY PDF, not just the first. A staff forward can carry several
++        # invoices in one message: the 2026-09 AR resend held 755367, 755477 and
++        # 755501, and only 755367 was ever loaded because this path used
++        # pdf_paths[0]. A one-PDF email with an "Invoice #" subject behaves
++        # exactly as before.
++        single = len(pdf_paths) == 1
++        ours_seen = False
++        for one_pdf in pdf_paths:
++            base = os.path.basename(one_pdf)
++            text = extract_text(one_pdf)
++            if not text.strip():
++                # Scanned/image PDFs extract no text, so the Yusen-marker check
++                # below can never clear them — and real invoices arrive this way
++                # (10 scanned SC invoices were silently dropped here on
++                # 2026-07-09). Alert instead of dropping quietly.
++                print(f"   ⚠ {base}: no extractable text (likely scanned) — Slack alert sent.")
++                send_slack_notification(inv, link,
++                    f"PDF has no extractable text (likely a scanned invoice): {base} "
++                    "— needs manual review/ingestion before it can reach BigQuery.")
++                if yusen_sender:
++                    ours_seen = True
++                continue
++            if (not yusen_sender and "YUSEN" not in text.upper()
++                    and "TAYLORED" not in text.upper()):
++                print(f"   ⊘ {base}: no Yusen/Taylored marker — not ours; ignoring silently.")
++                continue
++            ours_seen = True
++
++            # Where the invoice number comes from. The subject stays authoritative
++            # for the classic one-invoice email, so nothing about today's daily run
++            # changes. Anything else (several PDFs, or a forward whose subject was
++            # never rewritten) reads the number off the invoice itself.
++            inv_i = inv if (single and inv != "Unknown") else (invoice_no_from_text(text) or inv)
++            if inv_i == "Unknown":
++                print(f"   ⚠ {base}: no invoice number in the subject or the PDF.")
++                send_slack_notification(inv_i, link,
++                    f"Could not determine an invoice number for {base} — no "
++                    "'Invoice #' in the subject and none found in the PDF body.")
++                continue
++            if inv_i in existing_invoices:
++                print(f"   ⊘ {inv_i} already in BigQuery — skipping to avoid a duplicate.")
++                continue
++
++            cand = parse_invoice_data(text, inv_i, subject)
++            cand["_pdf_path"] = one_pdf
++            # The lone Excel in the message belongs to the lone invoice in it;
++            # with several PDFs there is no way to say which one it supports.
++            cand["_excel_path"] = _excel if single else None
++            if (cand["type_of_invoice"] in REQUIRES_SUPPORTING_DOC
++                    and not cand["_excel_path"]):
++                cand["_flags"].append("supporting_doc")
++
++            # Within-batch dedupe: the same invoice can arrive in two emails
++            # (resend, or an explicit "REVISED INVOICE"). Keep one row per number,
++            # preferring the revised copy; the BigQuery guard above only catches
++            # already-inserted numbers, not repeats inside a single run.
++            is_revised = "REVISED" in subject.upper()
++            if inv_i in by_inv:
++                prev_revised = "REVISED" in by_inv[inv_i][3].upper()
++                if is_revised and not prev_revised:
++                    print(f"   ↻ Duplicate {inv_i}: replacing with REVISED version.")
++                    by_inv[inv_i] = (cand, email_id, link, subject)
++                else:
++                    print(f"   ⊘ Duplicate {inv_i} in this batch — keeping first copy.")
++                continue
++            by_inv[inv_i] = (cand, email_id, link, subject)
++            order.append(inv_i)
++
++        if not ours_seen:
++            # Nothing in this message belongs to the pipeline (the forward sweep
++            # also catches unrelated vendor invoices). Retire it so its PDFs are
++            # not re-downloaded on every run.
+             save_processed_email(email_id)
+-            continue
+-        cand = parse_invoice_data(text, inv, subject)
+-        cand["_pdf_path"] = pdf
+-        cand["_excel_path"] = _excel
+-        if cand["type_of_invoice"] in REQUIRES_SUPPORTING_DOC and not _excel:
+-            cand["_flags"].append("supporting_doc")
+-
+-        # Within-batch dedupe: the same invoice can arrive in two emails (resend,
+-        # or an explicit "REVISED INVOICE"). Keep one row per number, preferring
+-        # the revised copy; the BigQuery guard above only catches already-inserted
+-        # numbers, not repeats inside a single run.
+-        is_revised = "REVISED" in subject.upper()
+-        if inv in by_inv:
+-            prev_revised = "REVISED" in by_inv[inv][3].upper()
+-            if is_revised and not prev_revised:
+-                print(f"   ↻ Duplicate {inv}: replacing with REVISED version.")
+-                by_inv[inv] = (cand, email_id, link, subject)
+-            else:
+-                print(f"   ⊘ Duplicate {inv} in this batch — keeping first copy.")
+-            continue
+-        by_inv[inv] = (cand, email_id, link, subject)
+-        order.append(inv)
+     return [(by_inv[i][0], by_inv[i][1], by_inv[i][2]) for i in order]
+ 
+ 
