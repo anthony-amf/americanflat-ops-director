@@ -154,9 +154,17 @@ WHERE type_of_invoice LIKE 'SML%'
         -- never checked
         validation_report NOT LIKE '%[STEDI %'
         -- or checked, came back with gaps, and is still inside the 5-day retry window
+        -- ...or checked, came back with gaps, and is still inside the 5-day retry
+        -- window. The date wanted is the LAST [STEDI] block's, and BigQuery's regex
+        -- engine is RE2, which has no lookahead — the obvious `(?!.*\[STEDI )` here
+        -- does not merely mis-match, it throws "invalid perl operator: (?!" and
+        -- kills the whole query, i.e. all of phase 2 before it starts. Take every
+        -- date and reverse instead.
         OR (validation_report LIKE '%[STEDI %'
             AND validation_report LIKE '%UNMATCHED%'
-            AND REGEXP_EXTRACT(validation_report, r'\[STEDI (\d{4}-\d{2}-\d{2})[^\]]*\](?!.*\[STEDI )')
+            AND ARRAY_REVERSE(
+                  REGEXP_EXTRACT_ALL(validation_report, r'\[STEDI (\d{4}-\d{2}-\d{2})')
+                )[SAFE_OFFSET(0)]
                 >= FORMAT_DATE('%Y-%m-%d', DATE_SUB(CURRENT_DATE(), INTERVAL 5 DAY)))
       )
 ORDER BY date DESC
