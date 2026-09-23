@@ -375,7 +375,8 @@ def main():
         wip = load_wip(booking_pos, access_token(args.auth))
 
     rows = build(emails, lines, wip, today)
-    built = dt.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
+    from zoneinfo import ZoneInfo
+    built = dt.datetime.now(ZoneInfo("America/New_York")).strftime("%b %-d, %Y %-I:%M %p ET")
     html = render(rows, built, args.template)
     with open(args.out, "w", encoding="utf-8") as f:
         f.write(html)

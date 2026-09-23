@@ -223,6 +223,14 @@ fed removed with them. The withheld fields are blanked in `encode()`, so they ar
 not in the file to be read out of source. Full detail:
 `MARKETPLACE-SHIPMENTS.md`.
 
+**Inbound Containers** (`https://claude.ai/artifact/E3BZCimi5h8h8ZtcETsfBv`, 2026-09-23)
+is the third artifact: ocean containers booked, on the water, landed and received,
+with ports, dates and SKU contents. It is built by `refresh_container_tracker.py`
+from WWL forwarder emails (extracted to JSON by a subagent through the Gmail
+connector) plus the "AMF Container Tracker Tool" sheet. There is no scheduled
+refresh yet. Refresh steps and the coverage gap (about half the containers are
+named in no WWL email) are in `CONTAINER-TRACKER.md`.
+
 `~/yusen_invoices_dashboard.html` is the local twin — a static snapshot with an
 embedded `const DATA = [...]` array, refreshed by this repo's
 `refresh_yusen_dashboard.py`. Other processes re-export it from a base template,

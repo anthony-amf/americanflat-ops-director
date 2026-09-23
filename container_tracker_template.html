@@ -299,7 +299,15 @@ function hl(text, q) {
   return esc(s.slice(0, i)) + "<mark>" + esc(s.slice(i, i + q.length)) + "</mark>" + esc(s.slice(i + q.length));
 }
 function pill(st) { const s = STATUS[st]; return `<span class="pill ${s.cls}">${s.label}</span>`; }
-function title(s) { return s ? String(s).replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase()) : ""; }
+// Forwarder text arrives SHOUTED ("DEZHOU NISSENS HANDICRAFT CO.,LTD"); soften only that,
+// and keep two-letter state codes ("Los Angeles, CA") as they are.
+function title(s) {
+  if (!s) return "";
+  s = String(s);
+  if (s !== s.toUpperCase()) return s.replace(/,\s*([a-z]{2})$/i, (m, st) => ", " + st.toUpperCase());
+  return s.toLowerCase().replace(/(^|[\s(\/&.,-])([a-z])/g, (m, p, c) => p + c.toUpperCase())
+          .replace(/,\s*([a-z]{2})$/i, (m, st) => ", " + st.toUpperCase());
+}
 
 // Each row gets one lowercase haystack so search is a single indexOf.
 for (const r of DATA) {
@@ -325,7 +333,7 @@ function renderKpis() {
   const nextEtd = soonest(nb, "etd");
   const bs = document.getElementById("k-booked-sub");
   if (ov) { bs.textContent = `${ov} past sailing date`; bs.classList.add("alert"); }
-  else bs.textContent = nextEtd ? `next sails ${fmtD(nextEtd)}` : "";
+  else bs.textContent = nextEtd ? `next sails ${fmtD(nextEtd)}` : (nb.length ? "" : "every booking has sailed");
   document.getElementById("k-water").textContent = cnt(nw);
   const nextEta = soonest(nw, "etaPod");
   document.getElementById("k-water-sub").textContent =
@@ -452,7 +460,7 @@ function renderRows() {
       const open = state.open.has(r.id);
       const idMain = r.container || r.ref || "—";
       const idSub = r.kind === "booking"
-        ? `booking${r.cntrDesc ? " · " + esc(r.cntrDesc) : ""} · containers not assigned yet`
+        ? `booking${r.cntrDesc ? " · " + esc(r.cntrDesc) : ""} · ${r.status === "booked" || r.status === "overdue" ? "containers not assigned yet" : "emails don't name the containers"}`
         : (r.ref ? `booking ${hl(r.ref, q)}` : "no forwarder email matched");
       const wh = r.location ? `<div class="place">${esc(r.location)}</div>` : `<span class="muted">—</span>`;
       const whd = landDate(r);
@@ -498,11 +506,13 @@ function detailRow(r) {
       <tfoot><tr><td>Total</td><td></td><td class="r num">${nf.format(tu)}</td>${planned ? "" : `<td class="r num">${nf.format(tc)}</td>`}</tr></tfoot></table></div></div>`;
   } else {
     contents = `<div class="contents"><h3>Contents</h3><p class="note">${r.kind === "booking"
-      ? "Not known yet. The packing list arrives when the containers are loaded, and these POs are not in the order backup table."
+      ? (r.status === "booked" || r.status === "overdue"
+          ? "Not known yet. The packing list arrives when the containers are loaded, and these POs are not in the order backup table."
+          : "The forwarder emails for this booking don't name its containers, so it can't be matched to the Container Tracker sheet. Search the POs below to find the boxes.")
       : "This container is not on the Container Tracker sheet yet."}${r.pos && r.pos.length ? " POs on the booking: " + r.pos.map(esc).join(", ") + "." : ""}</p></div>`;
   }
   const src = (r.sources || []).length ? `<div class="src">From forwarder emails:<ul>${r.sources.map(s =>
-      `<li>${esc({ booking: "Booking Advice", sailing: "Sailing Advice", arrival: "Arrival Notice" }[s.type] || s.type)} · ${fmtD(s.date)}</li>`).join("")}</ul>${(r.notes || []).length ? `<ul>${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}</div>`
+      `<li>${esc({ booking: "Booking Advice", sailing: "Sailing Advice", arrival: "Arrival Notice" }[s.type] || s.type)} · ${fmtD(s.date)}</li>`).join("")}</ul>${(r.notes || []).length ? `Schedule changes and notes:<ul>${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}</div>`
     : `<div class="src">No WWL email names this container, so there is no departure date or port. Dates come from the Container Tracker sheet.</div>`;
   return `<tr class="detail" id="d-${esc(r.id)}"><td colspan="7"><div class="det">
     <div class="route">${legs.map(l => `<div class="leg${l.done ? " done" : ""}"><div class="k">${l.k}</div><div class="v">${esc(l.v || "not stated")}</div><div class="d">${esc(l.d)}</div></div>`).join("")}</div>
