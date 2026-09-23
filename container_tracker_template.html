@@ -1,0 +1,575 @@
+<title>Inbound Containers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,700&display=swap">
+<style>
+  /* Americanflat tokens (skill-design-system/tokens/tokens.css). Glacial
+     Indifference is served from cdnfonts, which the artifact CSP blocks, so the
+     brand's own first fallback, DM Sans, carries the page. */
+  :root {
+    --af-black: #0F0F0F;
+    --bg: #FFFFFF;
+    --panel: #FFFFFF;
+    --ink: #0F0F0F;
+    --muted: #666666;
+    --faint: #B3B3B3;
+    --line: #E6E6E6;
+    --fill: #F4F4F4;
+    --hover: #FAFAFA;
+    --blue: #003595;
+    --blue-soft: rgba(0, 53, 149, 0.08);
+    --red: #CE0E2D;
+    --red-soft: rgba(206, 14, 45, 0.08);
+    --on-accent: #FFFFFF;
+    --font: 'Glacial Indifference', 'DM Sans', 'Inter', system-ui, sans-serif;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0F0F0F;
+      --panel: #161616;
+      --ink: #F2F2F2;
+      --muted: #A6A6A6;
+      --faint: #5C5C5C;
+      --line: #2A2A2A;
+      --fill: #1F1F1F;
+      --hover: #1A1A1A;
+      --blue: #7FA2E8;
+      --blue-soft: rgba(127, 162, 232, 0.12);
+      --red: #F2687E;
+      --red-soft: rgba(242, 104, 126, 0.12);
+      --on-accent: #0F0F0F;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0F0F0F;
+    --panel: #161616;
+    --ink: #F2F2F2;
+    --muted: #A6A6A6;
+    --faint: #5C5C5C;
+    --line: #2A2A2A;
+    --fill: #1F1F1F;
+    --hover: #1A1A1A;
+    --blue: #7FA2E8;
+    --blue-soft: rgba(127, 162, 232, 0.12);
+    --red: #F2687E;
+    --red-soft: rgba(242, 104, 126, 0.12);
+    --on-accent: #0F0F0F;
+  }
+
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px;
+    line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 32px 16px 72px; }
+  @media (min-width: 720px) { .wrap { padding-inline: 32px; } }
+  button, input, select { font: inherit; color: inherit; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Header */
+  .head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+  .wordmark { font-weight: 700; letter-spacing: 0.04em; font-size: 15px; }
+  .wordmark sup { font-weight: 400; font-size: 8px; margin-left: 1px; }
+  h1 { font-size: 30px; font-weight: 700; line-height: 1.15; margin: 6px 0 0; letter-spacing: -0.01em; }
+  .built { color: var(--muted); font-size: 12.5px; }
+
+  /* Summary: a pipeline, left to right, so the count sits where the box is */
+  .pipe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 24px 0 28px;
+    border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .stage { appearance: none; background: var(--panel); border: 0; border-right: 1px solid var(--line);
+    text-align: left; padding: 16px 18px; cursor: pointer; display: grid; gap: 2px; position: relative; }
+  .stage:last-child { border-right: 0; }
+  .stage:hover { background: var(--hover); }
+  .stage:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+  .stage[aria-pressed="true"] { background: var(--fill); }
+  .stage[aria-pressed="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--ink); }
+  .stage .lbl { font-size: 12px; color: var(--muted); letter-spacing: 0.03em; }
+  .stage .val { font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stage .sub { font-size: 12.5px; color: var(--muted); min-height: 1.3em; }
+  .stage .sub.alert { color: var(--red); font-weight: 700; }
+  @media (max-width: 720px) {
+    .pipe { grid-template-columns: 1fr 1fr; }
+    .stage:nth-child(2) { border-right: 0; }
+    .stage:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  }
+
+  /* Ports */
+  .ports { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  @media (max-width: 760px) { .ports { grid-template-columns: 1fr; } }
+  .panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 16px 18px; }
+  .panel h2 { font-size: 15px; font-weight: 700; margin: 0; }
+  .panel .hint { color: var(--muted); font-size: 12.5px; margin: 2px 0 10px; }
+  .port { appearance: none; width: 100%; background: none; border: 0; border-radius: 6px; cursor: pointer;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px;
+    padding: 8px 8px; text-align: left; }
+  .port:hover { background: var(--hover); }
+  .port:focus-visible { outline: 2px solid var(--blue); outline-offset: 0; }
+  .port[aria-pressed="true"] { background: var(--fill); }
+  .port .pn { font-weight: 700; overflow-wrap: anywhere; }
+  .port .pc { font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap; }
+  .port .pd { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); }
+  .port .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; }
+  .port .bar i { display: block; height: 100%; background: var(--ink); }
+  .empty-note { color: var(--muted); font-size: 13px; padding: 6px 8px; }
+
+  /* Toolbar */
+  .toolbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .toolbar input[type="search"] { flex: 1 1 280px; min-width: 0; padding: 10px 12px; border: 1px solid var(--faint);
+    border-radius: 6px; background: var(--panel); }
+  .toolbar select { padding: 9px 10px; border: 1px solid var(--faint); border-radius: 6px; background: var(--panel); }
+  .toolbar input:focus-visible, .toolbar select:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; border-color: transparent; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ink); border-radius: 999px;
+    padding: 4px 6px 4px 12px; font-size: 12.5px; background: var(--panel); }
+  .chip button { appearance: none; border: 0; background: var(--fill); border-radius: 999px; width: 20px; height: 20px;
+    cursor: pointer; line-height: 20px; padding: 0; }
+  .chip button:focus-visible { outline: 2px solid var(--blue); }
+  .count { margin-left: auto; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+  /* SKU results */
+  .skus { margin: 18px 0 4px; display: grid; gap: 12px; }
+  .skucard { border: 1px solid var(--ink); border-radius: var(--radius); background: var(--panel); overflow: hidden; }
+  .skucard header { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .skucard header b { font-size: 16px; }
+  .skucard header span { color: var(--muted); font-size: 12.5px; }
+  .skumore { color: var(--muted); font-size: 12.5px; }
+
+  /* Tables */
+  .tw { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; }
+  .main { margin-top: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+  .main table { min-width: 880px; }
+  th { text-align: left; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em;
+    padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--panel); }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th.r, td.r { text-align: right; }
+  tbody tr.row { cursor: pointer; }
+  tbody tr.row:hover { background: var(--hover); }
+  tbody tr.row.open { background: var(--fill); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .idbtn { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+    display: inline-flex; gap: 8px; align-items: baseline; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .idbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 3px; }
+  .caret { font-size: 10px; color: var(--muted); display: inline-block; transition: transform .15s ease; }
+  tr.open .caret { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) { .caret { transition: none; } }
+  .idsub { display: block; color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 18px; }
+  .dt { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dt small, .place small { display: block; color: var(--muted); font-size: 12px; }
+  .place { font-weight: 700; }
+  .rel { color: var(--muted); font-size: 12px; }
+  .rel.late { color: var(--red); font-weight: 700; }
+  .est { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  .muted { color: var(--muted); }
+
+  .pill { display: inline-block; white-space: nowrap; font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; }
+  .s-booked { border-color: var(--ink); color: var(--ink); background: transparent; }
+  .s-overdue { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+  .s-water { background: var(--blue); color: var(--on-accent); }
+  .s-port { background: var(--ink); color: var(--bg); }
+  .s-received { background: var(--fill); color: var(--muted); }
+
+  /* Expanded detail */
+  tr.detail > td { background: var(--bg); padding: 0; }
+  .det { padding: 18px 18px 22px; display: grid; gap: 18px; border-left: 3px solid var(--ink); }
+  .route { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; }
+  .leg { flex: 1 1 150px; padding: 8px 14px 8px 0; position: relative; min-width: 0; }
+  .leg + .leg { padding-left: 14px; border-left: 1px dashed var(--faint); }
+  .leg .k { font-size: 11.5px; color: var(--muted); letter-spacing: 0.02em; }
+  .leg .v { font-weight: 700; overflow-wrap: anywhere; }
+  .leg .d { font-variant-numeric: tabular-nums; font-size: 13px; }
+  .leg.done .v::before { content: "\2713  "; color: var(--muted); font-weight: 400; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; }
+  .facts span b { font-weight: 400; color: var(--muted); margin-right: 6px; }
+  .contents h3 { font-size: 13px; font-weight: 700; margin: 0 0 6px; }
+  .contents .note { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; max-width: 70ch; }
+  .contents table { max-width: 720px; border: 1px solid var(--line); border-radius: 6px; }
+  .contents td, .contents th { padding: 7px 10px; font-size: 13px; }
+  .contents tfoot td { font-weight: 700; border-top: 1px solid var(--line); border-bottom: 0; }
+  mark { background: var(--blue-soft); color: inherit; border-radius: 2px; padding: 0 1px; }
+  .src { font-size: 12px; color: var(--muted); }
+  .src li { margin: 2px 0; }
+  .src ul { margin: 4px 0 0; padding-left: 18px; }
+
+  .none { padding: 36px 16px; text-align: center; color: var(--muted); }
+  .foot { margin-top: 28px; color: var(--muted); font-size: 12px; max-width: 80ch; line-height: 1.6; }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="wordmark" aria-label="americanflat">americanflat<sup>&reg;</sup></div>
+      <h1>Inbound Containers</h1>
+    </div>
+    <div class="built" id="built"></div>
+  </header>
+
+  <div class="pipe" role="group" aria-label="Filter by stage">
+    <button class="stage" data-stage="notsailed" aria-pressed="false" type="button">
+      <span class="lbl">Booked, not sailed</span><span class="val" id="k-booked">0</span><span class="sub" id="k-booked-sub"></span>
+    </button>
+    <button class="stage" data-stage="water" aria-pressed="false" type="button">
+      <span class="lbl">On the water</span><span class="val" id="k-water">0</span><span class="sub" id="k-water-sub"></span>
+    </button>
+    <button class="stage" data-stage="port" aria-pressed="false" type="button">
+      <span class="lbl">Landed, not yet received</span><span class="val" id="k-port">0</span><span class="sub" id="k-port-sub"></span>
+    </button>
+    <button class="stage" data-stage="received" aria-pressed="false" type="button">
+      <span class="lbl">Received</span><span class="val" id="k-received">0</span><span class="sub" id="k-received-sub"></span>
+    </button>
+  </div>
+
+  <section class="ports" aria-label="Ports">
+    <div class="panel">
+      <h2>Departure ports</h2>
+      <p class="hint">Shipments still to sail, and those at sea. Click a port to filter.</p>
+      <div id="pol"></div>
+    </div>
+    <div class="panel">
+      <h2>Arrival ports</h2>
+      <p class="hint">Where everything not yet received lands. Click a port to filter.</p>
+      <div id="pod"></div>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <input id="q" type="search" aria-label="Search" placeholder="Search SKU, container, PO, booking, vessel or factory" autocomplete="off" spellcheck="false">
+    <select id="wh" aria-label="Warehouse"><option value="">All warehouses</option></select>
+    <span id="chips"></span>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="skus" id="skus" hidden></div>
+
+  <div class="main">
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>Container / booking</th>
+            <th>Status</th>
+            <th>Departs</th>
+            <th>Arrives at port</th>
+            <th>Warehouse</th>
+            <th class="r">Units</th>
+            <th>Factory &middot; PO</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+const DATA = /*DATA*/[];
+const KPI = /*KPI*/{};
+
+const STATUS = {
+  booked:   { label: "Booked, not sailed", cls: "s-booked" },
+  overdue:  { label: "Sailing overdue",    cls: "s-overdue" },
+  water:    { label: "On the water",       cls: "s-water" },
+  port:     { label: "Landed",             cls: "s-port" },
+  received: { label: "Received",           cls: "s-received" },
+};
+const STAGE_OF = { booked: "notsailed", overdue: "notsailed", water: "water", port: "port", received: "received" };
+const ACTIVE = new Set(["booked", "overdue", "water", "port"]);
+
+const TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const nf = new Intl.NumberFormat("en-US");
+
+function parseD(s) { if (!s) return null; const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+function fmtD(s) { const d = parseD(s); return d ? `${MON[d.getMonth()]} ${d.getDate()}` : ""; }
+function days(s) { const d = parseD(s); return d ? Math.round((d - TODAY) / 864e5) : null; }
+function relTxt(s) {
+  const n = days(s); if (n === null) return "";
+  if (n === 0) return "today"; if (n === 1) return "tomorrow"; if (n === -1) return "yesterday";
+  return n > 0 ? `in ${n} days` : `${-n} days ago`;
+}
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function hl(text, q) {
+  const t = esc(text); if (!q) return t;
+  const i = String(text).toLowerCase().indexOf(q); if (i < 0) return t;
+  const s = String(text);
+  return esc(s.slice(0, i)) + "<mark>" + esc(s.slice(i, i + q.length)) + "</mark>" + esc(s.slice(i + q.length));
+}
+function pill(st) { const s = STATUS[st]; return `<span class="pill ${s.cls}">${s.label}</span>`; }
+function title(s) { return s ? String(s).replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase()) : ""; }
+
+// Each row gets one lowercase haystack so search is a single indexOf.
+for (const r of DATA) {
+  r._hay = [r.container, r.ref, r.hbl, r.mbl, r.vessel, r.shipper, r.carrier, r.pol, r.pod, r.fdest, r.location,
+            ...(r.pos || []), ...(r.lines || []).map(l => l[0])].filter(Boolean).join(" ").toLowerCase();
+}
+
+const state = { stage: "active", port: null, wh: "", q: "", open: new Set() };
+try { const s = JSON.parse(localStorage.getItem("ict-state") || "{}"); if (s.stage) state.stage = s.stage; } catch (e) {}
+function save() { try { localStorage.setItem("ict-state", JSON.stringify({ stage: state.stage })); } catch (e) {} }
+
+/* ---------- Summary ---------- */
+function soonest(rows, key) {
+  const ds = rows.map(r => r[key]).filter(Boolean).sort();
+  return ds.find(d => d >= TODAY.toISOString().slice(0, 10)) || null;
+}
+function renderKpis() {
+  const by = st => DATA.filter(r => st.includes(r.status));
+  const nb = by(["booked", "overdue"]), nw = by(["water"]), np = by(["port"]), nr = by(["received"]);
+  const cnt = rows => rows.length;
+  document.getElementById("k-booked").textContent = cnt(nb);
+  const ov = nb.filter(r => r.status === "overdue").length;
+  const nextEtd = soonest(nb, "etd");
+  const bs = document.getElementById("k-booked-sub");
+  if (ov) { bs.textContent = `${ov} past sailing date`; bs.classList.add("alert"); }
+  else bs.textContent = nextEtd ? `next sails ${fmtD(nextEtd)}` : "";
+  document.getElementById("k-water").textContent = cnt(nw);
+  const nextEta = soonest(nw, "etaPod");
+  document.getElementById("k-water-sub").textContent =
+    `${nf.format(nw.reduce((a, r) => a + (r.units || 0), 0))} units` + (nextEta ? ` · next lands ${fmtD(nextEta)}` : "");
+  document.getElementById("k-port").textContent = cnt(np);
+  document.getElementById("k-port-sub").textContent = `${nf.format(np.reduce((a, r) => a + (r.units || 0), 0))} units`;
+  document.getElementById("k-received").textContent = cnt(nr);
+  document.getElementById("k-received-sub").textContent = `last ${KPI.receivedDays || 45} days`;
+  document.getElementById("built").textContent = KPI.built ? `Updated ${KPI.built}` : "";
+}
+
+/* ---------- Ports ---------- */
+function renderPorts() {
+  const group = (rows, key, dateKey) => {
+    const m = new Map();
+    for (const r of rows) {
+      const p = r[key]; if (!p) continue;
+      const g = m.get(p) || { name: p, n: 0, units: 0, dates: [] };
+      g.n++; g.units += r.units || 0; if (r[dateKey]) g.dates.push(r[dateKey]); m.set(p, g);
+    }
+    return [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+  };
+  const polRows = DATA.filter(r => ["booked", "overdue", "water"].includes(r.status));
+  const podRows = DATA.filter(r => ACTIVE.has(r.status));
+  const draw = (el, side, groups, verb) => {
+    if (!groups.length) { el.innerHTML = `<div class="empty-note">No port named in the forwarder emails yet.</div>`; return; }
+    const max = Math.max(...groups.map(g => g.n));
+    const today = TODAY.toISOString().slice(0, 10);
+    el.innerHTML = groups.map(g => {
+      const up = g.dates.filter(d => d >= today).sort();
+      const next = up.length ? `next ${verb} ${fmtD(up[0])}` : (g.dates.length ? `last ${fmtD(g.dates.sort().pop())}` : "no date yet");
+      const on = state.port && state.port.side === side && state.port.name === g.name;
+      return `<button type="button" class="port" data-side="${side}" data-name="${esc(g.name)}" aria-pressed="${on}">
+        <span class="pn">${esc(title(g.name))}</span>
+        <span class="pc">${g.n} ${g.n === 1 ? "shipment" : "shipments"}</span>
+        <span class="bar"><i style="width:${(g.n / max * 100).toFixed(1)}%"></i></span>
+        <span class="pd">${next}${g.units ? ` · ${nf.format(g.units)} units` : ""}</span>
+      </button>`;
+    }).join("");
+  };
+  draw(document.getElementById("pol"), "pol", group(polRows, "pol", "etd"), "sails");
+  draw(document.getElementById("pod"), "pod", group(podRows, "pod", "etaPod"), "arrives");
+}
+
+/* ---------- Filtering ---------- */
+function stageMatch(r) {
+  if (state.stage === "active") return ACTIVE.has(r.status);
+  if (state.stage === "all") return true;
+  return STAGE_OF[r.status] === state.stage;
+}
+function filtered(ignoreStage) {
+  const q = state.q;
+  return DATA.filter(r =>
+    (ignoreStage || stageMatch(r)) &&
+    (!state.port || r[state.port.side] === state.port.name) &&
+    (!state.wh || r.location === state.wh) &&
+    (!q || r._hay.includes(q)));
+}
+
+/* ---------- SKU panel ---------- */
+function renderSkus() {
+  const box = document.getElementById("skus");
+  const q = state.q;
+  if (q.length < 3) { box.hidden = true; box.innerHTML = ""; return; }
+  // SKU answers ignore the stage tabs: asking "where is this SKU" means every box it is in.
+  const hits = new Map();
+  for (const r of filtered(true)) for (const l of r.lines || []) {
+    if (!String(l[0]).toLowerCase().includes(q)) continue;
+    const e = hits.get(l[0]) || { sku: l[0], rows: new Map() };
+    const x = e.rows.get(r.id) || { r, units: 0, planned: r.linesSource === "po" };
+    x.units += l[2] || 0; e.rows.set(r.id, x); hits.set(l[0], e);
+  }
+  if (!hits.size) { box.hidden = true; box.innerHTML = ""; return; }
+  const exact = [...hits.values()].sort((a, b) =>
+    (b.sku.toLowerCase() === q) - (a.sku.toLowerCase() === q) || a.sku.localeCompare(b.sku));
+  const shown = exact.slice(0, 6);
+  const order = { overdue: 0, booked: 1, water: 2, port: 3, received: 4 };
+  box.innerHTML = shown.map(e => {
+    const rows = [...e.rows.values()].sort((a, b) =>
+      order[a.r.status] - order[b.r.status] || String(landDate(a.r) || "9").localeCompare(String(landDate(b.r) || "9")));
+    const inbound = rows.filter(x => ACTIVE.has(x.r.status)).reduce((a, x) => a + x.units, 0);
+    const nextWh = rows.filter(x => ACTIVE.has(x.r.status)).map(x => landDate(x.r)).filter(Boolean).sort()[0];
+    return `<section class="skucard" aria-label="SKU ${esc(e.sku)}">
+      <header><b>${hl(e.sku, q)}</b>
+        <span>${rows.length} ${rows.length === 1 ? "container" : "containers"}</span>
+        <span>${nf.format(inbound)} units still inbound</span>
+        ${nextWh ? `<span>next due ${fmtD(nextWh)}</span>` : ""}</header>
+      <div class="tw"><table style="min-width:640px">
+        <thead><tr><th>Container / booking</th><th>Status</th><th class="r">Units</th><th>Departs</th><th>Arrives at port</th><th>Due at warehouse</th></tr></thead>
+        <tbody>${rows.map(x => `<tr>
+          <td><button type="button" class="idbtn" data-jump="${esc(x.r.id)}">${esc(x.r.container || x.r.ref)}</button>${x.r.kind === "booking" ? `<span class="idsub" style="margin-left:0">booking${x.r.cntrDesc ? " · " + esc(x.r.cntrDesc) : ""}</span>` : ""}</td>
+          <td>${pill(x.r.status)}</td>
+          <td class="r num">${nf.format(x.units)}${x.planned ? `<span class="est" title="Ordered quantity from the PO; no packing list yet">ordered</span>` : ""}</td>
+          <td class="dt">${x.r.etd ? fmtD(x.r.etd) : "—"}<small>${esc(title(x.r.pol) || "")}</small></td>
+          <td class="dt">${x.r.etaPod ? fmtD(x.r.etaPod) : "—"}<small>${esc(title(x.r.pod) || "")}</small></td>
+          <td class="dt">${landDate(x.r) ? fmtD(landDate(x.r)) : "—"}<small>${esc(x.r.location || "")}</small></td>
+        </tr>`).join("")}</tbody></table></div>
+    </section>`;
+  }).join("") + (exact.length > shown.length ? `<div class="skumore">${exact.length - shown.length} more SKUs match. Type more of the SKU to narrow it.</div>` : "");
+  box.hidden = false;
+}
+function landDate(r) { return r.whDate || r.etaFinal || r.etaPod || null; }
+
+/* ---------- Main table ---------- */
+function dateCell(date, place, actual, isEtd, status) {
+  if (!date && !place) return `<span class="muted">—</span>`;
+  let rel = "";
+  if (date) {
+    const n = days(date);
+    const late = isEtd && (status === "overdue");
+    if (!(actual && n < 0) && status !== "received") rel = `<span class="rel${late ? " late" : ""}">${relTxt(date)}</span>`;
+  }
+  return `<div class="dt">${date ? fmtD(date) : "date not given"}${date && !actual ? `<span class="est">est.</span>` : ""}</div>
+    <div class="place">${esc(title(place) || "")}</div>${rel}`;
+}
+function renderRows() {
+  const rows = filtered(false);
+  const q = state.q;
+  const tb = document.getElementById("rows");
+  if (!rows.length) {
+    tb.innerHTML = `<tr><td colspan="7" class="none">Nothing matches. ${state.stage !== "all" ? "Try the Received stage, or clear the filters." : "Clear the filters to see everything."}</td></tr>`;
+  } else {
+    tb.innerHTML = rows.map(r => {
+      const open = state.open.has(r.id);
+      const idMain = r.container || r.ref || "—";
+      const idSub = r.kind === "booking"
+        ? `booking${r.cntrDesc ? " · " + esc(r.cntrDesc) : ""} · containers not assigned yet`
+        : (r.ref ? `booking ${hl(r.ref, q)}` : "no forwarder email matched");
+      const wh = r.location ? `<div class="place">${esc(r.location)}</div>` : `<span class="muted">—</span>`;
+      const whd = landDate(r);
+      const units = r.units ? nf.format(r.units) + (r.linesSource === "po" ? `<span class="est">ordered</span>` : "") : `<span class="muted">—</span>`;
+      return `<tr class="row${open ? " open" : ""}" data-id="${esc(r.id)}">
+        <td><button type="button" class="idbtn" aria-expanded="${open}" aria-controls="d-${esc(r.id)}"><span class="caret" aria-hidden="true">&#9654;</span>${hl(idMain, q)}</button><span class="idsub">${idSub}</span></td>
+        <td>${pill(r.status)}</td>
+        <td>${dateCell(r.etd, r.pol, r.etdActual, true, r.status)}</td>
+        <td>${dateCell(r.etaPod, r.pod, r.status === "port" || r.status === "received", false, r.status)}</td>
+        <td>${wh}${whd ? `<div class="dt"><small>due ${fmtD(whd)}</small></div>` : ""}</td>
+        <td class="r num">${units}</td>
+        <td>${esc(title(r.shipper) || "")}<small class="idsub" style="margin-left:0">${(r.pos || []).map(p => hl(p, q)).join(", ")}</small></td>
+      </tr>${open ? detailRow(r) : ""}`;
+    }).join("");
+  }
+  const total = filtered(true).length;
+  document.getElementById("count").textContent = `${rows.length} of ${total} shown`;
+}
+
+function detailRow(r) {
+  const q = state.q;
+  const legs = [
+    { k: "Loads at", v: title(r.pol), d: r.etd ? `${r.etdActual ? "sailed" : "sails"} ${fmtD(r.etd)}` : "", done: r.etdActual || ["water", "port", "received"].includes(r.status) },
+    { k: "Lands at", v: title(r.pod), d: r.etaPod ? `${["port", "received"].includes(r.status) ? "arrived" : "ETA"} ${fmtD(r.etaPod)}` : "", done: ["port", "received"].includes(r.status) },
+  ];
+  if (r.fdest && (r.fdest || "").toLowerCase() !== (r.pod || "").toLowerCase())
+    legs.push({ k: "Inland point", v: title(r.fdest), d: r.etaFinal ? `ETA ${fmtD(r.etaFinal)}` : "", done: r.status === "received" });
+  legs.push({ k: "Warehouse", v: r.location || "not stated", d: r.whDate ? `${r.status === "received" ? "received" : "due"} ${fmtD(r.whDate)}` : "", done: r.status === "received" });
+  const facts = [
+    ["Vessel", r.vessel], ["Carrier", r.carrier], ["Booking", r.ref], ["House B/L", r.hbl && r.hbl !== r.ref ? r.hbl : null],
+    ["Master B/L", r.mbl], ["Factory", title(r.shipper)], ["Containers", r.kind === "booking" ? r.cntrDesc : null],
+  ].filter(f => f[1]);
+
+  let contents;
+  const lines = (r.lines || []).slice().sort((a, b) => (b[2] || 0) - (a[2] || 0));
+  if (lines.length) {
+    const planned = r.linesSource === "po";
+    const tu = lines.reduce((a, l) => a + (l[2] || 0), 0), tc = lines.reduce((a, l) => a + (l[3] || 0), 0);
+    contents = `<div class="contents"><h3>${planned ? "Planned contents" : "Contents"} · ${lines.length} ${lines.length === 1 ? "SKU" : "SKUs"}</h3>
+      ${planned ? `<p class="note">No packing list yet. These are the ordered lines on the booking's POs, so the final load may differ${r.cntrDesc ? " and is split across " + esc(r.cntrDesc) : ""}.</p>` : ""}
+      <div class="tw"><table><thead><tr><th>SKU</th><th>PO</th><th class="r">Units</th>${planned ? "" : `<th class="r">Cartons</th>`}</tr></thead>
+      <tbody>${lines.map(l => `<tr><td>${hl(l[0], q)}</td><td class="num">${esc(l[1])}</td><td class="r num">${nf.format(l[2] || 0)}</td>${planned ? "" : `<td class="r num">${nf.format(l[3] || 0)}</td>`}</tr>`).join("")}</tbody>
+      <tfoot><tr><td>Total</td><td></td><td class="r num">${nf.format(tu)}</td>${planned ? "" : `<td class="r num">${nf.format(tc)}</td>`}</tr></tfoot></table></div></div>`;
+  } else {
+    contents = `<div class="contents"><h3>Contents</h3><p class="note">${r.kind === "booking"
+      ? "Not known yet. The packing list arrives when the containers are loaded, and these POs are not in the order backup table."
+      : "This container is not on the Container Tracker sheet yet."}${r.pos && r.pos.length ? " POs on the booking: " + r.pos.map(esc).join(", ") + "." : ""}</p></div>`;
+  }
+  const src = (r.sources || []).length ? `<div class="src">From forwarder emails:<ul>${r.sources.map(s =>
+      `<li>${esc({ booking: "Booking Advice", sailing: "Sailing Advice", arrival: "Arrival Notice" }[s.type] || s.type)} · ${fmtD(s.date)}</li>`).join("")}</ul>${(r.notes || []).length ? `<ul>${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}</div>`
+    : `<div class="src">No WWL email names this container, so there is no departure date or port. Dates come from the Container Tracker sheet.</div>`;
+  return `<tr class="detail" id="d-${esc(r.id)}"><td colspan="7"><div class="det">
+    <div class="route">${legs.map(l => `<div class="leg${l.done ? " done" : ""}"><div class="k">${l.k}</div><div class="v">${esc(l.v || "not stated")}</div><div class="d">${esc(l.d)}</div></div>`).join("")}</div>
+    ${facts.length ? `<div class="facts">${facts.map(f => `<span><b>${f[0]}</b>${esc(f[1])}</span>`).join("")}</div>` : ""}
+    ${contents}${src}
+  </div></td></tr>`;
+}
+
+/* ---------- Chips, stage buttons ---------- */
+function renderChrome() {
+  document.querySelectorAll(".stage").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.stage === state.stage)));
+  const chips = [];
+  if (state.stage === "active") chips.push(`<span class="chip">Everything not yet received</span>`);
+  else if (state.stage === "all") chips.push(`<span class="chip">All stages <button type="button" data-clear="stage" aria-label="Back to not yet received">&times;</button></span>`);
+  else chips.push(`<span class="chip">${{ notsailed: "Booked, not sailed", water: "On the water", port: "Landed, not yet received", received: "Received" }[state.stage]} <button type="button" data-clear="stage" aria-label="Clear stage filter">&times;</button></span>`);
+  if (state.port) chips.push(`<span class="chip">${state.port.side === "pol" ? "From" : "To"} ${esc(title(state.port.name))} <button type="button" data-clear="port" aria-label="Clear port filter">&times;</button></span>`);
+  if (state.stage !== "all") chips.push(`<button type="button" class="chip" data-stage-all style="padding-right:12px;cursor:pointer">Show all stages</button>`);
+  document.getElementById("chips").innerHTML = chips.join(" ");
+}
+function render() { renderChrome(); renderPorts(); renderSkus(); renderRows(); }
+
+/* ---------- Events ---------- */
+document.querySelector(".pipe").addEventListener("click", e => {
+  const b = e.target.closest(".stage"); if (!b) return;
+  state.stage = state.stage === b.dataset.stage ? "active" : b.dataset.stage; save(); render();
+});
+document.querySelector(".ports").addEventListener("click", e => {
+  const b = e.target.closest(".port"); if (!b) return;
+  const p = { side: b.dataset.side, name: b.dataset.name };
+  state.port = state.port && state.port.side === p.side && state.port.name === p.name ? null : p; render();
+});
+document.getElementById("chips").addEventListener("click", e => {
+  if (e.target.closest("[data-stage-all]")) { state.stage = "all"; save(); render(); return; }
+  const c = e.target.closest("[data-clear]"); if (!c) return;
+  if (c.dataset.clear === "stage") state.stage = "active";
+  if (c.dataset.clear === "port") state.port = null;
+  save(); render();
+});
+let qt;
+document.getElementById("q").addEventListener("input", e => {
+  clearTimeout(qt); qt = setTimeout(() => { state.q = e.target.value.trim().toLowerCase(); renderSkus(); renderRows(); }, 120);
+});
+document.getElementById("wh").addEventListener("change", e => { state.wh = e.target.value; render(); });
+document.getElementById("rows").addEventListener("click", e => {
+  const tr = e.target.closest("tr.row"); if (!tr) return;
+  if (window.getSelection && String(window.getSelection()).length) return; // let people copy a container number
+  const id = tr.dataset.id;
+  state.open.has(id) ? state.open.delete(id) : state.open.add(id); renderRows();
+});
+document.getElementById("skus").addEventListener("click", e => {
+  const b = e.target.closest("[data-jump]"); if (!b) return;
+  const id = b.dataset.jump, r = DATA.find(x => x.id === id);
+  if (r && !stageMatch(r)) { state.stage = "all"; save(); renderChrome(); }
+  state.open.add(id); renderRows();
+  const el = document.querySelector(`tr.row[data-id="${CSS.escape(id)}"]`);
+  if (el) { el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); el.querySelector(".idbtn").focus({ preventScroll: true }); }
+});
+
+/* ---------- Boot ---------- */
+(function () {
+  const whs = [...new Set(DATA.map(r => r.location).filter(Boolean))].sort();
+  document.getElementById("wh").insertAdjacentHTML("beforeend", whs.map(w => `<option>${esc(w)}</option>`).join(""));
+  document.getElementById("foot").textContent =
+    "Departure dates, vessels and ports come from WWL's Booking Advice, Sailing Advice and Arrival Notice emails. " +
+    "Contents and warehouse dates come from the AMF Container Tracker sheet (packing lists). A booking has no container " +
+    "numbers until it sails, so each not-yet-sailed booking is one row. Dates marked est. are the forwarder's estimates. " +
+    "Received containers drop off " + (KPI.receivedDays || 45) + " days after they reach the warehouse.";
+  renderKpis(); render();
+})();
+</script>
