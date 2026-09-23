@@ -66,3 +66,52 @@ separated — apply them by hand.
 Not tested end to end: running the processor needs Gmail OAuth and the Mac's
 BigQuery credentials, neither reachable from a cloud session. Do the first run
 with `--dry-run`.
+
+## dashboard-report-bullets.patch
+
+Applies to `dashboard_template.html` on the pipeline branch
+(`claude/website-auto-refresh-efficiency-9x474j`), the template every refresh of
+the Yusen Invoices artifact renders from. Published live 2026-09-23 (version 25).
+
+**What it changes — the expanded "Validated" report card.**
+
+- Prose now breaks into one bullet per sentence. The shipping-check (STEDI) and
+  dispute blocks each used to render as a single bullet — the longest ran to
+  995 characters; the longest now is 383, and that one is a genuine single
+  sentence.
+- A short heading before a colon ("No gaps:", "Pick basis:") or a warning word
+  before a dash ("UNMATCHED —", "CORRECTION —") is bolded.
+- A labelled line with several sentences ("Invoice math: …") lists them as
+  sub-points under the label. "(1) … ; (2) …" enumerations become sub-points.
+
+**Bug fixed along the way — fake section headings.** The old renderer treated
+*any* bracketed text as a section header. A charge breakdown such as
+`€2,064.96 [CONSUMABLES=€603.00, VAL=€1,461.96]` became a heading that cut the
+"Invoice math" line in half, and a sentence *mentioning* "the [MSA DISPUTE
+2026-08-05] block" produced a second, non-existent MSA DISPUTE section on
+754807. A header is now only `[WORDS DATE]` (optionally `- SUFFIX`) standing at
+the top, on a new line, or right after a finished sentence. Across the 399
+reports: 691 headings rendered before, 581 after — exactly the number of real
+section tags in the data.
+
+**Checked before shipping**
+
+- All 399 stored reports render with no errors, and no word of any stored
+  report is dropped (token-for-token comparison against the stored text).
+- Sentence splitting leaves decimals, amounts, `art. 44`, `incl. 7,030`,
+  `e.g.`/`i.e.` and parenthesised text whole — the abbreviation list comes from
+  a scan of the real reports.
+- Screenshots in Chromium, light and dark mode, on 758417, 754807 and
+  FTI0006644-VAS.
+- The patch applies cleanly to the pipeline branch's template and reproduces
+  the tested file byte for byte. The Copy button is unaffected: it copies the
+  raw stored text, not the bullets.
+
+**Still to do.** The Mac generators (`~/build_artifact_dashboard.py` /
+`~/generate_yusen_dashboard.py`) carry their own copy of this renderer. A publish
+from the Mac will put the old paragraph view back until the same change lands
+there.
+
+**Not a renderer issue.** Some stored lines are cut short by the validator
+itself (e.g. FTI0006644-VAS ends "NL totals are EUR +"). That text is truncated
+in BigQuery; the page shows what is stored.
