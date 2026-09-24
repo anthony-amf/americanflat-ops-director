@@ -138,7 +138,7 @@ fetch('/api/status').then(r=>r.json()).then(s=>{
   if(s.missing&&s.missing.length){b.className='banner bad';b.innerHTML=`FedEx isn’t set up yet (missing ${esc(s.missing.join(', '))}). In Terminal, run <code>python3 fedex_quote.py setup</code>, then restart this page.`;}
   else if(s.environment==='test'){b.className='banner test';b.innerHTML=`Connected to FedEx’s <b>test</b> server (account ending ${esc(s.account_hint)}). Quotes are sample prices, not your contract rates.`;}
   else{b.className='banner prod';b.innerHTML=`Connected to FedEx <b>production</b> (account ending ${esc(s.account_hint)}). Quotes are your real account rates.`;}
-}).catch(()=>{$('banner').className='banner bad';$('banner').textContent='The local program isn’t responding. Start it with: python3 fedex_quote.py serve';});
+}).catch(()=>{$('banner').className='banner bad';$('banner').innerHTML='The program behind this page isn’t running. In Terminal, run <code>python3 fedex_quote.py serve</code> from the program folder, leave that window open, then reload this page.';});
 
 function render(){
   const host=$('items');
@@ -157,7 +157,9 @@ $('addCustom').addEventListener('click',()=>{add({label:'Custom box '+(rows.filt
 let hits=[],active=0,timer;
 $('skuSearch').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(async()=>{
   const q=$('skuSearch').value.trim(),box=$('skuResults');if(q.length<2){box.hidden=true;return;}
-  hits=await (await fetch('/api/skus?q='+encodeURIComponent(q))).json();active=0;
+  try{hits=await (await fetch('/api/skus?q='+encodeURIComponent(q))).json();}
+  catch(e){hits=[];box.innerHTML='<div class="hint" style="padding:10px 12px;color:var(--bad)">The program isn’t running, so SKUs can’t be looked up. In Terminal run <b>python3 fedex_quote.py serve</b>, then reload this page.</div>';box.hidden=false;return;}
+  active=0;
   box.innerHTML=hits.length?hits.map((h,i)=>`<button type="button" data-i="${i}" class="${i?'':'active'}"><span class="mono">${esc(h.sku)}</span><small>${h.dims[0]?h.dims.map(d=>(+d).toFixed(1)).join('×')+' in · '+(+h.weight).toFixed(1)+' lb':'no size'}</small></button>`).join(''):'<div class="hint" style="padding:10px 12px">No SKU matches. Add a custom box instead.</div>';
   box.hidden=false;},150);});
 const sizeNote=s=>s==='carton'?'Carton size from the oversize SKU list':s==='item'?'Item size from BigQuery, no packaging':'No saved size. Enter the carton.';
