@@ -181,6 +181,10 @@
   ul.vreport ul { margin: 4px 0 2px; padding-left: 14px; list-style: none; }
   ul.vreport ul li { color: var(--muted); font-variant-numeric: tabular-nums; margin: 1px 0; }
   ul.vreport ul li::before { content: "– "; opacity: .6; }
+  /* Sentences broken out of a labelled line are body text, not the muted rate-detail
+     rows the nested list was first styled for. */
+  ul.vreport ul.vpts { margin: 3px 0 5px; }
+  ul.vreport ul.vpts li { color: var(--ink); font-variant-numeric: normal; margin: 2px 0; }
   .vgroup { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
     color: var(--muted); margin: 10px 0 4px; }
   .vgroup:first-child { margin-top: 0; }
@@ -501,9 +505,19 @@ q.addEventListener("input", render);
 // paragraph form collapses into one unreadable bullet, which is exactly what it did.
 const VLABELS = "(?:Invoice math|Rate card|Stedi|Verdict|Line detail|Paid|Invoice total|Notes)";
 
+// A section header is "[WORDS DATE]", sometimes "[WORDS DATE - SUFFIX]", standing where a
+// section can begin: the top, a new line, or straight after a finished sentence. Other
+// brackets are content: a charge breakdown ("€955.68 [OUTBOUND=€955.68]") or a reference
+// ("the [DEEP PASS 2026-08-10] review above"). Treating those as headers cut sentences in
+// half under invented headings — 754807 showed a second MSA DISPUTE section that was
+// really one sentence mentioning the first.
+const TAG_BODY = "[A-Z][A-Z ]*[A-Z] \\d{4}-\\d{2}-\\d{2}(?: - [A-Z][A-Z ]*[A-Z])?";
+const SECTION_TAG = new RegExp("(^|\\n|[.!?])\\s*(\\[" + TAG_BODY + "\\])\\s*", "g");
+const GROUP_HEAD = new RegExp("^\\[(" + TAG_BODY + ")\\]\\s*(.*)$");
+
 function normalizeReport(text) {
   let s = String(text).replace(/\r\n/g, "\n").trim();
-  s = s.replace(/\s*(\[[^\]\n]{1,60}\])\s*/g, "\n\n$1 ");            // [TAG] opens a group
+  s = s.replace(SECTION_TAG, (m, pre, tag) => pre.replace(/\s+$/, "") + "\n\n" + tag + " ");
   s = s.replace(new RegExp("\\s+(?=" + VLABELS + "\\s*:)", "g"), "\n");  // labels open a line
   return s.trim();
 }
@@ -529,6 +543,83 @@ function rateItems(line) {
   return { lead, items };
 }
 
+// Periods followed by a space that do not end a sentence. Taken from the stored reports:
+// "art. 44", "incl. 7,030". Dotted forms ("e.g.", "i.e.") are caught separately.
+const SENT_ABBR = /(?:^|[\s(])(?:art|incl|excl|approx|vs|etc)$/i;
+
+// Split prose into sentences. Never inside (…) or […], never inside a number (no space
+// follows the dot in "1.8887" or "$6,449.91"), and only where the next word could start a
+// sentence, so "incl. supporting" and "art. 44" stay whole.
+function sentences(text) {
+  const out = [];
+  let start = 0, depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === "(" || c === "[") { depth++; continue; }
+    if (c === ")" || c === "]") {
+      depth = Math.max(0, depth - 1);
+      // A whole sentence in parentheses — "(Worksheet … rows.) On the MSA basis …" —
+      // ends at the closing bracket.
+      if (!depth && /[.!?]/.test(text[i - 1] || "") && /^\s+[A-Z]/.test(text.slice(i + 1, i + 9))) {
+        out.push(text.slice(start, i + 1).trim());
+        start = i + 1;
+      }
+      continue;
+    }
+    if (depth || (c !== "." && c !== "!" && c !== "?")) continue;
+    const next = /^\s+(\S)/.exec(text.slice(i + 1, i + 9));
+    if (!next || !/[A-Z0-9(\[€$£"“'‘⏳✓⚠✗]/.test(next[1])) continue;
+    const head = text.slice(start, i);
+    if (SENT_ABBR.test(head) || /\.[A-Za-z]$/.test(head)) continue;
+    out.push(text.slice(start, i + 1).trim());
+    start = i + 1;
+  }
+  const tail = text.slice(start).trim();
+  if (tail) out.push(tail);
+  return out;
+}
+
+// A short heading before a colon ("No gaps: …", "SCOPE/COMPLETENESS: OK.") or a warning
+// word before a dash ("UNMATCHED — …"). A few words and no digits, so an ordinary sentence
+// that happens to contain a colon is not mistaken for one. An all-capitals heading
+// introduces a list of points; a sentence-case one is just bolded in place.
+function leadLabel(s) {
+  let m = /^([A-Z][A-Za-z/&' -]{0,38}[A-Za-z]):\s+(\S[\s\S]*)$/.exec(s);
+  // "That was wrong: …" is a sentence, not a heading — skip labels opening on a pronoun or article.
+  if (m && m[1].trim().split(/\s+/).length <= 4 && !/^(?:The|This|That|These|Those|It|A|An|There|We)\b/.test(m[1])) {
+    return { label: m[1] + ":", rest: m[2], heading: !/[a-z]/.test(m[1]) };
+  }
+  m = /^([A-Z][A-Z/]{3,}(?: [A-Z/]{2,}){0,2}) — (\S[\s\S]*)$/.exec(s);
+  return m ? { label: m[1] + " —", rest: m[2], heading: false } : null;
+}
+
+// "(1) wrap …; (2) picks …" is a list written out as one sentence.
+function enumItems(s) {
+  const i = s.search(/(?:^|\s)\(1\)\s/);
+  if (i < 0 || !/\s\(2\)\s/.test(s.slice(i))) return null;
+  const items = s.slice(i).trim().split(/[;,]?\s+(?=\(\d+\)\s)/).map(x => x.trim()).filter(Boolean);
+  return items.length >= 2 ? { lead: s.slice(0, i).trim(), items } : null;
+}
+
+function pointLi(s, lab) {
+  lab = lab || leadLabel(s);
+  const head = lab ? `<span class="vlabel">${esc(lab.label)}</span> ` : "";
+  const body = lab ? lab.rest : s;
+  const en = enumItems(body);
+  if (!en) return `<li>${head}${esc(body)}</li>`;
+  return `<li>${head}${esc(en.lead)}<ul class="vpts">` +
+    en.items.map(x => `<li>${esc(x)}</li>`).join("") + "</ul></li>";
+}
+
+// A labelled line keeps its label as the bullet and lists its sentences under it
+// once there is more than one.
+function labeledLi(lab) {
+  const ss = sentences(lab.rest);
+  if (ss.length < 2) return pointLi(lab.rest, lab);
+  return `<li><span class="vlabel">${esc(lab.label)}</span><ul class="vpts">` +
+    ss.map(x => pointLi(x)).join("") + "</ul></li>";
+}
+
 function reportBullets(text) {
   if (!text || !text.trim()) {
     return `<div class="vnone">No validation report stored for this invoice.</div>`;
@@ -538,7 +629,7 @@ function reportBullets(text) {
   for (const block of normalizeReport(text).split(/\n\s*\n/)) {
     const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
-    const tag = lines[0].match(/^\[([^\]]+)\]\s*(.*)$/);
+    const tag = lines[0].match(GROUP_HEAD);
     if (tag) {
       out.push(`<div class="vgroup">${esc(tag[1])}</div>`);
       lines[0] = tag[2];
@@ -552,8 +643,12 @@ function reportBullets(text) {
         return `<li>${rates.lead ? esc(rates.lead) : "Line detail"}${sub}</li>`;
       }
       const kv = line.match(labelRe);
-      return kv ? `<li><span class="vlabel">${esc(kv[1])}:</span> ${esc(kv[2])}</li>`
-                : `<li>${esc(line)}</li>`;
+      if (kv) return labeledLi({ label: kv[1] + ":", rest: kv[2] });
+      const lead = leadLabel(line);
+      if (lead && lead.heading) return labeledLi(lead);
+      // Prose: one bullet per sentence. A block like the shipping check used to
+      // render as a single bullet running to 1,600 characters.
+      return sentences(line).map(x => pointLi(x)).join("");
     }).join("") + "</ul>");
   }
   return out.join("");
