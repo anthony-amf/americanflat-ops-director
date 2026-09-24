@@ -147,6 +147,33 @@ class Quote(unittest.TestCase):
             fq.parse_box('60x40@45')
 
 
+class Orders(unittest.TestCase):
+    ROWS = [{'src': 'shipstation', 'sku': 'MIRCIR3131BLK', 'qty': '2', 'zip': '14222-1124', 'city': 'BUFFALO', 'state': 'NY', 'status': 'shipped'},
+            {'src': 'shipstation', 'sku': 'NOT-A-SKU', 'qty': '1', 'zip': '14222-1124', 'city': 'BUFFALO', 'state': 'NY', 'status': 'shipped'},
+            {'src': 'shopify', 'sku': 'MIRCIR3131BLK', 'qty': '2', 'status': 'FULFILLED'},
+            {'src': 'warehouse', 'qty': '1', 'zip': '14222-1124', 'city': 'BUFFALO', 'state': 'NY', 'warehouse': 'NJ', 'ship_date': '2026-09-23'}]
+
+    def test_shipped_order(self):
+        seen = {}
+        def runner(sql, params):
+            seen.update(params)
+            return self.ROWS
+        o = fq.order_lookup('#28020', runner)
+        self.assertEqual(seen, {'n': '28020', 'name': '#28020'})
+        self.assertEqual((o['zip'], o['warehouse'], o['cartons']), ('14222', 'edison', 1))
+        self.assertEqual([(i['sku'], i['quantity'], i['known']) for i in o['items']], [('MIRCIR3131BLK', 2, True), ('NOT-A-SKU', 1, False)])
+
+    def test_unshipped_order_uses_shopify_lines(self):
+        o = fq.order_lookup('28091', lambda s, p: [{'src': 'shopify', 'sku': 'LX1717BLKNOMAT', 'qty': '1', 'status': 'ON_HOLD'}])
+        self.assertIsNone(o['zip']); self.assertIsNone(o['warehouse']); self.assertEqual(o['source'], 'Shopify')
+
+    def test_missing_and_bad_numbers(self):
+        with self.assertRaisesRegex(fq.QuoteError, 'not found'):
+            fq.order_lookup('99999', lambda s, p: [])
+        with self.assertRaises(fq.QuoteError):
+            fq.order_lookup('abc', lambda s, p: [])
+
+
 class Page(unittest.TestCase):
     def test_server_routes(self):
         httpd = fq.ThreadingHTTPServer(('127.0.0.1', 0), fq.Handler)

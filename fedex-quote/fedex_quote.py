@@ -463,6 +463,81 @@ def check():
         print('This is the test server: quotes will be sample prices, not your contract rates.')
 
 
+# ---------------------------------------------------------------- Shopify orders
+
+ORDER_SQL = """
+WITH ss AS (
+  SELECT * FROM `americanflat.shipstation.orders_raw`
+  WHERE orderNumber = @n AND storeName LIKE '%Shopify%'
+  QUALIFY modifyDate = MAX(modifyDate) OVER ()
+)
+SELECT 'shipstation' AS src, UPPER(TRIM(sku)) AS sku, CAST(SUM(quantity) AS STRING) AS qty,
+       ANY_VALUE(shipToPostalCode) AS zip, ANY_VALUE(shipToCity) AS city, ANY_VALUE(shipToState) AS state,
+       ANY_VALUE(orderStatus) AS status, CAST(NULL AS STRING) AS warehouse, CAST(NULL AS STRING) AS ship_date
+FROM ss WHERE TRIM(IFNULL(sku, '')) != '' GROUP BY 2
+UNION ALL
+SELECT 'shopify', UPPER(TRIM(li.sku)), CAST(SUM(li.quantity) AS STRING), CAST(NULL AS STRING), CAST(NULL AS STRING),
+       CAST(NULL AS STRING), ANY_VALUE(o.fulfillment_status), CAST(NULL AS STRING), CAST(NULL AS STRING)
+FROM `americanflat.shopify.orders` o JOIN `americanflat.shopify.order_line_items` li USING (order_id)
+WHERE o.name = @name AND TRIM(IFNULL(li.sku, '')) != '' GROUP BY 2
+UNION ALL
+SELECT 'warehouse', CAST(NULL AS STRING), CAST(MAX(cartonCount) AS STRING), ANY_VALUE(shipToPostalCode), ANY_VALUE(shipToCity),
+       ANY_VALUE(shipToState), CAST(NULL AS STRING), ANY_VALUE(warehouse), CAST(MAX(shipDate) AS STRING)
+FROM `americanflat.finance.shipment_reconciliation`
+WHERE orderNumber = @n AND channel = 'SHIPSTATION'
+HAVING COUNT(*) > 0
+"""
+WAREHOUSE_CODES = {'FON': 'fontana', 'NJ': 'edison', 'SC': 'hardeeville'}
+
+
+def _bq_path():
+    import shutil
+    for candidate in (shutil.which('bq'), str(Path.home() / 'google-cloud-sdk/bin/bq'), '/opt/homebrew/bin/bq', '/usr/local/bin/bq'):
+        if candidate and Path(candidate).exists():
+            return candidate
+    raise QuoteError('Looking up orders needs the Google Cloud command-line tools (bq), and they were not found on this Mac.')
+
+
+def bq_rows(sql, params):
+    """Run a read-only BigQuery query with the Mac's own Google sign-in. params: {name: string value}."""
+    cmd = [_bq_path(), 'query', '--use_legacy_sql=false', '--format=json', '--max_rows=1000', '--quiet']
+    cmd += ['--parameter=%s:STRING:%s' % (k, v) for k, v in params.items()]
+    r = subprocess.run(cmd + [sql], capture_output=True, text=True, timeout=60)
+    if r.returncode:
+        text = (r.stderr + r.stdout).lower()
+        if any(s in text for s in ('reauth', 'gcloud auth login', 'refresh', 'credentials')):
+            raise QuoteError('Your Google sign-in for BigQuery has expired. In Terminal run: gcloud auth login, then try again.')
+        raise QuoteError('BigQuery lookup failed: %s' % ' '.join((r.stderr or r.stdout).split())[:300])
+    return json.loads(r.stdout or '[]')
+
+
+def order_lookup(number, runner=None):
+    """Shopify order number -> SKUs, quantities, ship-to ZIP and (once shipped) the warehouse."""
+    digits = re.sub(r'\D', '', str(number))
+    if not digits or len(digits) > 12:
+        raise QuoteError('Enter a Shopify order number, like 28020 or #28020.')
+    rows = (runner or bq_rows)(ORDER_SQL, {'n': digits, 'name': '#' + digits})
+    ss = [r for r in rows if r.get('src') == 'shipstation']
+    shop = [r for r in rows if r.get('src') == 'shopify']
+    wh = next((r for r in rows if r.get('src') == 'warehouse'), None)
+    lines = ss or shop
+    if not lines and not wh:
+        raise QuoteError('Order #%s was not found in Shopify or ShipStation data. New orders can take up to a day to appear.' % digits)
+    items = []
+    for r in lines:
+        info = sku_info(r['sku'])
+        items.append({'sku': r['sku'], 'quantity': int(float(r.get('qty') or 1)), 'known': bool(info),
+                      'dims': info['dims'] if info else [None, None, None], 'weight': info['weight'] if info else None})
+    zip_full = (wh or {}).get('zip') or (ss[0].get('zip') if ss else None) or ''
+    place = wh or (ss[0] if ss else {})
+    return {'order': '#' + digits, 'items': items, 'zip': zip_full[:5] if re.match(r'\d{5}', zip_full) else None,
+            'city': place.get('city'), 'state': place.get('state'),
+            'status': (ss[0].get('status') if ss else None) or (shop[0].get('status') if shop else None),
+            'warehouse': WAREHOUSE_CODES.get((wh or {}).get('warehouse') or ''),
+            'ship_date': (wh or {}).get('ship_date'), 'cartons': int(float(wh['qty'])) if wh and wh.get('qty') else None,
+            'source': 'ShipStation' if ss else 'Shopify' if shop else 'warehouse shipment feed'}
+
+
 # ---------------------------------------------------------------- SKUs
 
 def sku_info(sku):
@@ -514,6 +589,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {'environment': None, 'missing': [str(e)]})
         if url.path == '/api/skus':
             return self._send(200, sku_search(params.get('q', [''])[0]))
+        if url.path == '/api/order':
+            try:
+                return self._send(200, order_lookup(params.get('number', [''])[0]))
+            except QuoteError as e:
+                return self._send(400, {'error': str(e)})
+            except subprocess.TimeoutExpired:
+                return self._send(504, {'error': 'BigQuery took too long. Try again.'})
         if url.path == '/api/sku':
             info = sku_info(params.get('sku', [''])[0])
             return self._send(200 if info else 404, info or {'error': 'SKU not found in the saved list.'})

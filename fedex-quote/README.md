@@ -62,6 +62,21 @@ python3 fedex_quote.py quote --from hardeeville --to 30303 --sku MIRCIR3131BLK
 
 `--json` prints everything FedEx returned, trimmed to the useful fields.
 
+## Start from a Shopify order
+
+Type a Shopify order number (`28020` or `#28020`) at the top of the page and
+select **Load order**. It fills in the SKUs and quantities, the destination ZIP
+and, once the order has shipped, the warehouse it left from (and "One carton"
+when the warehouse shipped several units in one box). It reads BigQuery with the
+Mac's own Google sign-in (`bq`), so if it says the sign-in expired, run
+`gcloud auth login`. Orders placed today may show only their SKUs until
+ShipStation's data syncs; enter the ZIP by hand for those.
+
+Sources: `shipstation.orders_raw` (Shopify store) for SKUs and ship-to ZIP,
+`shopify.order_line_items` when ShipStation doesn't have the order yet, and
+`finance.shipment_reconciliation` (the warehouse 945 feed) for the warehouse,
+ship date and carton count.
+
 ## What to know
 
 - **SKU sizes leave out packaging.** They come from BigQuery

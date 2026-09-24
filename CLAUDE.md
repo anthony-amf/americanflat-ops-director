@@ -254,6 +254,13 @@ agreement. The stored `dropship_costs.fedex_rates` totals reproduce exactly as
 residential) x 1.28 fuel, which is how the rate book was confirmed current.
 Product_tab sizes are item sizes without packaging, so they match the stored
 price only when the item ships as-is.
+`fedex-quote` can also load a Shopify order by number: SKUs and ship-to ZIP from
+`shipstation.orders_raw` (store name like '%Shopify%'; order numbers collide
+across stores, so the filter matters), falling back to `shopify.order_line_items`
+for orders ShipStation hasn't synced, and warehouse/ship date/cartons from
+`finance.shipment_reconciliation` with `channel = 'SHIPSTATION'`. Shopify's
+`orders.name` is `#28020`; the other two tables key it as `28020`. Live testing
+on 2026-09-24 matched FedEx to the cent, with fuel at 29% that week.
 
 ## Other directories
 

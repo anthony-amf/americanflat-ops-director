@@ -74,6 +74,11 @@ tr.tot td{font-weight:700;border-bottom:0}
 
   <div class="grid">
     <form id="form" autocomplete="off">
+      <div class="block"><span class="label">Start from a Shopify order</span>
+        <div class="row2" style="grid-template-columns:1fr auto"><input type="text" id="orderNo" placeholder="Order number, e.g. 28020" aria-label="Shopify order number" inputmode="numeric">
+          <button type="button" class="btn" id="loadOrder" style="padding:8px 14px">Load order</button></div>
+        <div class="hint" id="orderNote" aria-live="polite">Fills in the SKUs, quantities, destination ZIP and, once shipped, the warehouse. Or skip this and enter it all by hand.</div>
+      </div>
       <div class="block"><span class="label">Ship from</span>
         <div class="seg" role="radiogroup" aria-label="Ship from">
           <label><input type="radio" name="origin" id="o1" value="fontana" checked><span><b>Fontana</b><small>CA 92335</small></span></label>
@@ -197,6 +202,26 @@ $('form').addEventListener('submit',async e=>{
   }catch(err){out.innerHTML=`<div class="err">${esc(err.message)}</div>`;}
   finally{$('go').disabled=false;$('go').textContent='Get FedEx quote';}
 });
+async function loadOrder(){
+  const n=$('orderNo').value.trim(),note=$('orderNote');if(!n){note.textContent='Enter an order number first.';return;}
+  $('loadOrder').disabled=true;note.textContent='Looking up the order in BigQuery…';
+  try{
+    const res=await fetch('/api/order?number='+encodeURIComponent(n));const o=await res.json();if(!res.ok)throw Error(o.error||'Lookup failed.');
+    rows=[];o.items.forEach(it=>add({sku:it.sku,label:it.sku,count:it.quantity,length:it.dims[0]||'',width:it.dims[1]||'',height:it.dims[2]||'',weight:it.weight||'',
+      note:it.known&&it.dims[0]?'Item size from BigQuery, no packaging':'No saved size for this SKU. Enter the carton.'}));
+    if(o.zip)$('dest').value=o.zip;
+    if(o.warehouse){const el=document.querySelector(`input[name=origin][value="${o.warehouse}"]`);if(el)el.checked=true;}
+    const units=o.items.reduce((s,i)=>s+i.quantity,0);
+    if(o.cartons===1&&units>1){$('p2').checked=true;comboEdited=false;syncCombo();}
+    const wh={fontana:'Fontana',edison:'Edison',hardeeville:'Hardeeville'}[o.warehouse];
+    note.innerHTML=`<b>Order ${esc(o.order)}</b>: ${o.items.length} SKU${o.items.length===1?'':'s'}, ${units} unit${units===1?'':'s'}`+
+      (o.city?` to ${esc(o.city)}, ${esc(o.state)} ${esc(o.zip||'')}`:'')+(wh?` · shipped from <b>${wh}</b> on ${esc(o.ship_date)}${o.cartons?` in ${o.cartons} carton${o.cartons===1?'':'s'}`:''}`:` · ${esc(String(o.status||'').toLowerCase().replace(/_/g,' '))}, so pick the warehouse`)+
+      (o.zip?'':'. No ship-to ZIP yet: enter it above.')+'.';
+  }catch(err){note.textContent=err.message;}
+  finally{$('loadOrder').disabled=false;}
+}
+$('loadOrder').addEventListener('click',loadOrder);
+$('orderNo').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();loadOrder();}});
 const packMode=()=>document.querySelector('input[name=pack]:checked').value;
 let comboEdited=false;
 function stacked(){
