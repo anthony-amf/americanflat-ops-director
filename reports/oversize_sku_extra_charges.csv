@@ -1,0 +1,35 @@
+SKU,Box,L+girth,Weight,FedEx oversize,UPS oversize,USPS >108,YTD units,Shipments w/ extra,Extra ($),By service,By type
+LX4040BLKNOMAT,46x45x2,140,12.28,Yes,Yes,No,1,89,13205.81,"FedEx (service not itemized) $13,205.81","Billed above label cost $13,205.81"
+WB3636BLK,42x41x2,128,12.43,No,No,Yes,24,47,3144.05,"FedEx (service not itemized) $3,144.05","Billed above label cost $3,144.05"
+WMW2840BLK2436,46x31x2,112,10.69,No,No,Yes,418,127,1332.21,"FedEx (service not itemized) $1,332.21","Billed above label cost $1,332.21"
+WB2840BLK,48x36x2,124,15.52,No,No,Yes,31,20,1296.38,"FedEx (service not itemized) $1,296.38","Billed above label cost $1,296.38"
+WB3030BLKPC,35x35x2,109,8.03,No,No,Yes,13,60,1220.37,"FedEx (service not itemized) $1,220.37","Billed above label cost $1,220.37"
+MP-WPC-GSD-2840-WHITE-2436,44x31x2,110,9.02,No,No,Yes,5,25,1138.41,FedEx (service not itemized) $538.31; UPS Ground Saver $511.70; UPS (service not itemized) $88.40,Billed above label cost $626.71; Carrier re-rate after label $511.70
+MP-WPC-GSD-2840-BLACK-2436,46x33x2,116,10.56,No,No,Yes,0,38,1107.21,"FedEx (service not itemized) $1,107.21","Billed above label cost $1,107.21"
+WB2740WHT,45x33x2,115,10.45,No,No,Yes,3,4,548.25,FedEx (service not itemized) $548.25,Billed above label cost $548.25
+WB2740BLK,45x33x2,115,10.12,No,No,Yes,77,29,506.51,FedEx (service not itemized) $506.51,Billed above label cost $506.51
+WMW2840PBRASS2436,46x32x2,114,10.2,No,No,Yes,12,15,460.57,FedEx (service not itemized) $460.57,Billed above label cost $460.57
+LX2840BLK2436,44x31x2,110,8.4,No,No,Yes,20,21,443.8,UPS Ground Saver $242.92; FedEx (service not itemized) $200.88,Carrier re-rate after label $242.92; Billed above label cost $200.88
+LX2840WHT2436,44x31x2,110,8.51,No,No,Yes,0,17,403.16,FedEx (service not itemized) $403.16,Billed above label cost $403.16
+WB2840NAOAK2436,48x35x2,122,13.66,No,No,Yes,4,5,328.6,FedEx (service not itemized) $328.60,Billed above label cost $328.60
+WB3040BLKPC,45x36x2,121,11.55,No,No,Yes,13,11,328.2,FedEx (service not itemized) $328.20,Billed above label cost $328.20
+MPCANFA281P17124362SET,41x30x5,111,9.86,No,No,Yes,0,6,288.0,UPS Ground Saver $252.47; UPS (service not itemized) $35.53,Carrier re-rate after label $252.47; Billed above label cost $35.53
+WMW2840MAH2436,46x32x2,114,10.2,No,No,Yes,0,13,281.7,FedEx (service not itemized) $281.70,Billed above label cost $281.70
+LX3040BLKNOMAT,43x33x2,113,8.69,No,No,Yes,8,26,273.63,UPS Ground Saver $137.72; FedEx (service not itemized) $132.91; USPS Ground Advantage $3.00,Carrier re-rate after label $140.72; Billed above label cost $132.91
+WMW2840GREY2436,46x32x2,114,10.2,No,No,Yes,0,8,209.56,FedEx (service not itemized) $209.56,Billed above label cost $209.56
+MPCANGWA281P17223040,41x31x3,109,5.85,No,No,Yes,0,3,176.51,UPS Ground Saver $176.51,Carrier re-rate after label $176.51
+MPCANGWA281P17133040,41x31x3,109,5.85,No,No,Yes,1,4,171.98,UPS Ground Saver $171.98,Carrier re-rate after label $171.98
+WB2638BLK,44x32x2,112,10.56,No,No,Yes,8,6,130.35,FedEx (service not itemized) $130.35,Billed above label cost $130.35
+WB2535BLK,42x32x2,110,11.24,No,No,Yes,6,5,128.34,FedEx (service not itemized) $128.34,Billed above label cost $128.34
+WB2834BLK2430,39x33x2,109,9.24,No,No,Yes,6,5,98.31,FedEx (service not itemized) $98.31,Billed above label cost $98.31
+GSD2840BLK2436,46x33x2,116,10.78,No,No,Yes,3,2,90.78,UPS Ground Saver $90.78,Carrier re-rate after label $90.78
+MPCANFA281P17233040,45x35x3,121,7.26,No,No,Yes,0,2,86.71,UPS Ground Saver $86.71,Carrier re-rate after label $86.71
+WMW2840WHT2436,46x31x2,112,11.0,No,No,Yes,8,6,85.18,FedEx (service not itemized) $85.18,Billed above label cost $85.18
+MPCANFA302P024362SET,41x30x5,111,9.86,No,No,Yes,4,1,54.3,UPS Ground Saver $54.30,Carrier re-rate after label $54.30
+WB2639BLK,44x32x2,112,10.01,No,No,Yes,3,2,52.63,FedEx (service not itemized) $52.63,Billed above label cost $52.63
+WB2840BLK2436,46x33x2,116,10.67,No,No,Yes,4,2,44.45,FedEx (service not itemized) $44.45,Billed above label cost $44.45
+MP-MDF-WMW-2840-BLACK-2436,46x31x2,112,10.78,No,No,Yes,0,1,33.09,FedEx (service not itemized) $33.09,Billed above label cost $33.09
+MP-PVC-LX-3040-BLACK,43x33x2,113,8.86,No,No,Yes,0,1,32.71,FedEx (service not itemized) $32.71,Billed above label cost $32.71
+WMW2840NAOAK2436,46x32x2,114,10.2,No,No,Yes,1,2,3.46,FedEx (service not itemized) $3.46,Billed above label cost $3.46
+MIRCIR3232BLK,37x36x5,119,18.3,No,No,Yes,1,1,1.63,FedEx (service not itemized) $1.63,Billed above label cost $1.63
+MP-MDF-WMW-2840-WHITE-2436,46x32x2,114,10.34,No,No,Yes,0,1,1.04,FedEx (service not itemized) $1.04,Billed above label cost $1.04
