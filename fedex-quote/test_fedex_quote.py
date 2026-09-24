@@ -110,6 +110,18 @@ class Quote(unittest.TestCase):
         with patch.dict(fq.os.environ, {}, clear=True), patch.object(fq, '_keychain_read', side_effect=only_test.get):
             self.assertEqual(fq.credentials()['environment'], 'test')
 
+    def test_unexplained_error_gets_account_hint(self):
+        creds = dict(CREDS, FEDEX_ENV='production')
+        with patch.dict(fq.os.environ, creds, clear=True), patch.object(fq, '_keychain_read', return_value=None), \
+             patch.object(fq, '_post', side_effect=[TOKEN, (400, {'_raw': '<html>Bad Request</html>'})]):
+            with self.assertRaisesRegex(fq.QuoteError, 'Bad Request.*real Americanflat'):
+                fq.quote('fontana', '83440', OVERSIZE_BOX)
+
+    def test_json_helper(self):
+        self.assertEqual(fq._json(b''), {})
+        self.assertEqual(fq._json('not json')['_raw'], 'not json')
+        self.assertEqual(fq._json(b'{"a":1}'), {'a': 1})
+
     def test_missing_credentials(self):
         with patch.dict(fq.os.environ, {}, clear=True), patch.object(fq, '_keychain_read', return_value=None):
             with self.assertRaisesRegex(fq.QuoteError, 'setup'):

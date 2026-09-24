@@ -124,12 +124,9 @@ def _post(url, body, headers):
     req = urllib.request.Request(url, body, headers, method='POST')
     try:
         with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as r:
-            return r.status, json.loads(r.read() or b'{}')
+            return r.status, _json(r.read())
     except urllib.error.HTTPError as e:
-        try:
-            return e.code, json.loads(e.read() or b'{}')
-        except ValueError:
-            return e.code, {}
+        return e.code, _json(e.read())
     except urllib.error.URLError as e:
         if not isinstance(getattr(e, 'reason', None), ssl.SSLCertVerificationError):
             raise QuoteError('Could not reach FedEx (%s). Check the internet connection.' % e.reason)
@@ -148,14 +145,42 @@ def _curl_post(url, body, headers):
         raise QuoteError('Could not reach FedEx (%s).' % r.stderr.strip())
     text, _, code = r.stdout.rpartition('\n')
     try:
-        return int(code), json.loads(text or '{}')
+        status = int(code)
     except ValueError:
-        return int(code or 0), {}
+        status = 0
+    return status, _json(text)
+
+
+def _json(raw):
+    """Parse a FedEx reply; keep the start of anything that isn't JSON so errors can still be explained."""
+    if isinstance(raw, bytes):
+        raw = raw.decode('utf-8', 'replace')
+    raw = (raw or '').strip()
+    if not raw:
+        return {}
+    try:
+        value = json.loads(raw)
+        return value if isinstance(value, dict) else {'_raw': raw[:400]}
+    except ValueError:
+        return {'_raw': raw[:400]}
 
 
 def _fedex_errors(payload):
-    errs = payload.get('errors') or []
-    return '; '.join('%s: %s' % (e.get('code', 'ERROR'), e.get('message', '')) for e in errs) or 'no details returned'
+    errs = payload.get('errors') or payload.get('output', {}).get('alerts') or []
+    if isinstance(errs, dict):
+        errs = [errs]
+    text = '; '.join('%s: %s' % (e.get('code', 'ERROR'), e.get('message', '')) for e in errs if isinstance(e, dict))
+    if text:
+        return text
+    if payload.get('message') or payload.get('error'):
+        return str(payload.get('message') or payload.get('error'))[:300]
+    if payload.get('_raw'):
+        return 'FedEx replied: ' + ' '.join(payload['_raw'].split())[:300]
+    return 'FedEx sent no explanation'
+
+
+ACCOUNT_HINT = (' If the account number is the one shown on the Test Key tab, production needs your real Americanflat '
+                'FedEx account number instead (it is printed on your FedEx invoices).')
 
 
 _token = {'value': None, 'expires': 0, 'key': None}
@@ -390,7 +415,10 @@ def quote(origin, dest_zip, packages, residential=True, ship_date=None, fuel_per
     status, payload = _post(HOSTS[c['environment']] + '/rate/v1/rates/quotes', body,
                             {'Content-Type': 'application/json', 'X-locale': 'en_US', 'Authorization': 'Bearer ' + token})
     if status != 200:
-        raise QuoteError('FedEx could not rate this shipment (HTTP %s, %s).' % (status, _fedex_errors(payload)))
+        detail = _fedex_errors(payload)
+        print('FedEx rate request failed: HTTP %s, %s' % (status, detail), file=sys.stderr, flush=True)
+        hint = ACCOUNT_HINT if c['environment'] == 'production' and ('ACCOUNT' in detail.upper() or not payload.get('errors')) else ''
+        raise QuoteError('FedEx could not rate this shipment (HTTP %s, %s).%s' % (status, detail, hint))
     result = parse_response(payload, residential)
     try:
         fedex_zone = int(str(result['account'].get('zone') or '').strip())
@@ -412,8 +440,13 @@ def check():
     if missing:
         sys.exit('Missing %s. Run: python3 fedex_quote.py setup' % ', '.join(missing))
     access_token(c)
-    print('FedEx accepted the API key and secret key (%s server, account ending %s).'
-          % (c['environment'], c['account_number'][-4:]))
+    print('FedEx accepted the API key and secret key (%s server).' % c['environment'])
+    try:
+        r = quote('fontana', '83440', [{'length': 12, 'width': 10, 'height': 4, 'weight': 5, 'label': 'check'}])
+    except QuoteError as e:
+        sys.exit('But a sample quote with account ending %s failed: %s' % (c['account_number'][-4:], e))
+    print('A sample quote worked with account ending %s: 12 x 10 x 4 in, 5 lb, Fontana to 83440 = $%s.'
+          % (c['account_number'][-4:], r['account'].get('total')))
     if c['environment'] == 'test':
         print('This is the test server: quotes will be sample prices, not your contract rates.')
 
