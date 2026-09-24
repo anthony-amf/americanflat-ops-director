@@ -122,6 +122,11 @@ class Quote(unittest.TestCase):
         self.assertEqual(fq._json('not json')['_raw'], 'not json')
         self.assertEqual(fq._json(b'{"a":1}'), {'a': 1})
 
+    def test_gzip_reply(self):
+        import gzip
+        self.assertEqual(fq._json(gzip.compress(b'{"errors":[{"code":"ACCOUNT.NUMBER.INVALID","message":"x"}]}'))['errors'][0]['code'],
+                         'ACCOUNT.NUMBER.INVALID')
+
     def test_missing_credentials(self):
         with patch.dict(fq.os.environ, {}, clear=True), patch.object(fq, '_keychain_read', return_value=None):
             with self.assertRaisesRegex(fq.QuoteError, 'setup'):
@@ -177,8 +182,9 @@ class Page(unittest.TestCase):
             def do_POST(self):
                 seen['auth'] = self.headers.get('Authorization')
                 seen['body'] = self.rfile.read(int(self.headers['Content-Length']))
-                data = b'{"ok": "yes \\"quoted\\""}'
-                self.send_response(201); self.send_header('Content-Length', str(len(data))); self.end_headers(); self.wfile.write(data)
+                import gzip
+                data = gzip.compress(b'{"ok": "yes \\"quoted\\""}')
+                self.send_response(201); self.send_header('Content-Encoding', 'gzip'); self.send_header('Content-Length', str(len(data))); self.end_headers(); self.wfile.write(data)
         httpd = fq.ThreadingHTTPServer(('127.0.0.1', 0), Echo)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         try:

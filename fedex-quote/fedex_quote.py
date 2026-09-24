@@ -13,7 +13,7 @@ variables, or from the macOS Keychain after `python3 fedex_quote.py setup`.
   python3 fedex_quote.py serve                 # page at http://127.0.0.1:8767
   python3 fedex_quote.py quote --from fontana --to 83440 --box 60x40x8@45
 """
-import argparse, datetime, getpass, json, math, os, re, ssl, subprocess, sys, threading, time
+import argparse, datetime, getpass, gzip, json, zlib, math, os, re, ssl, subprocess, sys, threading, time
 import urllib.error, urllib.parse, urllib.request
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -137,13 +137,14 @@ def _curl_post(url, body, headers):
     # curl reads its whole config (headers and body) from stdin, so secrets never appear in the process list.
     def q(s):
         return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
-    config = ['url = ' + q(url), 'request = "POST"', 'silent', 'show-error', 'max-time = 30',
+    config = ['url = ' + q(url), 'request = "POST"', 'silent', 'show-error', 'compressed', 'max-time = 30',
               'write-out = "\\n%{http_code}"'] + ['header = ' + q('%s: %s' % kv) for kv in headers.items()]
     config.append('data-binary = ' + q(body.decode()))
-    r = subprocess.run(['/usr/bin/curl', '--config', '-'], input='\n'.join(config), capture_output=True, text=True)
+    config.append('header = "Accept-Encoding: gzip, deflate"')
+    r = subprocess.run(['/usr/bin/curl', '--config', '-'], input='\n'.join(config).encode(), capture_output=True)
     if r.returncode:
-        raise QuoteError('Could not reach FedEx (%s).' % r.stderr.strip())
-    text, _, code = r.stdout.rpartition('\n')
+        raise QuoteError('Could not reach FedEx (%s).' % r.stderr.decode('utf-8', 'replace').strip())
+    text, _, code = r.stdout.rpartition(b'\n')
     try:
         status = int(code)
     except ValueError:
@@ -154,6 +155,17 @@ def _curl_post(url, body, headers):
 def _json(raw):
     """Parse a FedEx reply; keep the start of anything that isn't JSON so errors can still be explained."""
     if isinstance(raw, bytes):
+        # FedEx compresses some replies whether or not it was asked to.
+        if raw[:2] == b'\x1f\x8b':
+            try:
+                raw = gzip.decompress(raw)
+            except (OSError, EOFError):
+                pass
+        elif raw[:1] == b'\x78':
+            try:
+                raw = zlib.decompress(raw)
+            except zlib.error:
+                pass
         raw = raw.decode('utf-8', 'replace')
     raw = (raw or '').strip()
     if not raw:
