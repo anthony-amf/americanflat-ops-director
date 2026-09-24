@@ -29,7 +29,11 @@ The **canonical skill source is NOT in this repo**. It lives at
 `~/.claude/skills/yusen-invoice-validator/` (SKILL.md, scripts/, references/).
 This repo carries:
 
-- `yusen-invoice-validator.skill` — the packaged zip of that source (committed artifact)
+- `yusen-invoice-validator.skill` — the packaged zip, **now v1.6.0** and NOT a dead
+  artifact: the nightly cloud validator unzips this very file and imports it (see
+  Who actually validates, below). Changing validator behaviour in the cloud means
+  repackaging and committing this. The superseded 1.5.0 zip is kept beside the
+  release scripts in `skill-updates/v1.6.0/superseded/`.
 - Root-level `*.py` validators (`rate-card-validator.py`, `invoice-stedi-validator.py`,
   `invoice-validator-demo.py`, `scripts/parse_invoice_excel.py`) — **stale dev
   predecessors** of the skill scripts. Do not edit these expecting behavior to
@@ -88,6 +92,88 @@ regress. For Stedi sweeps over ~1,000 orders, use a concurrent checker
 (ThreadPoolExecutor ~10 workers against `core.us.stedi.com/2023-08-01/transactions`)
 instead of the sequential script.
 
+## Who actually validates (checked 2026-09-10, not inferred)
+
+The ledger has more than one writer, and they disagree. Before concluding anything
+about why a row reads the way it does, establish which one wrote it.
+
+**The live validator is a cloud Routine, not the Mac skill.** Every one of these is
+a Claude session that reads a runbook **from branch `main-07xt41` of this repo** and
+executes it. The sweep runbook unzips the committed `yusen-invoice-validator.skill`
+into `/tmp/skill` and imports `validate_rate_card` from it, so **the deploy path for
+cloud validator behaviour is: edit the skill, repackage, commit the `.skill`, push
+to `main-07xt41`** — no Mac and no published skill repo involved.
+
+Real trigger IDs, read from `list_triggers` on 2026-09-10 (an earlier note here
+guessed one of these wrong — check, don't copy):
+
+| Routine | id | cron (UTC) | on? | does |
+|---|---|---|---|---|
+| `yusen-nightly-validation-2am-mt` | `trig_016vL18kChzAxpv7tfZjqzyS` | `0 8 * * *` | yes | phase 1 contract, then phase 2 Stedi |
+| `yusen-cloud-validation-sweep-midday` | `trig_01GQSfBrEkUVPJj6MqbkSn5D` | `0 17 * * *` | yes | contract only, no Stedi |
+| `yusen-stedi-nightly` | `trig_019Drs2eEgyRt9G3DPu8rwJS` | `0 6 * * *` | **no** — disabled 2026-09-10 | superseded by the nightly's phase 2 |
+| `refresh-yusen-artifact-830am-330pm` | `trig_01YG7tbcgDnpBRKkxo1KDHok` | `30 12,19 * * 1-5` | yes | dashboard |
+| `refresh-yusen-artifact-noon-6pm` | `trig_01PrPh79KQSXtmK2fK9MBBVr` | `0 16,22 * * 1-5` | yes | dashboard |
+
+The **midday pass was re-enabled 2026-09-10** (Anthony) as a second chance the same
+day, now that phase 1 actually runs. Its schedule was `0 14,17 * * *` (two firings);
+cut to the single `0 17 * * *` = 11:00 MT, since one pass serves the purpose. It is
+**contract-only and must never call Stedi** — those lookups are metered and the
+nightly owns them. Its prompt was rewritten at the same time: the old one described
+itself as one of a three-a-day scheme that no longer exists, and enabling it on that
+text would have been worse than leaving it off.
+
+**`yusen-stedi-nightly` is disabled** (Anthony, 2026-09-10). It ran the same
+`STEDI-NIGHTLY-RUNBOOK.md` that the nightly validation runs as its phase 2, but at
+06:00 UTC — two hours *before* phase 1, i.e. the shipping axis ahead of the contract
+axis, the reverse of the order that exists so a row clearing both gets stamped the
+same night. The Stedi runbook had claimed since 2026-08-11 that this Routine was
+"retained but disabled"; it was not, it was enabled and firing every morning
+(`last_fired_at` 2026-09-10T06:08). **The listing's `last_run` field was empty,
+which is not the same as never firing — check `last_fired_at`.**
+
+It wrote nothing on any of those runs, and the likely reason is now guarded: steps
+3 and 4 of that runbook execute scripts from `/tmp/skill/`, which **only phase 1's
+step 2 ever created**. Run standalone there was no phase 1, so the scripts were
+never there. A new "Guard 0b" in the Stedi runbook checks for them and unzips the
+package itself if missing — which also makes the nightly prompt's "if phase 1 fails,
+still attempt phase 2" actually possible, instead of a no-op. Tested from both a
+warm and an empty `/tmp`.
+
+**The cloud run owns the ledger** (Anthony, 2026-09-10). The Mac sweep
+`com.americanflat.yusen-validator-sweep` is to be `launchctl unload`ed — steps and
+rollback in `mac-handoff/hand-the-ledger-to-the-cloud.md`. It had been the only
+thing actually writing, on v1.4.0 with the pre-MSA Notion card, which is why every
+one of the 66 storage rows quoting a rate quoted the legacy figure ($5.90 Fontana /
+$5.98 NJ / $5.09 SC) while the committed package's card holds the MSA rates and its
+code reads `rates["storage"][site]`. The packaged validator cannot produce those
+notes; that is how you tell the two writers apart in the data.
+
+**Why the cloud run wrote nothing for a month, and the lesson.** Step 2 of the
+sweep runbook began `cd ~/americanflat-ops-director`. In the container `$HOME` is
+`/root` and the repo is under `/home/user/`, so the `cd` failed, `unzip` found no
+archive, `VALIDATOR_OK` never printed, and the runbook's own guard then stopped the
+sweep — correctly, on a false premise. Every night: SUCCEEDED, 82 seconds, zero
+rows, 56 invoices waiting. Fixed 2026-09-10; the runbook now derives the repo root
+from `git rev-parse --show-toplevel` and **forbids `~` outright**. Never use `~` in
+a runbook a cloud Routine executes.
+
+A second latent break of the same shape: step 4 calls `apply_vas_pallet_check` and
+`apply_vas_labor_check` (v1.6.0+) while the preflight admitted anything 1.4+, so a
+1.5.x package passed the gate and died mid-step-4. The preflight now greps for the
+functions it is about to call.
+
+**"The Routine succeeded" does not mean it wrote anything.** Both runbooks exit
+quietly when there is nothing to do, so a clean finish is not evidence of work.
+Check `MAX(validated_at)` before believing a run did something — it is the only
+number that distinguishes a real sweep from a skipped one.
+
+**The cloud path is proven end to end** (2026-09-10, from a cloud session): the
+write probe succeeds, the whole ledger reads over REST, Drive returns invoice PDFs
+(they spill to a tool-results file — decode with a script, never read the base64
+into context), and 758665 went `needs_detail` -> `valid` on 3,528 pallets x $4.34 =
+$15,311.52, exact. No Mac involved.
+
 ## Data & environment facts that bite
 
 - **BigQuery** `americanflat.finance.yusen_invoices` is the ledger. The
@@ -112,6 +198,23 @@ instead of the sequential script.
   **embedded EMF image** in the docx — extract text from
   `word/media/image2.emf` (EMR_EXTTEXTOUTW records); pandoc/text alone misses
   it. Below-card billing is a stale-card flag, not a dispute.
+- **`validation_report` is an append-only stack of dated blocks**, and each pass
+  owns exactly one tag: `[AUTO …]` (header sweep), `[MSA REVAL …]`,
+  `[DEEP PASS …]` (in-conversation itemized review), `[STEDI …]`, `[MSA DISPUTE …]`,
+  `[PAID …]`. **Never assign the field directly — always splice via
+  `merge_report(prior, block, tag=…)`.** Through v1.4.0 `--mark-paid` wrote
+  `validation_report = COALESCE(@report, validation_report)`, a full replace, so
+  every payment mark silently discarded the row's history; on 2026-08-11 it wiped
+  the itemized math and the 106/106 and 289/289 Stedi results off 754891 and
+  755265 (1,741/1,644 chars → 386), recoverable only from BigQuery's 7-day table
+  history. A settled row is never re-swept, so nothing rebuilds it. Fixed in
+  v1.5.0; restore SQL in `sql/restore_clobbered_reports_2026-08-11.sql`.
+  Related rule: a **header-level pass must not talk over a deeper one** — when a
+  `[DEEP PASS]`/`[STEDI]`/`[MSA DISPUTE]`/`[MSA REVAL]` block is already on the row,
+  a `needs_detail` result writes a one-line "no new findings, see above" instead of
+  its usual "provide itemized counts / no Stedi result" card, which otherwise reads
+  as the current verdict (the AUTO block is written last) and makes a finished
+  invoice look unfinished.
 - **`validation_status` vocabulary:** `valid` / `needs_detail` / `discrepancy`
   / **`disputed`** (MSA-conflict charges present — wrap beside a $10 pallet,
   0.92/0.966 pack-out, Fontana every-pick billing; disputed $ goes in
@@ -141,19 +244,53 @@ supporting-doc links in BigQuery — deliberately not backfilled, the generators
 rewrite them to `drive.google.com/file/d/<id>/view` at render time (any
 non-dashboard consumer of `supporting_doc_url` needs the same rewrite).
 
-**The cloud refresher's template is a SNAPSHOT and goes stale.** The gated
-refresher on branch `claude/website-auto-refresh-efficiency-9x474j`
-(`refresh_artifact_dashboard.py` + `dashboard_template.html`) renders from a
-copy of the published page with the `const DATA` / `const KPI` literals swapped
-for `/*DATA*/` / `/*KPI*/`. When the artifact's design changes anywhere else
-(e.g. the Mac generators adding the validation UI), that snapshot silently
-falls behind and republishing it **downgrades the live page**. Caught 2026-08-07:
+**The page design IS in this repo — on the refresh branch, not on `main-07xt41`**
+(read from the Ops source 2026-09-10; two earlier notes here got this wrong).
+The Routines clone `americanflat/Ops` and run
+`tools/yusen_dashboard_refresh.py run --published <the file the Artifact read saved>`,
+but that tool is only a **wrapper**. Its constants are:
+
+    SOURCE_REPO   = https://github.com/anthony-amf/americanflat-ops-director
+    SOURCE_BRANCH = claude/website-auto-refresh-efficiency-9x474j
+
+It clones this repo at that branch and runs **that branch's**
+`refresh_artifact_dashboard.py` (with `--force --state <tmp> --out <tmp>`, and no
+`--published`), then fingerprints the render against the live page to decide whether
+to republish. Ops carries no page design at all — `grep -r yid-toolbar` over it
+returns nothing.
+
+So: **to change the published dashboard, edit `dashboard_template.html` on branch
+`claude/website-auto-refresh-efficiency-9x474j`.** Editing it on `main-07xt41` does
+nothing — the restoration was committed there on 2026-09-09 and was never in the
+path; it reached the branch on 2026-09-10 (`ec709bb`). `americanflat/Ops` is also
+reachable and pushable from a cloud session as of 2026-09-10, so nothing here needs
+the Mac.
+
+`mac-handoff/` and `ops-handoff/` were both built on the wrong premise (that the
+template lived in Ops and needed a human to carry it across). They are kept because
+`check_template.py` and `resnapshot_template.py` are still useful tools, but the
+handover procedure in `ops-handoff/README.md` targets the wrong repository.
+
+**Any such template is a SNAPSHOT and goes stale.** It is the published page with
+the `const DATA` / `const KPI` literals swapped for `/*DATA*/` / `/*KPI*/`, so when
+the page's design changes anywhere else, the snapshot silently falls behind and
+republishing it **downgrades the live page**. This has now happened twice. 2026-08-07:
 the snapshot predated the Validated column entirely, and its query projected 13
-columns with no validation fields — `normalize()` also whitelists fields, so
-both the SELECT *and* the whitelist need the new columns. Fix procedure: WebFetch
-the live artifact, extract from `<title>` to the last `</script>`, restore the
-two placeholders, and confirm every `r.<field>` the template reads is emitted by
-`normalize()`. Do this whenever the page design changes.
+columns with no validation fields — `normalize()` also whitelists fields, so both
+the SELECT *and* the whitelist need the new columns. 2026-09-03: a publish dropped
+the sticky column headers and the whole mark-paid basket, and the loss went
+unnoticed for six days because the gate reported NO_CHANGE and nobody diffed the
+page. Restored 2026-09-09 (the CSS recovered byte-for-byte from a saved diff; the
+basket's JS had to be rewritten).
+
+So the check is now mechanical, not a procedure to remember: pass
+`--published <live page>` to `refresh_artifact_dashboard.py` and it compares the
+template against the live page with both literals blanked. Any difference at all
+and it refuses, prints the diff and queries nothing. `--accept-template-drift`
+overrides it — that is how a deliberate design change ships. **The Ops copy has no
+such guard yet; adding one there is what actually protects the page.** Also still
+worth confirming by hand when the design changes: every `r.<field>` the template
+reads must be emitted by `normalize()`.
 
 **The Marketplace Shipments portal** is the second artifact — Target, Macy's,
 Michaels and Shopify orders, searchable by order number, customer name or
@@ -233,6 +370,15 @@ plain string replace will double-insert.
 
 ## Other directories
 
+- **Two launchd jobs are live on the Mac** (verified `launchctl list`, 2026-08-12) —
+  `com.americanflat.yusen-validator-sweep` (last exit 0; sweeps all ~335 rows
+  several times a day on **v1.4.0**, so it keeps rewriting `[AUTO]` blocks in the
+  superseded format) and `com.americanflat.yusen-invoice-processor` (last exit
+  **1 — failing**; this is the Yusen ingestion job, own org repo
+  `skill-yusen-invoice-processor`, *not* `skill-invoice-to-bigquery`, which targets
+  `finance.freight_invoices`). Earlier notes claiming the sweep was unloaded on
+  2026-08-06 were wrong. Check `launchctl list | grep -i yusen` before concluding
+  anything about what writes to the ledger.
 - `extraction/`, `schema/`, `samples/`, the root guides
   (`README.md`, `IMPLEMENTATION_GUIDE.md`, `STEDI_*.md`) — the original design
   docs and scaffolding for the extraction→BigQuery pipeline. Extraction itself
@@ -258,10 +404,13 @@ plain string replace will double-insert.
 - **Decision queue:** local memory doesn't sync — read `OPEN-ITEMS.md` (kept as
   a mirror; update it when decisions land).
 - **Credentials:** `STEDI_API_KEY` must be provided as an environment secret.
-  **BigQuery via the cloud proxy is READ-ONLY** — `SELECT` against
-  `bigquery.googleapis.com` works with proxy-injected auth (curl the REST API
-  directly), but DML/ALTER return permission-denied. All writes (stamps,
-  backfills, `--init`) run from the Mac's gcloud ADC. Notion/Drive/Gmail/Slack
+  **BigQuery reads AND WRITES work from a cloud session** — `SELECT` and `UPDATE`
+  both go through `bigquery.googleapis.com` with proxy-injected auth (curl the REST
+  API directly). Verified 2026-09-09: thirteen `[STEDI]` stamps written from a cloud
+  session, and again 2026-09-10 reading the whole ledger. The older note here said
+  writes were denied and that all stamps had to run from the Mac's gcloud ADC; that
+  is wrong and it nearly stopped a cloud sweep being attempted at all. Table
+  creation (`tables.create`) is still not granted, so `--init` remains a Mac job. Notion/Drive/Gmail/Slack
   MCP connectors work in cloud; Chrome automation does not; there is **no `gh`
   CLI** — use the GitHub MCP tools.
 - **PDF tooling:** the container's `pypdf` is broken until

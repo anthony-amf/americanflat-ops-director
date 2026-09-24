@@ -1,0 +1,14 @@
+[MSA REVAL 2026-08-06] MSA HEADER PASS COMPLETE: invoice math exact, all parsed lines at MSA-schedule rates. 5 line(s) at MSA rates: 3,005 x 1.6422 ship carton SC = $4,934.81; 85 x 6.5 BOL = $552.50; 128 x 2.7531 ecom pnp carton SC = $352.40; 205 x 0.84 small parcels SC = $172.20; 90 x 0.5796 additional ecom pick SC = $52.16. Stedi order-level pass + worksheet deep pass still pending (SP/LTL payment gate) -- status stays needs_detail until run.
+
+[DEEP PASS 2026-08-10] Invoice 755265 - SMLPRCL/LTL, TS South (SC), outbound 07/07-07/13/2026, $6,064.07
+Invoice math: OK exact, all five lines tie to the supporting shipped report. 128 ECOM PNP CARTONS @2.7531=352.40 (=distinct ECOM HUIDs 128); 90 ADDITIONAL ECOM PICKS @0.5796=52.16 (=218 units - 128 cartons); 3005 WHOLESALE CARTONS @1.6422=4,934.81 (=distinct wholesale HUIDs 3005); 205 WHOLESALE CARTONS FOR UPS/FEDEX @0.84=172.20 (=wholesale cartons on UPS/FedEx 205); 85 WHOLESALE BOLS @6.50=552.50 (=distinct truck BOLs excl UPS/FedEx 85). Sum=6,064.07.
+Rate card: OK 1.6422 / 0.5796 / 0.84 match live Notion card. Same two SC card gaps as 754891 (2.7531 ecom carton, 6.50 BOL).
+MSA dispute screen: clean.
+Stedi: 289/289 orders shipped (945). 128 small parcel + 161 LTL. 1 id-hygiene fix.
+Verdict: OK to pay.
+
+[AUTO 2026-08-11] Invoice 755265 — SMLPRCL/LTL, south_carolina, 2026-07-14
+Invoice math:  ⏳ SMLPRCL/LTL: header total $6,064.07 recorded. Small Parcel/LTL bills per fee (carton, pick, pallet, BOL); provide itemized counts.
+Rate card:     ⏳ per-unit rate check needs itemized counts
+Stedi:         order-level Stedi check available via supporting Excel
+Verdict:       OK to pay
