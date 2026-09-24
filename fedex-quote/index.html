@@ -122,7 +122,7 @@ function render(){
   const host=$('items');
   if(!rows.length){host.innerHTML='<div class="empty">No boxes yet.</div>';return;}
   host.innerHTML=rows.map(r=>{
-    const f=(k,l)=>`<label class="field"><span>${l}</span><input type="number" min="0" step="${k==='count'?1:0.1}" id="r${r.id}${k}" data-id="${r.id}" data-k="${k}" value="${esc(r[k])}"></label>`;
+    const f=(k,l)=>`<label class="field"><span>${l}</span><input type="number" min="0" step="${k==='count'?1:'any'}" id="r${r.id}${k}" data-id="${r.id}" data-k="${k}" value="${esc(r[k])}"></label>`;
     return `<div class="item"><div class="item-head"><div><div class="item-name">${esc(r.label)}</div><div class="item-sub">${esc(r.note||'Outside carton size and packed weight')}</div></div><button type="button" class="x" data-rm="${r.id}" aria-label="Remove ${esc(r.label)}">×</button></div>
       <div class="dims">${f('count','Qty')}${f('length','L in')}${f('width','W in')}${f('height','H in')}${f('weight','lb')}</div>
       <label class="check"><input type="checkbox" id="r${r.id}ns" data-id="${r.id}" data-k="nonstandard"${r.nonstandard?' checked':''}> Not a standard corrugated carton</label></div>`;}).join('');
