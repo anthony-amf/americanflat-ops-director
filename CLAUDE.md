@@ -231,6 +231,30 @@ its columns/chip helpers plus fresh data every run. When adding dashboard
 features, extend the patcher's add-if-missing / upgrade-if-stale pattern; a
 plain string replace will double-insert.
 
+## FedEx package pricing
+
+Two tools, both built 2026-09-24, for pricing a box (mainly oversize and
+additional-handling cases) from Fontana 92335, Edison 08837 or Hardeeville SC
+29927 (Taylored's SC site; the 945 feed spells it "HARDESVILLE", ZIP assumed):
+
+- **FedEx Oversize Estimator** artifact
+  (`https://claude.ai/artifact/E4m8dDTWCehbxtPDyutpM8`): works offline from the
+  contract rate book, zone estimated from ZIP distance. Built from a scratch
+  template in a cloud session, not from a file in this repo.
+- **`fedex-quote/`**: a Mac program that asks FedEx's Rates and Transit Times API
+  for the real quote and sets it beside the rate-book estimate. Credentials live
+  in the Mac Keychain (`fedex_quote.py setup`), never in files. FedEx's API does
+  not allow browser calls (no CORS), and cloud sessions can't reach
+  `apis.fedex.com`, so live quotes only work from the Mac.
+
+The rate book is FedEx proposal 15749184 (effective 2026-01-05), attached to the
+"FedEx Pricing Agreement" email in Drive; it is confidential under that
+agreement. The stored `dropship_costs.fedex_rates` totals reproduce exactly as
+(Home Delivery rate at billable weight + handling or oversize fee + $2.00
+residential) x 1.28 fuel, which is how the rate book was confirmed current.
+Product_tab sizes are item sizes without packaging, so they match the stored
+price only when the item ships as-is.
+
 ## Other directories
 
 - `extraction/`, `schema/`, `samples/`, the root guides

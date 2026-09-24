@@ -72,3 +72,6 @@ Thumbs.db
 # Generated dashboards (rebuild with refresh_marketplace_shipments.py)
 marketplace_shipments.html
 marketplace_shipments.ndjson
+
+# FedEx live-quote reference data (rate book, SKU sizes, ZIP locations)
+!fedex-quote/data/*.json

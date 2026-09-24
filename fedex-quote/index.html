@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FedEx Live Quote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#FFFFFF;--text:#0F0F0F;--muted:#666666;--rule:#E6E6E6;--rule-bold:#B3B3B3;--field:#FFFFFF;--ink:#0F0F0F;--ink-text:#FFFFFF;
+  --focus:#003595;--link:#003595;--sel:#F1F4FA;--ok:#1F6B3A;--ok-bg:#E6F1EA;--warn:#8F4E00;--warn-bg:#FBEFD9;--bad:#B00C27;--bad-bg:#FBE5E9;
+  --font:'DM Sans','Inter',system-ui,sans-serif;--mono:'DM Mono',ui-monospace,Menlo,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#0F0F0F;--text:#F2F2F2;--muted:#A6A6A6;--rule:#2A2A2A;--rule-bold:#474747;--field:#141414;
+  --ink:#F2F2F2;--ink-text:#0F0F0F;--focus:#8FB0F0;--link:#8FB0F0;--sel:#18202E;--ok:#86D3A0;--ok-bg:#132419;--warn:#F0BC66;--warn-bg:#2A2010;--bad:#F58A9B;--bad-bg:#2E1318}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 var(--font);padding:0 20px 56px;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid var(--rule)}
+.wordmark{font-weight:700;font-size:20px;letter-spacing:.04em}
+h1{font-size:30px;line-height:1.15;margin:26px 0 4px}.lede{margin:0 0 18px;color:var(--muted)}
+.banner{border-radius:6px;padding:10px 14px;font-size:14px;margin-bottom:18px}
+.banner.test{background:var(--warn-bg);color:var(--warn)}.banner.prod{background:var(--ok-bg);color:var(--ok)}.banner.bad{background:var(--bad-bg);color:var(--bad)}
+.banner code{font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:28px;align-items:start}
+form{display:grid;gap:16px}.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.block{display:grid;gap:8px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule-bold);border-radius:6px;overflow:hidden}.seg.two{grid-template-columns:1fr 1fr}
+.seg label{position:relative;cursor:pointer}.seg input{position:absolute;opacity:0}
+.seg span{display:grid;padding:8px;text-align:center;border-left:1px solid var(--rule-bold);height:100%}.seg label:first-child span{border-left:0}
+.seg small{font-size:11px;color:var(--muted);font-family:var(--mono)}.seg input:checked+span{background:var(--ink);color:var(--ink-text)}.seg input:checked+span small{color:inherit;opacity:.75}
+.seg input:focus-visible+span{outline:2px solid var(--focus);outline-offset:-3px}
+.field{display:grid;gap:4px}.field>span{font-size:13px;color:var(--muted)}
+input[type=text],input[type=number],input[type=date]{background:var(--field);border:1px solid var(--rule-bold);border-radius:5px;padding:8px 10px;width:100%;min-width:0}
+input[type=number]{font-family:var(--mono)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.search{position:relative}
+.results{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--bg);border:1px solid var(--rule-bold);border-radius:6px;z-index:5;max-height:280px;overflow:auto}
+.results button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--rule);padding:8px 12px;cursor:pointer}
+.results button:hover,.results button.active{background:var(--sel)}.results small{color:var(--muted);font-family:var(--mono);font-size:12px}
+.linkbtn{background:none;border:0;padding:0;color:var(--link);text-decoration:underline;cursor:pointer;font-size:13px;justify-self:start}
+.item{border:1px solid var(--rule);border-radius:6px;padding:10px 12px;display:grid;gap:8px}
+.item-head{display:flex;justify-content:space-between;gap:8px}.item-name{font-weight:700;font-family:var(--mono);font-size:13.5px;overflow-wrap:anywhere}
+.item-sub{font-size:12.5px;color:var(--muted)}
+.dims{display:grid;grid-template-columns:62px repeat(4,minmax(0,1fr));gap:6px}.dims .field>span{font-size:11px}.dims input{padding:6px;font-size:13px}
+.x{background:none;border:1px solid var(--rule);border-radius:5px;width:28px;height:28px;cursor:pointer;color:var(--muted);flex:none}
+.check{display:flex;gap:8px;font-size:13px;color:var(--muted)}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--ink-text);border-radius:6px;padding:11px 16px;font-weight:700;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:default}
+.empty{border:1px dashed var(--rule-bold);border-radius:6px;padding:14px;text-align:center;color:var(--muted);font-size:14px}
+.card{border:1px solid var(--rule);border-radius:8px;padding:16px 18px;display:grid;gap:12px}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px 20px}
+.total{font:700 42px/1 var(--mono);letter-spacing:-.02em}.cap{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.facts{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13.5px;color:var(--muted)}.facts b{color:var(--text)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:6px 0;border-bottom:1px solid var(--rule);font-size:13.5px;text-align:left;vertical-align:top}
+td.n,th.n{text-align:right;font-family:var(--mono);white-space:nowrap;padding-left:14px}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr.tot td{font-weight:700;border-bottom:0}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.diff{font-size:13.5px;padding:10px 12px;border-radius:6px}.diff.same{background:var(--ok-bg);color:var(--ok)}.diff.off{background:var(--warn-bg);color:var(--warn)}
+.err{background:var(--bad-bg);color:var(--bad);border-radius:6px;padding:12px 14px;font-size:14px}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+@media (max-width:900px){.grid{grid-template-columns:1fr}.cmp{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="wordmark">americanflat<sup style="font-weight:400;font-size:9px">®</sup></div><div class="hint">Runs on this computer only</div></header>
+  <h1>FedEx Live Quote</h1>
+  <p class="lede">Get FedEx's own price for a box or shipment, with every fee it charges, next to the contract rate-book estimate.</p>
+  <div class="banner" id="banner">Checking FedEx settings…</div>
+
+  <div class="grid">
+    <form id="form" autocomplete="off">
+      <div class="block"><span class="label">Ship from</span>
+        <div class="seg" role="radiogroup" aria-label="Ship from">
+          <label><input type="radio" name="origin" id="o1" value="fontana" checked><span><b>Fontana</b><small>CA 92335</small></span></label>
+          <label><input type="radio" name="origin" id="o2" value="edison"><span><b>Edison</b><small>NJ 08837</small></span></label>
+          <label><input type="radio" name="origin" id="o3" value="hardeeville"><span><b>Hardeeville</b><small>SC 29927</small></span></label>
+        </div></div>
+      <div class="row2">
+        <label class="field"><span>Destination ZIP</span><input type="text" id="dest" inputmode="numeric" maxlength="5" placeholder="5 digits" required></label>
+        <label class="field"><span>Ship date</span><input type="date" id="date"></label>
+      </div>
+      <div class="block"><span class="label">Delivery address</span>
+        <div class="seg two" role="radiogroup" aria-label="Delivery address">
+          <label><input type="radio" name="svc" id="s1" value="res" checked><span><b>Residential</b><small>Home Delivery</small></span></label>
+          <label><input type="radio" name="svc" id="s2" value="biz"><span><b>Business</b><small>FedEx Ground</small></span></label>
+        </div></div>
+      <div class="block"><span class="label">Boxes</span>
+        <div class="search"><input type="text" id="skuSearch" placeholder="Search a SKU to add it" aria-label="Search SKU"><div class="results" id="skuResults" hidden></div></div>
+        <button type="button" class="linkbtn" id="addCustom">+ Add a custom box</button>
+        <div id="items" class="block"></div>
+        <p class="hint">SKU sizes come from BigQuery and leave out packaging. Change them to the real carton for an accurate quote. Qty is the number of identical boxes.</p>
+      </div>
+      <button class="btn" id="go" type="submit">Get FedEx quote</button>
+    </form>
+    <section id="out" aria-live="polite"><div class="empty">Enter a ZIP and at least one box, then select Get FedEx quote.</div></section>
+  </div>
+</div>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const when=s=>{if(!s)return '';const d=/^\d{4}-\d{2}-\d{2}/.test(s)?new Date(s.slice(0,10)+'T12:00:00'):null;return d&&!isNaN(d)?d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):String(s).replace(/_/g,' ').toLowerCase();};
+const money=v=>v==null?'—':(v<0?'−':'')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+let rows=[],uid=0;
+$('date').value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+$('dest').addEventListener('input',()=>{$('dest').value=$('dest').value.replace(/\D/g,'').slice(0,5);});
+
+fetch('/api/status').then(r=>r.json()).then(s=>{
+  const b=$('banner');
+  if(s.missing&&s.missing.length){b.className='banner bad';b.innerHTML=`FedEx isn’t set up yet (missing ${esc(s.missing.join(', '))}). In Terminal, run <code>python3 fedex_quote.py setup</code>, then restart this page.`;}
+  else if(s.environment==='test'){b.className='banner test';b.innerHTML=`Connected to FedEx’s <b>test</b> server (account ending ${esc(s.account_hint)}). Quotes are sample prices, not your contract rates.`;}
+  else{b.className='banner prod';b.innerHTML=`Connected to FedEx <b>production</b> (account ending ${esc(s.account_hint)}). Quotes are your real account rates.`;}
+}).catch(()=>{$('banner').className='banner bad';$('banner').textContent='The local program isn’t responding. Start it with: python3 fedex_quote.py serve';});
+
+function render(){
+  const host=$('items');
+  if(!rows.length){host.innerHTML='<div class="empty">No boxes yet.</div>';return;}
+  host.innerHTML=rows.map(r=>{
+    const f=(k,l)=>`<label class="field"><span>${l}</span><input type="number" min="0" step="${k==='count'?1:0.1}" id="r${r.id}${k}" data-id="${r.id}" data-k="${k}" value="${esc(r[k])}"></label>`;
+    return `<div class="item"><div class="item-head"><div><div class="item-name">${esc(r.label)}</div><div class="item-sub">${esc(r.note||'Outside carton size and packed weight')}</div></div><button type="button" class="x" data-rm="${r.id}" aria-label="Remove ${esc(r.label)}">×</button></div>
+      <div class="dims">${f('count','Qty')}${f('length','L in')}${f('width','W in')}${f('height','H in')}${f('weight','lb')}</div>
+      <label class="check"><input type="checkbox" id="r${r.id}ns" data-id="${r.id}" data-k="nonstandard"${r.nonstandard?' checked':''}> Not a standard corrugated carton</label></div>`;}).join('');
+}
+$('items').addEventListener('input',e=>{const r=rows.find(x=>x.id==e.target.dataset.id);if(!r)return;const k=e.target.dataset.k;r[k]=k==='nonstandard'?e.target.checked:e.target.value;});
+$('items').addEventListener('click',e=>{const id=e.target.dataset.rm;if(id){rows=rows.filter(x=>x.id!=id);render();}});
+function add(r){rows.push(Object.assign({id:++uid,count:1,length:'',width:'',height:'',weight:'',nonstandard:false},r));render();}
+$('addCustom').addEventListener('click',()=>{add({label:'Custom box '+(rows.filter(r=>!r.sku).length+1)});$('r'+uid+'length').focus();});
+
+let hits=[],active=0,timer;
+$('skuSearch').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(async()=>{
+  const q=$('skuSearch').value.trim(),box=$('skuResults');if(q.length<2){box.hidden=true;return;}
+  hits=await (await fetch('/api/skus?q='+encodeURIComponent(q))).json();active=0;
+  box.innerHTML=hits.length?hits.map((h,i)=>`<button type="button" data-i="${i}" class="${i?'':'active'}"><span class="mono">${esc(h.sku)}</span><small>${h.dims[0]?h.dims.map(d=>(+d).toFixed(1)).join('×')+' in · '+(+h.weight).toFixed(1)+' lb':'no size'}</small></button>`).join(''):'<div class="hint" style="padding:10px 12px">No SKU matches. Add a custom box instead.</div>';
+  box.hidden=false;},150);});
+function pick(h){add({sku:h.sku,label:h.sku,length:h.dims[0]||'',width:h.dims[1]||'',height:h.dims[2]||'',weight:h.weight||'',note:h.dims[0]?'Item size from BigQuery, no packaging':'No saved size. Enter the carton.'});
+  $('skuSearch').value='';$('skuResults').hidden=true;}
+$('skuResults').addEventListener('mousedown',e=>{const b=e.target.closest('button');if(b){e.preventDefault();pick(hits[b.dataset.i]);}});
+$('skuSearch').addEventListener('keydown',e=>{const box=$('skuResults');if(box.hidden||!hits.length)return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();active=(active+(e.key==='ArrowDown'?1:hits.length-1))%hits.length;box.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===active));}
+  else if(e.key==='Enter'){e.preventDefault();pick(hits[active]);}else if(e.key==='Escape')box.hidden=true;});
+
+function lines(a){
+  const out=[['Base transportation',a.base]];
+  if(a.discounts)out.push(['Discounts',-Math.abs(a.discounts)]);
+  (a.surcharges||[]).forEach(s=>out.push([s.description||s.type||'Surcharge',s.amount]));
+  return out;
+}
+$('form').addEventListener('submit',async e=>{
+  e.preventDefault();const out=$('out');
+  if(!/^\d{5}$/.test($('dest').value)){out.innerHTML='<div class="err">Enter a five-digit destination ZIP.</div>';return;}
+  if(!rows.length){out.innerHTML='<div class="err">Add at least one box.</div>';return;}
+  const residential=document.querySelector('input[name=svc]:checked').value==='res';
+  const body={origin:document.querySelector('input[name=origin]:checked').value,destination:$('dest').value,residential,shipDate:$('date').value,
+    packages:rows.map(r=>({label:r.label,count:r.count,length:r.length,width:r.width,height:r.height,weight:r.weight,nonstandard:r.nonstandard}))};
+  $('go').disabled=true;$('go').textContent='Asking FedEx…';out.innerHTML='<div class="empty">Asking FedEx…</div>';
+  try{
+    const res=await fetch('/api/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const r=await res.json();
+    if(!res.ok)throw Error(r.error||'FedEx could not rate this shipment.');
+    const a=r.account,est=r.estimate;
+    const diff=est&&a.total!=null?Math.round((a.total-est.total)*100)/100:null;
+    const boxes=r.requested.reduce((s,p)=>s+p.count,0);
+    out.innerHTML=`<div class="card">
+      <div class="head"><div><div class="cap">FedEx ${r.environment==='test'?'test-server ':''}total</div><div class="total">${money(a.total)}</div></div>
+      <div class="facts"><span><b>${esc(r.service)}</b></span><span>${esc(r.origin.name)} → <b>${esc(r.destination)}</b></span><span>Zone <b>${esc(a.zone||'?')}</b></span><span>Billed <b>${esc(a.billing_weight??'?')} lb</b></span><span><b>${boxes}</b> box${boxes===1?'':'es'}</span>${a.fuel_percent!=null?`<span>Fuel <b>${a.fuel_percent}%</b></span>`:''}${r.delivery||r.transit?`<span>Delivery <b>${esc(when(r.delivery||r.transit))}</b></span>`:''}</div></div>
+      ${r.environment==='test'?'<div class="banner test" style="margin:0">Test server: these are sample prices, so don’t compare them to the estimate yet.</div>':''}
+      <div class="cmp"><div><div class="cap">What FedEx charges</div><table><tbody>${lines(a).map(l=>`<tr><td>${esc(l[0])}</td><td class="n">${money(l[1])}</td></tr>`).join('')}<tr class="tot"><td>FedEx total</td><td class="n">${money(a.total)}</td></tr></tbody></table>
+        ${r.list&&r.list.total!=null?`<p class="hint" style="margin-top:8px">FedEx list price before your discounts: ${money(r.list.total)}</p>`:''}</div>
+      <div><div class="cap">Rate-book estimate${est?` · zone ${est.zone} (${esc(r.zone_source)})`:''}</div>${est?`<table><tbody>${est.packages.map(p=>p.lines.length?`<tr><td colspan="2"><b>${esc(p.label)}</b>${p.count>1?` × ${p.count}`:''} · ${p.billable} lb billable</td></tr>${p.lines.map(l=>`<tr><td>${esc(l.label)}</td><td class="n">${money(l.amount)}</td></tr>`).join('')}<tr><td>Fuel ${est.fuel_percent}%</td><td class="n">${money(p.fuel)}</td></tr>`:`<tr><td colspan="2">${esc(p.label)}: ${esc(p.note)}</td></tr>`).join('')}<tr class="tot"><td>Estimate</td><td class="n">${money(est.total)}</td></tr></tbody></table>`:'<p class="hint">No estimate for this zone.</p>'}</div></div>
+      ${diff!=null&&r.environment!=='test'?`<div class="diff ${Math.abs(diff)<=0.05?'same':'off'}">${Math.abs(diff)<=0.05?'FedEx matches the rate-book estimate.':`FedEx is ${money(Math.abs(diff))} ${diff>0?'higher':'lower'} than the rate-book estimate. Compare the fee lines above to see which charge differs.`}</div>`:''}
+      ${a.packages&&a.packages.length>1?`<div><div class="cap">By box, from FedEx</div><table><thead><tr><th>Box</th><th class="n">Billed lb</th><th class="n">Base</th><th class="n">Fees</th><th class="n">Total</th></tr></thead><tbody>${a.packages.map((p,i)=>`<tr><td>${esc(r.requested[i]?.label||('Box '+(i+1)))}</td><td class="n">${esc(p.billing_weight??'—')}</td><td class="n">${money(p.base)}</td><td class="n">${money((p.surcharges||[]).reduce((s,x)=>s+(x.amount||0),0))}</td><td class="n">${money(p.total)}</td></tr>`).join('')}</tbody></table></div>`:''}
+      ${(r.messages||[]).length?`<p class="hint">FedEx notes: ${r.messages.map(esc).join(' · ')}</p>`:''}
+      <p class="hint">Quoted ${esc(new Date(r.quoted_at).toLocaleString())}. A quote isn’t a label; nothing is booked or charged.</p></div>`;
+  }catch(err){out.innerHTML=`<div class="err">${esc(err.message)}</div>`;}
+  finally{$('go').disabled=false;$('go').textContent='Get FedEx quote';}
+});
+render();
+})();
+</script>
+</body>
+</html>
