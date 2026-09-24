@@ -41,6 +41,7 @@ FEES = {'ahs_dim': [14.75, 16.38, 19.25, 20.38], 'ahs_weight': [23.00, 25.13, 28
 _rates = json.loads((DATA / 'rates.json').read_text())
 _zip3 = json.loads((DATA / 'zip3.json').read_text())
 _skus = {r[0]: r for r in json.loads((DATA / 'skus.json').read_text())['rows']}
+_boxes = json.loads((DATA / 'boxes.json').read_text())['boxes'] if (DATA / 'boxes.json').exists() else {}
 
 
 # ---------------------------------------------------------------- credentials
@@ -527,7 +528,8 @@ def order_lookup(number, runner=None):
     for r in lines:
         info = sku_info(r['sku'])
         items.append({'sku': r['sku'], 'quantity': int(float(r.get('qty') or 1)), 'known': bool(info),
-                      'dims': info['dims'] if info else [None, None, None], 'weight': info['weight'] if info else None})
+                      'dims': info['dims'] if info else [None, None, None], 'weight': info['weight'] if info else None,
+                      'size_source': info['size_source'] if info else None})
     zip_full = (wh or {}).get('zip') or (ss[0].get('zip') if ss else None) or ''
     place = wh or (ss[0] if ss else {})
     return {'order': '#' + digits, 'items': items, 'zip': zip_full[:5] if re.match(r'\d{5}', zip_full) else None,
@@ -541,19 +543,27 @@ def order_lookup(number, runner=None):
 # ---------------------------------------------------------------- SKUs
 
 def sku_info(sku):
-    r = _skus.get(str(sku).strip().upper())
-    if not r:
+    key = str(sku).strip().upper()
+    r, box = _skus.get(key), _boxes.get(key)
+    if not r and not box:
         return None
-    return {'sku': r[0], 'dims': [r[1] or None, r[2] or None, r[3] or None], 'weight': r[4] or None,
-            'stored_rates': {str(z): r[3 + z] or None for z in range(2, 9)}}
+    info = {'sku': key, 'dims': [None, None, None], 'weight': None, 'stored_rates': {}, 'size_source': None}
+    if r:
+        info.update(dims=[r[1] or None, r[2] or None, r[3] or None], weight=r[4] or None,
+                    stored_rates={str(z): r[3 + z] or None for z in range(2, 9)}, size_source='item')
+    if box:
+        # Measured carton from the oversize SKU list beats the bare item size; keep the item weight if the list has none.
+        info.update(dims=box[:3], weight=box[3] or info['weight'], size_source='carton')
+    return info
 
 
 def sku_search(q, limit=30):
     q = str(q).strip().upper()
     if len(q) < 2:
         return []
-    starts = [s for s in _skus if s.startswith(q)]
-    rest = [s for s in _skus if q in s and not s.startswith(q)]
+    names = set(_skus) | set(_boxes)
+    starts = [s for s in names if s.startswith(q)]
+    rest = [s for s in names if q in s and not s.startswith(q)]
     return [sku_info(s) for s in (sorted(starts) + sorted(rest))[:limit]]
 
 

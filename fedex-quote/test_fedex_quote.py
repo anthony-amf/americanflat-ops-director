@@ -30,8 +30,15 @@ class Estimate(unittest.TestCase):
     def test_matches_stored_bigquery_price(self):
         # MIRCIR3131BLK ships at its item size; BigQuery stores $47.91 for zone 5.
         info = fq.sku_info('MIRCIR3131BLK')
+        info['dims'], info['weight'] = [31.5, 31.5, 0.12], 22.02   # item size, which the stored price was worked out on
         box = fq.normalize_packages([{'length': info['dims'][0], 'width': info['dims'][1], 'height': info['dims'][2], 'weight': info['weight']}])
         self.assertEqual(fq.estimate(box, 5, True, 28)['total'], info['stored_rates']['5'])
+
+    def test_carton_size_from_oversize_list(self):
+        info = fq.sku_info('wmw2840blk2436')
+        self.assertEqual((info['dims'], info['weight'], info['size_source']), ([46, 31, 2], 10.69, 'carton'))
+        self.assertEqual(fq.sku_info('GW-HUD-05')['size_source'], 'carton')   # on the list, not in BigQuery
+        self.assertEqual(fq.sku_info('FLAGCASEBLKSMALL')['size_source'], 'item')
 
     def test_oversize_replaces_handling(self):
         e = fq.estimate(fq.normalize_packages(OVERSIZE_BOX), 5, True, 28)

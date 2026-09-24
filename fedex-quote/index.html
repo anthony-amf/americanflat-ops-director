@@ -98,7 +98,7 @@ tr.tot td{font-weight:700;border-bottom:0}
         <div class="search"><input type="text" id="skuSearch" placeholder="Search a SKU to add it" aria-label="Search SKU"><div class="results" id="skuResults" hidden></div></div>
         <button type="button" class="linkbtn" id="addCustom">+ Add a custom box</button>
         <div id="items" class="block"></div>
-        <p class="hint">SKU sizes come from BigQuery and leave out packaging. Change them to the real carton for an accurate quote. Qty is the number of identical boxes.</p>
+        <p class="hint">SKUs on the oversize list use their carton size; other SKU sizes come from BigQuery and leave out packaging. Change them to the real carton for an accurate quote. Qty is the number of identical boxes.</p>
       </div>
       <div class="block"><span class="label">How it's packed</span>
         <div class="seg" role="radiogroup" aria-label="How it's packed">
@@ -160,7 +160,8 @@ $('skuSearch').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeou
   hits=await (await fetch('/api/skus?q='+encodeURIComponent(q))).json();active=0;
   box.innerHTML=hits.length?hits.map((h,i)=>`<button type="button" data-i="${i}" class="${i?'':'active'}"><span class="mono">${esc(h.sku)}</span><small>${h.dims[0]?h.dims.map(d=>(+d).toFixed(1)).join('×')+' in · '+(+h.weight).toFixed(1)+' lb':'no size'}</small></button>`).join(''):'<div class="hint" style="padding:10px 12px">No SKU matches. Add a custom box instead.</div>';
   box.hidden=false;},150);});
-function pick(h){add({sku:h.sku,label:h.sku,length:h.dims[0]||'',width:h.dims[1]||'',height:h.dims[2]||'',weight:h.weight||'',note:h.dims[0]?'Item size from BigQuery, no packaging':'No saved size. Enter the carton.'});
+const sizeNote=s=>s==='carton'?'Carton size from the oversize SKU list':s==='item'?'Item size from BigQuery, no packaging':'No saved size. Enter the carton.';
+function pick(h){add({sku:h.sku,label:h.sku,length:h.dims[0]||'',width:h.dims[1]||'',height:h.dims[2]||'',weight:h.weight||'',note:h.dims[0]?sizeNote(h.size_source):sizeNote(null)});
   $('skuSearch').value='';$('skuResults').hidden=true;}
 $('skuResults').addEventListener('mousedown',e=>{const b=e.target.closest('button');if(b){e.preventDefault();pick(hits[b.dataset.i]);}});
 $('skuSearch').addEventListener('keydown',e=>{const box=$('skuResults');if(box.hidden||!hits.length)return;
@@ -208,7 +209,7 @@ async function loadOrder(){
   try{
     const res=await fetch('/api/order?number='+encodeURIComponent(n));const o=await res.json();if(!res.ok)throw Error(o.error||'Lookup failed.');
     rows=[];o.items.forEach(it=>add({sku:it.sku,label:it.sku,count:it.quantity,length:it.dims[0]||'',width:it.dims[1]||'',height:it.dims[2]||'',weight:it.weight||'',
-      note:it.known&&it.dims[0]?'Item size from BigQuery, no packaging':'No saved size for this SKU. Enter the carton.'}));
+      note:it.known&&it.dims[0]?sizeNote(it.size_source):'No saved size for this SKU. Enter the carton.'}));
     if(o.zip)$('dest').value=o.zip;
     if(o.warehouse){const el=document.querySelector(`input[name=origin][value="${o.warehouse}"]`);if(el)el.checked=true;}
     const units=o.items.reduce((s,i)=>s+i.quantity,0);
