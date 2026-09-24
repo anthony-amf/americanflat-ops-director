@@ -95,6 +95,23 @@ tr.tot td{font-weight:700;border-bottom:0}
         <div id="items" class="block"></div>
         <p class="hint">SKU sizes come from BigQuery and leave out packaging. Change them to the real carton for an accurate quote. Qty is the number of identical boxes.</p>
       </div>
+      <div class="block"><span class="label">How it's packed</span>
+        <div class="seg" role="radiogroup" aria-label="How it's packed">
+          <label><input type="radio" name="pack" id="p1" value="separate" checked><span><b>Separate</b><small>each box ships</small></span></label>
+          <label><input type="radio" name="pack" id="p2" value="carton"><span><b>One carton</b><small>all inside</small></span></label>
+          <label><input type="radio" name="pack" id="p3" value="taped"><span><b>Taped</b><small>boxes bundled</small></span></label>
+        </div>
+        <div class="item" id="combo" hidden>
+          <div class="item-sub" id="comboNote"></div>
+          <div class="dims" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+            <label class="field"><span>L in</span><input type="number" min="0" step="any" id="c-length"></label>
+            <label class="field"><span>W in</span><input type="number" min="0" step="any" id="c-width"></label>
+            <label class="field"><span>H in</span><input type="number" min="0" step="any" id="c-height"></label>
+            <label class="field"><span>lb</span><input type="number" min="0" step="any" id="c-weight"></label>
+          </div>
+          <button type="button" class="linkbtn" id="comboReset">Reset to stacked size</button>
+        </div>
+      </div>
       <button class="btn" id="go" type="submit">Get FedEx quote</button>
     </form>
     <section id="out" aria-live="polite"><div class="empty">Enter a ZIP and at least one box, then select Get FedEx quote.</div></section>
@@ -147,7 +164,6 @@ $('skuSearch').addEventListener('keydown',e=>{const box=$('skuResults');if(box.h
 
 function lines(a){
   const out=[['Base transportation',a.base]];
-  if(a.discounts)out.push(['Discounts',-Math.abs(a.discounts)]);
   (a.surcharges||[]).forEach(s=>out.push([s.description||s.type||'Surcharge',s.amount]));
   return out;
 }
@@ -157,7 +173,8 @@ $('form').addEventListener('submit',async e=>{
   if(!rows.length){out.innerHTML='<div class="err">Add at least one box.</div>';return;}
   const residential=document.querySelector('input[name=svc]:checked').value==='res';
   const body={origin:document.querySelector('input[name=origin]:checked').value,destination:$('dest').value,residential,shipDate:$('date').value,
-    packages:rows.map(r=>({label:r.label,count:r.count,length:r.length,width:r.width,height:r.height,weight:r.weight,nonstandard:r.nonstandard}))};
+    packages:packMode()==='separate'?rows.map(r=>({label:r.label,count:r.count,length:r.length,width:r.width,height:r.height,weight:r.weight,nonstandard:r.nonstandard}))
+      :[{label:packMode()==='taped'?'Taped bundle':'One carton',count:1,length:$('c-length').value,width:$('c-width').value,height:$('c-height').value,weight:$('c-weight').value,nonstandard:packMode()==='taped'}]};
   $('go').disabled=true;$('go').textContent='Asking FedEx…';out.innerHTML='<div class="empty">Asking FedEx…</div>';
   try{
     const res=await fetch('/api/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const r=await res.json();
@@ -170,7 +187,8 @@ $('form').addEventListener('submit',async e=>{
       <div class="facts"><span><b>${esc(r.service)}</b></span><span>${esc(r.origin.name)} → <b>${esc(r.destination)}</b></span><span>Zone <b>${esc(a.zone||'?')}</b></span><span>Billed <b>${esc(a.billing_weight??'?')} lb</b></span><span><b>${boxes}</b> box${boxes===1?'':'es'}</span>${a.fuel_percent!=null?`<span>Fuel <b>${a.fuel_percent}%</b></span>`:''}${r.delivery||r.transit?`<span>Delivery <b>${esc(when(r.delivery||r.transit))}</b></span>`:''}</div></div>
       ${r.environment==='test'?'<div class="banner test" style="margin:0">Test server: these are sample prices, so don’t compare them to the estimate yet.</div>':''}
       <div class="cmp"><div><div class="cap">What FedEx charges</div><table><tbody>${lines(a).map(l=>`<tr><td>${esc(l[0])}</td><td class="n">${money(l[1])}</td></tr>`).join('')}<tr class="tot"><td>FedEx total</td><td class="n">${money(a.total)}</td></tr></tbody></table>
-        ${r.list&&r.list.total!=null?`<p class="hint" style="margin-top:8px">FedEx list price before your discounts: ${money(r.list.total)}</p>`:''}</div>
+        ${a.discounts?`<p class="hint" style="margin-top:8px">Your contract discount of ${money(Math.abs(a.discounts))} is already taken off the lines above.${r.list&&r.list.total!=null?` FedEx list price: ${money(r.list.total)}.`:''}</p>`:r.list&&r.list.total!=null?`<p class="hint" style="margin-top:8px">FedEx list price before your discounts: ${money(r.list.total)}</p>`:''}
+        ${r.requested.some(p=>p.nonstandard)&&!(a.surcharges||[]).some(s=>/HANDLING/i.test((s.type||'')+(s.description||'')))?`<p class="hint" style="margin-top:8px"><b>Taped or non-standard packaging:</b> a quote can't see how a box is wrapped, so FedEx leaves out the additional handling (packaging) fee here. FedEx adds it when it scans the package; the rate-book estimate includes it.</p>`:''}</div>
       <div><div class="cap">Rate-book estimate${est?` · zone ${est.zone} (${esc(r.zone_source)})`:''}</div>${est?`<table><tbody>${est.packages.map(p=>p.lines.length?`<tr><td colspan="2"><b>${esc(p.label)}</b>${p.count>1?` × ${p.count}`:''} · ${p.billable} lb billable</td></tr>${p.lines.map(l=>`<tr><td>${esc(l.label)}</td><td class="n">${money(l.amount)}</td></tr>`).join('')}<tr><td>Fuel ${est.fuel_percent}%</td><td class="n">${money(p.fuel)}</td></tr>`:`<tr><td colspan="2">${esc(p.label)}: ${esc(p.note)}</td></tr>`).join('')}<tr class="tot"><td>Estimate</td><td class="n">${money(est.total)}</td></tr></tbody></table>`:'<p class="hint">No estimate for this zone.</p>'}</div></div>
       ${diff!=null&&r.environment!=='test'?`<div class="diff ${Math.abs(diff)<=0.05?'same':'off'}">${Math.abs(diff)<=0.05?'FedEx matches the rate-book estimate.':`FedEx is ${money(Math.abs(diff))} ${diff>0?'higher':'lower'} than the rate-book estimate. Compare the fee lines above to see which charge differs.`}</div>`:''}
       ${a.packages&&a.packages.length>1?`<div><div class="cap">By box, from FedEx</div><table><thead><tr><th>Box</th><th class="n">Billed lb</th><th class="n">Base</th><th class="n">Fees</th><th class="n">Total</th></tr></thead><tbody>${a.packages.map((p,i)=>`<tr><td>${esc(r.requested[i]?.label||('Box '+(i+1)))}</td><td class="n">${esc(p.billing_weight??'—')}</td><td class="n">${money(p.base)}</td><td class="n">${money((p.surcharges||[]).reduce((s,x)=>s+(x.amount||0),0))}</td><td class="n">${money(p.total)}</td></tr>`).join('')}</tbody></table></div>`:''}
@@ -179,6 +197,25 @@ $('form').addEventListener('submit',async e=>{
   }catch(err){out.innerHTML=`<div class="err">${esc(err.message)}</div>`;}
   finally{$('go').disabled=false;$('go').textContent='Get FedEx quote';}
 });
+const packMode=()=>document.querySelector('input[name=pack]:checked').value;
+let comboEdited=false;
+function stacked(){
+  let L=0,W=0,H=0,lb=0;
+  for(const r of rows){const d=[+r.length,+r.width,+r.height].sort((a,b)=>b-a),n=Math.max(1,Math.floor(+r.count||1)),w=+r.weight;
+    if(!(d[2]>0)||!(w>0))return null;L=Math.max(L,d[0]);W=Math.max(W,d[1]);H+=d[2]*n;lb+=w*n;}
+  const r2=v=>Math.round(v*100)/100;return rows.length?{length:r2(L),width:r2(W),height:r2(H),weight:r2(lb)}:null;
+}
+function syncCombo(){
+  const mode=packMode();$('combo').hidden=mode==='separate';if(mode==='separate')return;
+  const s=stacked(),units=rows.reduce((t,r)=>t+Math.max(1,Math.floor(+r.count||1)),0);
+  if(!comboEdited)['length','width','height','weight'].forEach(k=>$('c-'+k).value=s?s[k]:'');
+  $('comboNote').textContent=!rows.length?'Add boxes above first.':(mode==='taped'?`${units} boxes taped into one package, priced as one piece on its outside size. `:`${units} items packed inside one outer carton. `)+(s?'Starts as a flat stack (largest footprint, heights and weights added). Change it to the measured size and weight.':'Some boxes have no size yet, so enter the package size and weight.');
+}
+['length','width','height','weight'].forEach(k=>$('c-'+k).addEventListener('input',()=>{comboEdited=true;}));
+$('comboReset').addEventListener('click',()=>{comboEdited=false;syncCombo();});
+document.querySelectorAll('input[name=pack]').forEach(el=>el.addEventListener('change',()=>{comboEdited=false;syncCombo();}));
+$('items').addEventListener('input',()=>{comboEdited=false;syncCombo();});
+const _render=render;render=function(){_render();comboEdited=false;syncCombo();};
 render();
 })();
 </script>
