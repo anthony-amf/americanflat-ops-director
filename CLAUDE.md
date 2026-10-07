@@ -210,7 +210,10 @@ FedEx/Stamps invoice exports by tracking number. Those stacked Drive sheets
 repeat the same invoice line across overlapping weekly exports — de-dupe on
 (tracking, date, amount) or CPU comes out ~3x high. The durable fix is
 `marketplaces.parcel_charges`, loaded weekly from the same files the shipping
-cost report downloads. The weekly report's own per-order roll-up
+cost report downloads. **Since 2026-10-07 those raw exports live in Google Drive,
+not on the Mac** — FedEx invoices in folder `1jQyb1fEJ8Ut3vf9-2Jy4yBB3JlAI22Jm`,
+Stamps.com print history in `1KyCiarV40QjA1KwVwmKuCwzITm796e_U` — so cloud
+sessions can read them; see `MARKETPLACE-SHIPMENTS.md`. The weekly report's own per-order roll-up
 (`all_orders_shipping_costs_*.md`) is a second cost source via `--order-costs`,
 joined by order number — that is the only thing that prices Michaels and Shopify,
 which have no tracking number to match on. Note the two carriers differ on lag: FedEx bills weeks

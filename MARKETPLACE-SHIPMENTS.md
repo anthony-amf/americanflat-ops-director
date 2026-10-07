@@ -376,20 +376,30 @@ python3 refresh_marketplace_shipments.py --charges data/parcel_charges.ndjson.gz
 
 `--charges` and `--costs` produce identical output — verified on 2026-09-02, both
 folding 39,742 charges onto 40,379 of 42,007 shipments at $10.58 a unit. That
-matters because the **scheduled refresh has no other cost source**: the FedEx and
-Stamps.com exports are files on a laptop, and without them the page falls back to
-the warehouse label charge alone, losing the invoice-over-label rule and the
-overbilling panel with it.
+matters because the **scheduled refresh has no other cost source** beyond the
+BigQuery tables; without invoice lines the page falls back to the warehouse label
+charge alone, losing the invoice-over-label rule and the overbilling panel with it.
 
-The snapshot ages at whatever rate invoices are loaded. Refresh it alongside the
-weekly cost files and commit it:
+**Where the raw exports live (from 2026-10-07).** The weekly FedEx invoices and
+Stamps.com print histories go to two Google Drive folders, not the laptop, so a
+cloud session can read them:
 
-```bash
-python3 refresh_marketplace_shipments.py --days 30 \
-    --costs ~/Downloads/week-of-YYYY-MM-DD \
-    --costs-ndjson /tmp/charges.ndjson && gzip -c /tmp/charges.ndjson \
-    > data/parcel_charges.ndjson.gz
-```
+| Export | Drive folder | Folder id |
+|---|---|---|
+| FedEx invoice CSVs | FedEx Invoices | `1jQyb1fEJ8Ut3vf9-2Jy4yBB3JlAI22Jm` |
+| Stamps.com print history | Stamps.com print history | `1KyCiarV40QjA1KwVwmKuCwzITm796e_U` |
+
+Prefer one wide Stamps.com export over several weekly ones (see the glob trap
+above). Drive's folder search has dropped files from a listing before — page
+through every result and cross-check by `modifiedTime` before concluding a
+folder is complete.
+
+The snapshot ages at whatever rate invoices are loaded. To fold new exports in,
+download them into a fresh directory, load the existing snapshot plus that
+directory through `load_charges` and `load_costs` into one charge book, and write
+the result to a **new** file. Replacing `data/parcel_charges.ndjson.gz` is then a
+separate, approved step: move the old file into `quarantine/<date>/` first, per
+the no-delete rule in `CLAUDE.md` — never write over it in place.
 
 Between refreshes the newest shipments simply show no cost yet, which is the
 honest answer — a dash means no invoice has been matched, not free.
