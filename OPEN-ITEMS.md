@@ -32,6 +32,16 @@ re-run with `--write` (steps in `skill-updates/v1.5.0/INSTALL.md`). Open:
 - ~~Notion rate card: Fontana pre-June sortation $34.0198 → $34.0197~~ **DONE
   2026-10-19** (cell and footnote ᵒ corrected).
 
+## Drayage check — O'Neill (started 2026-10-19)
+
+`drayage/check_drayage.py` checks O'Neill invoices against the 4/3/2026 rate
+sheet (see `drayage/README.md`). Open:
+- Fuel: lane sheets say fuel included to $4.50/gal, the FSC matrix tab starts
+  at $4.00 — confirm with O'Neill which governs.
+- Need real O'Neill invoice PDFs (N0185062, N0185063, N0190164 are in email;
+  the rest via bill.com) and a weekly statement xlsx to tune the text reader.
+- Storage for results: `finance.freight_invoices` once Iván grants write.
+
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
 | Invoice | What | Amount | Evidence |
