@@ -42,6 +42,14 @@ sheet (see `drayage/README.md`). Open:
   the rest via bill.com) and a weekly statement xlsx to tune the text reader.
 - Storage for results: `finance.freight_invoices` once Iván grants write.
 
+## Customs entry check — WWL / CBP 7501 (started 2026-10-19)
+
+`customs/check_customs.py` checks a 7501 entry (line math, MPF/HMF, totals,
+bill.com amount) and compares rates to the duty sheet (see `customs/README.md`).
+Open: real WWL 7501s to build the reader; FY2027 MPF limits; whether
+reciprocal tariffs are being collected; fix the sheet's self-flagged rows;
+WWL brokerage rates; coordinate with Mahjoub's own validation tool.
+
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
 | Invoice | What | Amount | Evidence |
