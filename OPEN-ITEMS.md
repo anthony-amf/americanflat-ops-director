@@ -58,6 +58,16 @@ ordered/shipped (incl. earlier invoices), line math and total (see
 `factory/README.md`). Open: a real factory invoice + payment terms; who pays
 factories and where paid history lives; live WIP instead of a CSV export.
 
+## Containers — ocean freight check + container register (started 2026-10-19)
+
+`containers/check_ocean_freight.py` checks WWL FCL invoices against the rate
+sheet in effect at origin gate-in (WWL's rule, confirmed 2026-10-14).
+`containers/register.py` builds a container register from WWL arrival-notice
+emails (77 containers, 5/20–10/12) — the key linking freight, customs,
+drayage and receiving bills. Open: rate sheets as data (PDF attachments),
+real WWL invoices + gate-in dates, Century local charges, scheduled register
+writes to BigQuery.
+
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
 | Invoice | What | Amount | Evidence |
