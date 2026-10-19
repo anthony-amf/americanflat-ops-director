@@ -50,6 +50,14 @@ Open: real WWL 7501s to build the reader; FY2027 MPF limits; whether
 reciprocal tariffs are being collected; fix the sheet's self-flagged rows;
 WWL brokerage rates; coordinate with Mahjoub's own validation tool.
 
+## Factory invoice check — vs WIP purchase orders (started 2026-10-19)
+
+`factory/check_factory.py` checks a factory invoice against the WIP tab: PO and
+SKU exist under that factory, unit price = that PO's FOB, quantity within
+ordered/shipped (incl. earlier invoices), line math and total (see
+`factory/README.md`). Open: a real factory invoice + payment terms; who pays
+factories and where paid history lives; live WIP instead of a CSV export.
+
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
 | Invoice | What | Amount | Evidence |
