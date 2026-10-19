@@ -642,6 +642,47 @@ def load_fedex_table(table, token, book):
     return book
 
 
+UPS_TABLE_SQL = r"""
+SELECT tracking_number,
+       CAST(invoice_date AS STRING) AS charge_date,
+       net_charge
+FROM `%s`
+WHERE tracking_number IS NOT NULL AND tracking_number != ''
+  AND net_charge IS NOT NULL
+"""
+
+
+def load_ups_table(table, token, book):
+    """UPS invoice lines from BigQuery, read the same way as FedEx: one row per
+    invoice line, a shipment's cost the sum of its lines.
+
+    The column names are assumed to match finance.fedex_shipping_costs
+    (tracking_number, invoice_date, net_charge); written 2026-10-19 before the
+    table could be read from a cloud session, so check them on the first run.
+
+    The overlap to watch is Stamps.com, which also sells UPS labels. A shipment
+    bought there and billed again on a UPS invoice would carry two different
+    dates and amounts, so the (tracking, date, amount) rule would keep both and
+    double its cost. The count printed below says whether that is happening.
+    """
+    priced_before = set(book["costs"])
+    rows = list((norm_tracking(r["tracking_number"]),
+                 float(r["net_charge"] or 0),
+                 "UPS",
+                 r["charge_date"] or "",
+                 None)
+                for r in query(UPS_TABLE_SQL % table, token))
+    overlap = len({r[0] for r in rows} & priced_before)
+    kept, repeats = _fold_charges(rows, book["seen"], book["costs"], book["lines"])
+    print("  %-46s %6d charges" % (table.split(".")[-1][:46], kept), file=sys.stderr)
+    if repeats:
+        print("  %6d already carried by another source" % repeats, file=sys.stderr)
+    if overlap:
+        print("  %6d UPS tracking numbers were already priced by an earlier source "
+              "(Stamps.com?) - check for double counting" % overlap, file=sys.stderr)
+    return book
+
+
 def load_charges(path, book=None):
     """Read charges already parsed out of the invoice exports, as written by
     --costs-ndjson (plain or gzipped newline-delimited JSON).
@@ -1948,9 +1989,14 @@ def main():
     ap.add_argument("--fedex-table", metavar="TABLE",
                     nargs="?", const="americanflat.finance.fedex_shipping_costs",
                     help="FedEx invoice lines from BigQuery, layered like "
-                         "--stamps-table. Does not exist yet; "
-                         "sql/fedex_shipping_costs_setup.sql creates it. "
-                         "Defaults to americanflat.finance.fedex_shipping_costs")
+                         "--stamps-table (invoices from 2026-09-28 when it "
+                         "first appeared). Defaults to "
+                         "americanflat.finance.fedex_shipping_costs")
+    ap.add_argument("--ups-table", metavar="TABLE",
+                    nargs="?", const="americanflat.finance.ups_shipping_costs",
+                    help="UPS invoice lines from BigQuery, layered like "
+                         "--fedex-table. Defaults to "
+                         "americanflat.finance.ups_shipping_costs")
     ap.add_argument("--cost-table", metavar="TABLE",
                     help="BigQuery table of parcel charges (tracking, amount, carrier), "
                          "e.g. americanflat.marketplaces.parcel_charges")
@@ -1986,7 +2032,8 @@ def main():
 
     book = new_charge_book()
     costs, charge_lines = book["costs"], book["lines"]
-    if args.costs or args.charges or args.stamps_table or args.fedex_table:
+    if (args.costs or args.charges or args.stamps_table or args.fedex_table
+            or args.ups_table):
         print("Reading parcel charges:", file=sys.stderr)
     # BigQuery first, so its lines are the ones kept where a file repeats them:
     # the tables are the maintained sources and the snapshot is the fallback.
@@ -1994,6 +2041,8 @@ def main():
         load_stamps_table(args.stamps_table, token, book)
     if args.fedex_table:
         load_fedex_table(args.fedex_table, token, book)
+    if args.ups_table:
+        load_ups_table(args.ups_table, token, book)
     if args.costs:
         load_costs(args.costs, book)
     elif args.charges:
