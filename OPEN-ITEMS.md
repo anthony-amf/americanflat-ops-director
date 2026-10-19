@@ -29,8 +29,8 @@ rates and the pre-June rates. All twelve pre-June receiving invoices
 can leave `needs_detail` once v1.5.0 is installed on the Mac and they are
 re-run with `--write` (steps in `skill-updates/v1.5.0/INSTALL.md`). Open:
 - Install v1.5.0 on the Mac, run step 4, then publish to the org skill repo.
-- Notion rate card: Fontana pre-June sortation should read $34.0197, not
-  $34.0198 (only 34.0197 reproduces every billed line).
+- ~~Notion rate card: Fontana pre-June sortation $34.0198 → $34.0197~~ **DONE
+  2026-10-19** (cell and footnote ᵒ corrected).
 
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
