@@ -21,6 +21,17 @@ Per-invoice detail + contract cites:
 Yusen's own week-of-7/23 invoices bill $10 flat with no wrap — they appear to
 have adopted AF-9 already.
 
+## Receiving check — skill v1.5.0 staged (2026-10-19)
+
+`skill-updates/v1.5.0/` adds a receiving check that knows each warehouse's
+rates and the pre-June rates. All twelve pre-June receiving invoices
+(749279 → 752504, $55,856.81) verify to the cent against their PDFs, so they
+can leave `needs_detail` once v1.5.0 is installed on the Mac and they are
+re-run with `--write` (steps in `skill-updates/v1.5.0/INSTALL.md`). Open:
+- Install v1.5.0 on the Mac, run step 4, then publish to the org skill repo.
+- Notion rate card: Fontana pre-June sortation should read $34.0197, not
+  $34.0198 (only 34.0197 reproduces every billed line).
+
 ## Awaiting Anthony's paid/hold decision (validation complete, gates passed)
 
 | Invoice | What | Amount | Evidence |
