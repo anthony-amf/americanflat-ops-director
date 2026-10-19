@@ -605,13 +605,19 @@ def load_stamps_table(table, token, book):
     return book
 
 
+# Columns as Ops built the table (checked 2026-10-19), not as
+# sql/fedex_shipping_costs_setup.sql drafted it: the tracking column is
+# tracking_id. Lines are summed per tracking per invoice, so one invoice states
+# one charge per shipment — the same shape the export snapshot carries, which
+# lets a charge present in both collapse on (tracking, date, amount).
 FEDEX_TABLE_SQL = r"""
-SELECT tracking_number,
+SELECT tracking_id                  AS tracking_number,
        CAST(invoice_date AS STRING) AS charge_date,
-       net_charge
+       SUM(net_charge)              AS net_charge
 FROM `%s`
-WHERE tracking_number IS NOT NULL AND tracking_number != ''
+WHERE tracking_id IS NOT NULL AND tracking_id != ''
   AND net_charge IS NOT NULL
+GROUP BY 1, 2
 """
 
 
@@ -642,23 +648,24 @@ def load_fedex_table(table, token, book):
     return book
 
 
+# UPS bills one row per CHARGE (freight, fuel, accessorials, adjustments —
+# charge_category_code FRT / FSC / ACC / ADJ), so a shipment's cost on an
+# invoice is the sum of its rows. Rows with no tracking number are account-level
+# fees that belong to no shipment and are left out.
 UPS_TABLE_SQL = r"""
 SELECT tracking_number,
        CAST(invoice_date AS STRING) AS charge_date,
-       net_charge
+       SUM(net_amount)              AS net_charge
 FROM `%s`
 WHERE tracking_number IS NOT NULL AND tracking_number != ''
-  AND net_charge IS NOT NULL
+  AND net_amount IS NOT NULL
+GROUP BY 1, 2
 """
 
 
 def load_ups_table(table, token, book):
-    """UPS invoice lines from BigQuery, read the same way as FedEx: one row per
-    invoice line, a shipment's cost the sum of its lines.
-
-    The column names are assumed to match finance.fedex_shipping_costs
-    (tracking_number, invoice_date, net_charge); written 2026-10-19 before the
-    table could be read from a cloud session, so check them on the first run.
+    """UPS invoice charges from BigQuery, summed per tracking per invoice like
+    FedEx, so a re-bill on a later invoice reads as the carrier's adjustment.
 
     The overlap to watch is Stamps.com, which also sells UPS labels. A shipment
     bought there and billed again on a UPS invoice would carry two different
