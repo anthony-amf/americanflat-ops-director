@@ -25,9 +25,10 @@ import subprocess
 import sys
 
 TABLE = "americanflat.finance.yusen_invoices"
-# Baselines taken 2026-09-22 17:35 UTC, straight after the sweep's 16:30-16:58 pass:
-# 74 rows carry a legacy-rate note, 390 of 396 read 'OK to pay'.
-BASELINE_LEGACY_NOTES = 74
+# Baselines: 74 legacy-rate notes on 2026-09-22 after the first unload. The sweep
+# came back (that unload did not survive a restart) and by 2026-10-20 21:00 UTC the
+# count was 86 of 434 rows. Re-take this after the persistent disable.
+BASELINE_LEGACY_NOTES = 86
 WINDOW_START, WINDOW_END = "16:00", "17:00"
 
 

@@ -1,5 +1,34 @@
 # Stop the Mac sweep — it is still running
 
+> **IT CAME BACK — 2026-10-20. Use the command in this box, not the one further down.**
+>
+> The `launchctl unload` below only stops the job until the next restart or login;
+> macOS then reloads it from `~/Library/LaunchAgents`. It was back by 2026-10-20:
+> two full passes that day (~16:47 and ~20:46 UTC), 400 of 434 rows re-stamped,
+> 79 of them quoting the pre-MSA $5.90/$5.98/$5.09, "OK to pay" back on 423 rows.
+> It also overwrites the nightly's line-level `[AUTO]` blocks every afternoon,
+> which is what the clearance gate reads.
+>
+> This version turns it off for good. `disable` records "keep this off" with
+> launchd, so it survives restarts; `bootout` stops the copy that is running now.
+> Nothing is removed — the plist stays where it is.
+>
+> ```bash
+> launchctl disable gui/$(id -u)/com.americanflat.yusen-validator-sweep && \
+>   launchctl bootout gui/$(id -u)/com.americanflat.yusen-validator-sweep && \
+>   launchctl print-disabled gui/$(id -u) | grep -i yusen
+> ```
+>
+> The last line should show `"com.americanflat.yusen-validator-sweep" => disabled`
+> (older macOS prints `=> true`). Then `launchctl list | grep -i yusen` should show
+> only `yusen-invoice-processor` — the ingestion job, which must keep running.
+> If `bootout` says the job isn't loaded, the `disable` before it already took;
+> run the `print-disabled` line on its own to confirm.
+>
+> To undo: `launchctl enable gui/$(id -u)/com.americanflat.yusen-validator-sweep && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.americanflat.yusen-validator-sweep.plist`
+>
+> Baseline for `check_sweep_stopped.py` is now 86 legacy-rate notes (was 74).
+
 **Status check, 2026-09-22.** The unload in `hand-the-ledger-to-the-cloud.md` was
 written on 2026-09-10 and never ran. The Mac sweep is still loaded, still on
 v1.4.0, and swept the whole ledger this morning.
