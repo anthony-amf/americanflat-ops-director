@@ -605,13 +605,19 @@ def load_stamps_table(table, token, book):
     return book
 
 
+# Columns as Ops built the table (checked 2026-10-19), not as
+# sql/fedex_shipping_costs_setup.sql drafted it: the tracking column is
+# tracking_id. Lines are summed per tracking per invoice, so one invoice states
+# one charge per shipment — the same shape the export snapshot carries, which
+# lets a charge present in both collapse on (tracking, date, amount).
 FEDEX_TABLE_SQL = r"""
-SELECT tracking_number,
+SELECT tracking_id                  AS tracking_number,
        CAST(invoice_date AS STRING) AS charge_date,
-       net_charge
+       SUM(net_charge)              AS net_charge
 FROM `%s`
-WHERE tracking_number IS NOT NULL AND tracking_number != ''
+WHERE tracking_id IS NOT NULL AND tracking_id != ''
   AND net_charge IS NOT NULL
+GROUP BY 1, 2
 """
 
 
@@ -639,6 +645,48 @@ def load_fedex_table(table, token, book):
     print("  %-46s %6d charges" % (table.split(".")[-1][:46], kept), file=sys.stderr)
     if repeats:
         print("  %6d already carried by another source" % repeats, file=sys.stderr)
+    return book
+
+
+# UPS bills one row per CHARGE (freight, fuel, accessorials, adjustments —
+# charge_category_code FRT / FSC / ACC / ADJ), so a shipment's cost on an
+# invoice is the sum of its rows. Rows with no tracking number are account-level
+# fees that belong to no shipment and are left out.
+UPS_TABLE_SQL = r"""
+SELECT tracking_number,
+       CAST(invoice_date AS STRING) AS charge_date,
+       SUM(net_amount)              AS net_charge
+FROM `%s`
+WHERE tracking_number IS NOT NULL AND tracking_number != ''
+  AND net_amount IS NOT NULL
+GROUP BY 1, 2
+"""
+
+
+def load_ups_table(table, token, book):
+    """UPS invoice charges from BigQuery, summed per tracking per invoice like
+    FedEx, so a re-bill on a later invoice reads as the carrier's adjustment.
+
+    The overlap to watch is Stamps.com, which also sells UPS labels. A shipment
+    bought there and billed again on a UPS invoice would carry two different
+    dates and amounts, so the (tracking, date, amount) rule would keep both and
+    double its cost. The count printed below says whether that is happening.
+    """
+    priced_before = set(book["costs"])
+    rows = list((norm_tracking(r["tracking_number"]),
+                 float(r["net_charge"] or 0),
+                 "UPS",
+                 r["charge_date"] or "",
+                 None)
+                for r in query(UPS_TABLE_SQL % table, token))
+    overlap = len({r[0] for r in rows} & priced_before)
+    kept, repeats = _fold_charges(rows, book["seen"], book["costs"], book["lines"])
+    print("  %-46s %6d charges" % (table.split(".")[-1][:46], kept), file=sys.stderr)
+    if repeats:
+        print("  %6d already carried by another source" % repeats, file=sys.stderr)
+    if overlap:
+        print("  %6d UPS tracking numbers were already priced by an earlier source "
+              "(Stamps.com?) - check for double counting" % overlap, file=sys.stderr)
     return book
 
 
@@ -1948,9 +1996,14 @@ def main():
     ap.add_argument("--fedex-table", metavar="TABLE",
                     nargs="?", const="americanflat.finance.fedex_shipping_costs",
                     help="FedEx invoice lines from BigQuery, layered like "
-                         "--stamps-table. Does not exist yet; "
-                         "sql/fedex_shipping_costs_setup.sql creates it. "
-                         "Defaults to americanflat.finance.fedex_shipping_costs")
+                         "--stamps-table (invoices from 2026-09-28 when it "
+                         "first appeared). Defaults to "
+                         "americanflat.finance.fedex_shipping_costs")
+    ap.add_argument("--ups-table", metavar="TABLE",
+                    nargs="?", const="americanflat.finance.ups_shipping_costs",
+                    help="UPS invoice lines from BigQuery, layered like "
+                         "--fedex-table. Defaults to "
+                         "americanflat.finance.ups_shipping_costs")
     ap.add_argument("--cost-table", metavar="TABLE",
                     help="BigQuery table of parcel charges (tracking, amount, carrier), "
                          "e.g. americanflat.marketplaces.parcel_charges")
@@ -1986,7 +2039,8 @@ def main():
 
     book = new_charge_book()
     costs, charge_lines = book["costs"], book["lines"]
-    if args.costs or args.charges or args.stamps_table or args.fedex_table:
+    if (args.costs or args.charges or args.stamps_table or args.fedex_table
+            or args.ups_table):
         print("Reading parcel charges:", file=sys.stderr)
     # BigQuery first, so its lines are the ones kept where a file repeats them:
     # the tables are the maintained sources and the snapshot is the fallback.
@@ -1994,6 +2048,8 @@ def main():
         load_stamps_table(args.stamps_table, token, book)
     if args.fedex_table:
         load_fedex_table(args.fedex_table, token, book)
+    if args.ups_table:
+        load_ups_table(args.ups_table, token, book)
     if args.costs:
         load_costs(args.costs, book)
     elif args.charges:
