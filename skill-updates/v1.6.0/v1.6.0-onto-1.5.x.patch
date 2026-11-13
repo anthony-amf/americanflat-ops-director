@@ -1,0 +1,327 @@
+--- /tmp/base150.py	2026-08-13 16:54:58.246941673 +0000
++++ skill-updates/v1.6.0/validate_rate_card.py	2026-08-13 16:38:27.710904558 +0000
+@@ -354,7 +354,14 @@
+     PDF itself. Either can spot a conflict the other misses, so a `disputed`
+     verdict from the header pass survives even if the PDF parse comes back
+     clean — the line detail is still recorded for the report card.
++
++    A VAS pallet work order judged by apply_vas_pallet_check is skipped outright.
++    Its `notes` carry the full basis (quantity, rate, total) and the verdict is
++    already definitive; the PDF adds nothing, and for these invoices it is a
++    scanned image that would come back `needs_detail` and demote a sound `valid`.
+     """
++    if result.get("_pallet_rule"):
++        return
+     was_disputed = result["status"] == "disputed"
+     prior_variance = result.get("variance")
+     prior_notes = list(result.get("discrepancies") or [])
+@@ -482,6 +489,9 @@
+         "status": "valid",
+         "paid_at": str(invoice["paid_at"]) if invoice.get("paid_at") else None,
+         "discrepancies": [],
++        # The rate card rides along so later checks (apply_vas_labor_check) can
++        # look up a per-warehouse contracted rate without being handed it again.
++        "_rates": rates,
+     }
+ 
+     if not wh:
+@@ -665,6 +675,269 @@
+     return found
+ 
+ 
++AF9_PALLET_ALL_IN = 10.00   # MSA AF-9: $10.00/pallet, pallet AND stretch wrap included
++
++# Savannah bills pallets as VAS work orders rather than on the SP/LTL invoice:
++#   "WORK ORDER 5001859 PALLETS (Savannah) - 7 PALLETS W/SHRINKWRAP @ $10.00/PALLET"
++#   "WORK ORDER 5001786 PALLETS - 48 pallets w/shrinkwrap @ $14.317"
++#   "WORK ORDER 5001727 PALLETS - 57 pallets @ $11.74"
++# Anchored on PALLET so the work-order number can never be read as a quantity.
++_VAS_PALLET_LINE = re.compile(
++    r"(?<![\d.])(\d{1,5}(?:\.\d+)?)\s+PALLETS?\b[^@$]*?@\s*\$?\s*([\d,]+(?:\.\d+)?)", re.I)
++
++
++def apply_vas_pallet_check(invoice: dict, result: dict) -> None:
++    """Judge a Savannah VAS pallet work order: recompute, then rate vs AF-9.
++
++    These are pallet charges wearing a VAS document. The generic VAS logic cannot
++    resolve them — it has no per-unit basis to check — so they parked at
++    `needs_detail` indefinitely even when billed exactly right. This reads the
++    quantity and rate straight out of `notes`, which matters because SC VAS PDFs
++    are scanned images: no OCR is needed to reach a verdict.
++
++    Two stages, and the second is the one that protects the money:
++
++    1. **Recompute.** pallets x printed rate must equal the invoice total.
++    2. **Judge the rate against AF-9's $10.00 all-in.** Arithmetic alone is not
++       enough — 48 x $14.317 = $687.22 recomputes perfectly, and validating on
++       that would stamp an AF-9 overcharge `valid` and silently drop a live claim.
++
++    Rate handling (Anthony, 2026-08-12): the MSA rate is the yardstick, and the
++    pre-MSA $11.74 SC rate is NOT grandfathered — anything above $10.00 is
++    disputed for the excess, whatever era it came from.
++
++    Reclassifying these as SMLPRCL/LTL was considered and rejected: SP/LTL carries
++    the Stedi shipping gate, these work orders have no order numbers to match, so
++    reclassifying would park them at `needs_detail` permanently — the opposite of
++    the goal — and would misdescribe the document in the ledger.
++    """
++    if (invoice.get("type_of_invoice") or "").strip().upper() != "VAS":
++        return
++    if result.get("_settled") or result.get("status") == "error":
++        return
++    m = _VAS_PALLET_LINE.search(invoice.get("notes") or "")
++    if not m:
++        return
++
++    pallets = float(m.group(1))
++    rate = float(m.group(2).replace(",", ""))
++    amount = result.get("billed_amount")
++    if amount is None:
++        amount = float(invoice.get("amount") or 0)
++    expected = round(pallets * rate, 2)
++    payable = round(pallets * AF9_PALLET_ALL_IN, 2)
++
++    # Marks this row as judged by the pallet rule so the generic conflict
++    # detector and the PDF line pass do not re-judge the same charge.
++    result["_pallet_rule"] = True
++
++    # AF-9 has an effective date. An invoice billed before it at the documented
++    # pre-June rate is correct, not disputed — and this guard is what stops a
++    # re-sweep from silently reversing that. A `disputed` result counts as an
++    # escalation downstream and overrides an existing `valid` stamp, so without
++    # the date test these rows would flip back every night.
++    eff = ((result.get("_rates") or {}).get("ltl") or {}).get("_af9_effective_from")
++    inv_date = str(invoice.get("date") or "")[:10]
++    if eff and inv_date and inv_date < eff:
++        if abs(expected - amount) <= 0.01:
++            result["status"] = "valid"
++            result["expected_amount"] = expected
++            result["variance"] = 0.0
++            result["variance_percent"] = 0.0
++            result["line_report"] = (
++                f"{pallets:g} pallets x ${rate:,.4f} = ${amount:,.2f}, exact. Billed "
++                f"{inv_date}, before AF-9 took effect ({eff}), so the pre-June rate applies "
++                f"— correct as billed, nothing disputed.")
++            return
++
++    if abs(expected - amount) > 0.01:
++        result["status"] = "discrepancy"
++        result["expected_amount"] = expected
++        result["variance"] = round(amount - expected, 2)
++        result["discrepancies"].append(
++            f"{pallets:g} pallets x ${rate:,.4f} = ${expected:,.2f} but the invoice bills "
++            f"${amount:,.2f} — the pallet line does not recompute")
++        return
++
++    if abs(rate - AF9_PALLET_ALL_IN) < 0.005:
++        result["status"] = "valid"
++        result["expected_amount"] = expected
++        result["variance"] = 0.0
++        result["variance_percent"] = 0.0
++        result["line_report"] = (
++            f"VALID vs MSA AF-9: {pallets:g} pallets x ${rate:,.2f} = ${amount:,.2f}, exact. "
++            f"All-in pallet rate, wrap included — no markup, nothing disputed.")
++        return
++
++    if rate > AF9_PALLET_ALL_IN:
++        over = round((rate - AF9_PALLET_ALL_IN) * pallets, 2)
++        result["status"] = "disputed"
++        result["variance"] = over
++        result["variance_percent"] = round(over / amount * 100, 1) if amount else None
++        era = (f"the pre-MSA SC pallet rate of ${rate:,.2f}"
++               if abs(rate - 11.74) < 0.005 else f"${rate:,.4f}/pallet")
++        result["discrepancies"].append(
++            f"AF-9: {pallets:g} pallets billed at {era}; the MSA all-in rate is "
++            f"${AF9_PALLET_ALL_IN:,.2f} incl. stretch wrap, so {pallets:g} x "
++            f"${rate - AF9_PALLET_ALL_IN:,.4f} = ${over:,.2f} is disputed and "
++            f"${payable:,.2f} is payable")
++        return
++
++    result["status"] = "discrepancy"
++    result["variance"] = round((rate - AF9_PALLET_ALL_IN) * pallets, 2)
++    result["discrepancies"].append(
++        f"{pallets:g} pallets x ${rate:,.4f} = ${amount:,.2f}, below the AF-9 $10.00 all-in "
++        f"— unrecognised pallet rate, needs a human look")
++
++
++# "MAY 2026 CONSOLIDATION PROJECT - 24.49 HRS", "55 hrs @ $53.55", "2 hrs"
++_VAS_HOURS = re.compile(r"(?<![\d.])(\d{1,4}(?:\.\d+)?)\s*(?:HRS?|HOURS?)\b", re.I)
++
++
++# Role keywords -> the row of the MSA hourly table. Order matters: the specific
++# activities are tested before general_labor, which is the catch-all the MSA itself
++# defines broadly ("equipment operator, office, admin, returns, photography, floor
++# loading, oversize, QA, routing").
++_ROLE_WORDS = [
++    ("stock_consolidation", ("consolidat",)),
++    ("physical_inventory",  ("physical inventory", "inventory count", "cycle count",
++                             "stock count")),
++    ("salaried_supervisor", ("supervisor", "salaried")),
++    ("clerical",            ("clerical",)),
++    ("material_handler",    ("material handler",)),
++    ("dray_admin_fee",      ("dray",)),
++    ("qa",                  ("qa ", " qa", "quality assurance")),
++]
++
++
++def _vas_role(notes: str) -> str:
++    low = (notes or "").lower()
++    for role, words in _ROLE_WORDS:
++        if any(w in low for w in words):
++            return role
++    return "general_labor"
++
++
++def apply_vas_labor_check(invoice: dict, result: dict) -> None:
++    """Judge an hourly VAS project against the MSA hourly table: role x site.
++
++    A VAS job described as a project plus hours ("MAY 2026 CONSOLIDATION PROJECT -
++    24.49 HRS") carries everything needed for a verdict, but parked at `needs_detail`
++    because nothing derived the rate. This divides the total by the hours, works out
++    which row of the MSA hourly table the work belongs to, and compares.
++
++    **The rate depends on both the site and the kind of work**, which is why a single
++    figure per warehouse was not enough. South Carolina bills general labour at
++    $53.55 but physical inventory and stock consolidation at $63.00, so 755701 —
++    a consolidation project at $63.00/hr — is exactly on contract, and reading it
++    against a lone "SC hourly" number made a correct invoice look overbilled.
++
++    When the derived rate matches no row for that site, it is only disputed if it is
++    ABOVE every rate in the site's column; the amount claimed is the excess over the
++    highest contracted rate, which is the most defensible figure. A rate at 1.5x the
++    matched role is reported as apparent overtime for a human rather than disputed,
++    since the MSA carries no overtime multiplier.
++    """
++    if (invoice.get("type_of_invoice") or "").strip().upper() != "VAS":
++        return
++    if result.get("_settled") or result.get("status") == "error":
++        return
++    if result.get("_pallet_rule"):     # a pallet work order, not a labour job
++        return
++    m = _VAS_HOURS.search(invoice.get("notes") or "")
++    if not m:
++        return
++    hours = float(m.group(1))
++    if hours <= 0:
++        return
++
++    wh = result.get("warehouse")
++    card = ((result.get("_rates") or {}).get("admin_vas") or {}).get(wh) or {}
++    roles = card.get("hourly_roles") or {}
++    if not roles:
++        return                          # pre-v1.6.0 snapshot: no role table to judge against
++
++    notes = invoice.get("notes") or ""
++    role = _vas_role(notes)
++    msa_rate = roles.get(role) or card.get("vas_hourly")
++    if not msa_rate:
++        return
++
++    amount = result.get("billed_amount")
++    if amount is None:
++        amount = float(invoice.get("amount") or 0)
++    derived = round(amount / hours, 4)
++    result["_labor_rule"] = True
++    # validate() left a "provide hours from the invoice detail" placeholder because it
++    # could not see the hours. We just supplied them, so drop it — leaving it in makes
++    # a row read "valid" and "needs more detail" at once.
++    result["discrepancies"] = [d for d in (result.get("discrepancies") or [])
++                               if "hourly rate" not in str(d)]
++
++    pretty = role.replace("_", " ")
++    # Any row of this site's column is a contracted rate. Match the derived rate
++    # against all of them, not just the role we guessed from the wording.
++    exact = [r_ for r_, v in roles.items() if abs(derived - v) < 0.005]
++    if exact:
++        matched = exact[0].replace("_", " ")
++        result["status"] = "valid"
++        result["expected_amount"] = round(hours * derived, 2)
++        result["variance"] = 0.0
++        result["variance_percent"] = 0.0
++        note = (f"VALID vs the MSA hourly table: {hours:g} hrs x ${derived:,.4f} = "
++                f"${amount:,.2f}, exact, at the {wh} {matched} rate.")
++        if exact[0] != role:
++            note += (f" Wording reads as {pretty}; the rate billed is the {matched} row. "
++                     f"Both are contracted for this site.")
++        result["line_report"] = note
++        return
++
++    if derived > msa_rate:
++        # Overtime at 1.5x is agreed (Anthony, 2026-08-12), so it is a contracted rate
++        # like any other. Checked against every role in the column, not just the role
++        # inferred from the wording, so OT on a specialised rate also resolves.
++        mult = card.get("overtime_multiplier")
++        if mult:
++            ot_hits = [r_ for r_, v in roles.items() if abs(derived - round(v * mult, 4)) < 0.01]
++            if ot_hits:
++                base = ot_hits[0]
++                result["status"] = "valid"
++                result["expected_amount"] = round(hours * derived, 2)
++                result["variance"] = 0.0
++                result["variance_percent"] = 0.0
++                result["line_report"] = (
++                    f"VALID vs the MSA hourly table: {hours:g} hrs x ${derived:,.4f} = "
++                    f"${amount:,.2f}, exact, at {mult:g}x overtime on the {wh} "
++                    f"{base.replace('_', ' ')} rate of ${roles[base]:,.4f}. Overtime at "
++                    f"{mult:g}x is agreed.")
++                return
++        ceiling = max(roles.values())
++        if derived > ceiling:
++            over = round((derived - ceiling) * hours, 2)
++            result["status"] = "disputed"
++            result["variance"] = over
++            result["variance_percent"] = round(over / amount * 100, 1) if amount else None
++            result["discrepancies"].append(
++                f"{hours:g} hrs at ${derived:,.4f}/hr is above every contracted {wh} hourly "
++                f"rate (highest is ${ceiling:,.4f}) — ${over:,.2f} above the ceiling; reads as "
++                f"{pretty}, whose rate is ${msa_rate:,.4f}")
++            return
++        result["status"] = "discrepancy"
++        result["variance"] = round((derived - msa_rate) * hours, 2)
++        result["discrepancies"].append(
++            f"{hours:g} hrs at ${derived:,.4f}/hr matches no row of the {wh} hourly table but "
++            f"sits within its range; reads as {pretty} (${msa_rate:,.4f}). Identify the role "
++            f"before paying")
++        return
++
++    result["status"] = "valid"
++    result["variance"] = 0.0
++    result["line_report"] = (
++        f"{hours:g} hrs at ${derived:,.4f}/hr, below the {wh} {pretty} rate of "
++        f"${msa_rate:,.4f} — ${abs(round((msa_rate - derived) * hours, 2)):,.2f} in "
++        f"Americanflat's favour, nothing to dispute.")
++
++
+ def apply_msa_conflicts(invoice: dict, result: dict) -> None:
+     """Stamp `disputed` when the invoice carries known MSA-conflict lines.
+ 
+@@ -673,6 +946,11 @@
+     mismatches are investigated first) and skips intl warehouses — the MSA
+     conflict schedule is US-domestic.
+     """
++    # A VAS pallet work order already got a verdict from apply_vas_pallet_check,
++    # on the same charge. Running the generic detector too would re-judge it and
++    # overwrite the variance with a second, differently-derived figure.
++    if result.get("_pallet_rule"):
++        return
+     wh = result.get("warehouse")
+     if wh not in ("fontana", "new_jersey", "south_carolina"):
+         return
+@@ -1127,6 +1405,8 @@
+             inv = fetch_invoice(row["invoice_number"], client)
+             if inv:
+                 r = validate(inv, rates)
++                apply_vas_pallet_check(inv, r)
++                apply_vas_labor_check(inv, r)
+                 apply_msa_conflicts(inv, r)
+                 if not args.no_pdf:
+                     _line_pass_keeping_disputes(inv, r, pdf_dir)
+@@ -1152,6 +1432,8 @@
+         sys.exit(1)
+ 
+     r = validate(inv, rates)
++    apply_vas_pallet_check(inv, r)
++    apply_vas_labor_check(inv, r)
+     apply_msa_conflicts(inv, r)
+     if not args.no_pdf:
+         _line_pass_keeping_disputes(inv, r, pdf_dir)
