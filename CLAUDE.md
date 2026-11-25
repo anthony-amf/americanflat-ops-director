@@ -29,14 +29,20 @@ The **canonical skill source is NOT in this repo**. It lives at
 `~/.claude/skills/yusen-invoice-validator/` (SKILL.md, scripts/, references/).
 This repo carries:
 
-- `yusen-invoice-validator.skill` — the packaged zip, **now v1.7.0** and NOT a dead
+- `yusen-invoice-validator.skill` — the packaged zip, **now v1.8.0** and NOT a dead
   artifact: the nightly cloud validator unzips this very file and imports it (see
   Who actually validates, below). Changing validator behaviour in the cloud means
   repackaging and committing this. Superseded zips are kept under
   `skill-updates/<version>/superseded/` (1.5.0 in v1.6.0/, 1.6.2 in v1.7.0/).
   v1.7.0 adds `scripts/storage_cbm_check.py` — the storage CBM check, flag only,
   reading the "Warehouse CBM normalized" sheet; not yet wired into a runbook
-  (waiting on the sheet link from Anthony, 2026-11-25).
+  (waiting on the sheet link from Anthony, 2026-11-25). v1.8.0 validates against the
+  **final MSA** (text updated 2026-09-29, sent 2026-10-16; PDF + text in
+  `rate-cards/us/`) and disputes any invoice line the MSA doesn't name, excludes
+  or bills above its rate (`scripts/msa_lines.py`, Anthony 2026-11-25); the final
+  MSA has **no weekly admin fee**, and its Regular Handling (c)–(e) makes 0.87 CBM
+  per pallet the storage standard with a two-week trigger, 10-business-day fix
+  window and a storage cap.
 - Root-level `*.py` validators (`rate-card-validator.py`, `invoice-stedi-validator.py`,
   `invoice-validator-demo.py`, `scripts/parse_invoice_excel.py`) — **stale dev
   predecessors** of the skill scripts. Do not edit these expecting behavior to

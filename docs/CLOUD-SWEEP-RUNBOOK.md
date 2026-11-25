@@ -71,7 +71,7 @@ REPO="$(git rev-parse --show-toplevel 2>/dev/null || echo /home/user/americanfla
   git show origin/main-07xt41:yusen-invoice-validator.skill > "$PKG" && \
   unzip -qo "$PKG" -d /tmp/skill && \
   grep -qE 'version = "1\.([6-9]|[1-9][0-9])' /tmp/skill/yusen-invoice-validator/skill.toml && \
-  for fn in apply_line_pass AUTO_WRITER apply_vas_pallet_check apply_vas_labor_check merge_report; do \
+  for fn in apply_line_pass AUTO_WRITER apply_vas_pallet_check apply_vas_labor_check merge_report apply_msa_line_rule; do \
     grep -q "$fn" /tmp/skill/yusen-invoice-validator/scripts/validate_rate_card.py || \
       { echo "MISSING: $fn"; exit 1; }; \
   done && \
@@ -160,7 +160,11 @@ V.apply_msa_conflicts(row_dict, r)                       # notes-based dispute c
 V._line_pass_keeping_disputes(row_dict, r, Path('/tmp/pdf-cache'))   # PDF line pass
 ```
 
-Run all five in that order. `apply_vas_pallet_check` (v1.6.0+) judges Savannah's
+Run all five in that order. Since v1.8.0 the line pass (`_line_pass_keeping_disputes`) also
+applies the **MSA line rule** (`apply_msa_line_rule`, `scripts/msa_lines.py`): every charge
+line on the PDF's first page must be a line the final MSA names, at or below its MSA rate;
+anything else is disputed (Anthony, 2026-11-25). It reads page 1 with `pdftotext`, which
+the poppler install in step 2 provides — without it the rule silently falls back to pypdf. `apply_vas_pallet_check` (v1.6.0+) judges Savannah's
 VAS pallet work orders — Savannah bills pallets as VAS jobs, and the generic VAS
 logic cannot resolve them, so they parked at `needs_detail` even when billed
 correctly. It reads quantity and rate from `notes`, so it needs no PDF and no OCR;
