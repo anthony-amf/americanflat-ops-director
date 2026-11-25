@@ -1,0 +1,1470 @@
+                               MASTER LOGISTICS SERVICES AGREEMENT
+This Master Logistics Services Agreement (this “Agreement”) is made as of January 1, 2026 (the
+“Effective Date”) between AMERICANFLAT (hereinafter “Customer”), a New York corporation,
+whose principal place of business is82 Nassau St #60330, New York, NY 10038 and Yusen
+Logistics (Americas) Inc. (hereinafter “Yusen Logistics”), a New York corporation, whose
+principal place of business is 300 Lighting Way, Secaucus, New Jersey 07094.
+
+Customer and Yusen Logistics hereby agree as follows:
+
+1. Term
+
+   a. This Agreement shall have an initial term of two (2) years commencing on the Effective
+      Date stated above and shall continue in full force and effect until the Expiration Date
+      also stated above, unless earlier terminated in accordance with the terms hereof.
+      Thereafter this Agreement shall automatically renew for successive ninety (90) day
+      periods unless either party shall give the other sixty (60) days prior written notice of its
+      intent not to renew or it is otherwise terminated in accordance with its terms. After the
+      initial term of this Agreement, either party may terminate this Agreement, without
+      cause on sixty days’ written notice to the other party.
+
+
+   b. Customer may terminate this Agreement by reason of the following events: (i) if Yusen
+      Logistics files a petition for relief under bankruptcy or receivership laws of the United
+      States or of any state, or a petition for relief thereunder is filed by any creditor of Yusen
+      Logistics then termination shall be effective immediately upon written notice; (ii) if there
+      is a material adverse change in the financial condition of Yusen Logistics then termination
+      shall be effective immediately upon written notice; or (iii) if Yusen Logistics materially
+      defaults in its performance of the material terms and conditions of this Agreement and
+      such default is not cured within thirty (30) days of Customer’s delivery of a written notice
+      and demand to cure or, if such default may not be reasonably cured within such thirty
+      (30) day period, then if Yusen Logistics is not taking reasonably diligent steps to cure such
+      default following written notice.
+
+   c. Yusen Logistics may terminate this Agreement by reason of the following events: (i) a
+      default by Customer in its performance of its financial obligations to Yusen Logistics or
+      to third parties involved in the services provided by Yusen Logistics hereunder, and such
+      default continues for ten (10) business days after written notice and demand to cure; (ii)
+
+
+
+Rev. 09/29/2026
+          if there is a material adverse change in the financial condition of Customer then
+          termination shall be effective immediately upon written notice; (iii) if Customer files a
+          petition for relief under bankruptcy or receivership laws of the United States or of any
+          state, or a petition for relief thereunder is filed by any creditor of Customer then
+          termination shall be effective immediately upon written notice; or (iv) as to any other
+          non-financial obligation of Customer to Yusen Logistics under this Agreement, if
+          Customer materially defaults in its performance of the material terms and conditions of
+          this Agreement, and such default is not cured within thirty (30) days of Yusen Logistics’
+          delivery of a written notice and demand to cure or, if such default may not be
+          reasonably cured within such 30 day period, then if Customer is not taking reasonably
+          diligent steps to cure such default following written notice.
+
+     d. Upon receiving any notice of termination, and until the effective date of such
+        termination, the parties shall take reasonable steps to wind down or transition
+        operations, and except for liabilities arising prior to the termination as expressly set
+        forth herein, shall have no further responsibilities hereunder. The Parties shall use their
+        best efforts to negotiate transition support and the costs therefore at the time of
+        termination. If Yusen terminates this Agreement pursuant to 1(c)(i), (ii) or (iii) above,
+        Yusen shall not be required to provide transition support unless Customer pays all
+        outstanding charges and for such transition services in advance.
+
+2. Services
+
+          Yusen Logistics shall provide to Customer the services set forth on Schedule A hereto
+          (collectively the “Services”). Certain Services are subject to additional terms and
+          conditions as set forth in the attachments to this Agreement (each a “Service
+          Agreement”). Customer accepts the terms of any Service Agreement, bill of lading,
+          waybill, tariff, circular, terms of service, power of attorney, or other transactional
+          documents issued by Yusen or its underlying service providers in performance of the
+          Services. Yusen Logistics and Customer shall be guided as applicable by standard
+          operating procedures, provided however, that such procedures are for information
+          purposes and may be amended from time to time by agreement of the parties. If such
+          amendments result in additional costs or reductions in costs to either party, the parties
+          shall negotiate in good faith to adjust the rates for such Services to reflect any
+          reasonably verifiable costs or savings.
+
+3. Rates
+
+          The rates set forth in any Rate Schedule attached to this Agreement or to any Service
+          Agreement made a part hereof shall apply for the Services specified therein and shall be
+          valid for the time specified in the Rate Schedule. The initial Rate Schedule shall be valid
+          for one year. At ninety (90) days prior to the end of the Rate Schedule or at any time
+          thereafter, Yusen Logistics may provide the Customer with a proposed rate revision.
+          Customer will have sixty (60) days to review any proposed rate revision (“Rate Proposal
+Updated as of September 29, 2026                                                               Page | 2
+          Period”). The proposed rates must be agreed upon and accepted by the Customer in
+          writing as a new Rate Schedule at least thirty (30) days prior to the effective date of the
+          rate increase. The parties will use their best efforts to negotiate any proposed rate
+          revision in good faith. At the expiration of any Rate Schedule or at the end of the Rate
+          Proposal Period, whichever is earlier, if a rate revision has not or cannot be agreed to by
+          the parties, or if no other rate increase has been proposed by Yusen Logistics, a rate
+          increase equal to the Consumer Price Index for the location of the warehouse will be
+          applied. If the parties have attempted to negotiate a rate revision in good faith and have
+          been unable to agree to revised rates, then either party may terminate the Service
+          Agreement(s) for which they cannot agree on a new rate schedule by providing at least
+          thirty (30) days written notice of such termination. In the event that spot rates are
+          quoted by Yusen Logistics from time to time, those rates shall apply only to the Services
+          specified and shall be deemed accepted by Customer upon tender of goods on
+          Customer’s account or upon direction to proceed given on Customer’s behalf. Customer
+          agrees that Yusen Logistics may pass on any documented increased costs of third-party
+          services to Customer with reasonable prior notice, supporting backup documentation,
+          and customer approval if the charge is outside of the agreed upon scope.
+
+4. Payment Terms
+
+          Yusen Logistics shall invoice Customer for all Services and related charges. Customer
+          shall remit payment of all undisputed amounts within thirty (30) days of the date of any
+          invoice without setoff or deduction. Yusen Logistics shall have the right to assess
+          interest at the rate of one percent (1%) per month on invoices not timely paid. If at any
+          time a credit is due Customer for any reason, Customer authorizes Yusen Logistics to
+          apply such credit to the next invoice. In the event Customer fails to pay undisputed
+          amounts due and continues to fail to do so after receiving a notice of default and demand
+          to cure, Yusen Logistics may suspend performance of Services until the balance is paid in
+          full.
+
+5. Accuracy of and Reliance on Information Provided
+
+          Customer shall observe all applicable laws, regulations, and best practices applicable to
+          its use of the Services, its goods, and its instructions to Yusen Logistics. Customer
+          acknowledges that it is required to review and confirm the accuracy of all instructions,
+          information, documents, and declarations submitted to or through Yusen Logistics.
+          Customer must advise Yusen Logistics of any errors, discrepancies, incorrect statements,
+          or omissions. Customer warrants that it will use reasonable care to ensure the
+          correctness of all such information.
+
+          Customer will provide all necessary disclosures and instructions including all
+          requirements for sanitary transport and will properly identify all cargo in the bill of
+          lading or other shipping or storage instructions. Customer will not tender any restricted
+          or dangerous commodities including, but not limited to, hazardous materials and waste;
+Updated as of September 29, 2026                                                               Page | 3
+          shipments or goods valued more than the liability limitations specified in any Service
+          Agreement; oversize or overweight shipments; coiled or rolled products; or
+          commodities requiring protection from heat or cold, in either case without properly
+          identifying such shipments and making necessary prior arrangements with Yusen
+          Logistics including acceptance of commensurate rates.
+
+          Yusen Logistics at all times retains the right to refuse to provide or arrange the Services
+          requested by Customer. Yusen Logistics is entitled to rely upon the information and
+          instructions provided by the Customer concerning the nature, value and special
+          handling requirements of the goods tendered.
+
+          Customer shall indemnify and hold Yusen Logistics and its affiliates and subsidiaries
+          harmless from any and all claims asserted, or liability or losses suffered, by reason of the
+          Customer's failure to disclose information or disclosure of any incorrect, incomplete, or
+          false statement by the Customer or its agent, representative, or contractor upon which
+          Yusen Logistics reasonably relied.
+
+          Customer acknowledges that its duties and obligations under this Section 5 are
+          affirmative and non-delegable.
+
+6. Indemnification
+
+     a. Yusen Logistics shall defend, indemnify and hold harmless Customer for all claims,
+        liabilities, fines, penalties, losses and expenses (including reasonable attorneys’ fees)
+        asserted by any third party arising from actual or claimed negligence of, or breach of
+        this Agreement by Yusen Logistics, resulting in injury to or death of any person
+        including without limitation, injury to or death of employees of Yusen Logistics or
+        Customer and/or damage to the property of a third party, caused by the act or
+        omission, or sole negligence of Yusen Logistics or its agents, employees, subcontractors
+        or assigns.
+
+     b. Customer shall defend, indemnify, and hold harmless Yusen Logistics for all claims,
+        liabilities, fines, penalties, losses and expenses (including reasonable attorneys’ fees)
+        asserted by any third party arising from actual or claimed negligence of, or breach of
+        this Agreement by Customer, resulting in injury to or death of any person including
+        without limitation, injury to or death of employees of Yusen Logistics or Customer
+        and/or for loss of, or damage to the property of a third party, caused in any way by the
+        act or omission, or sole negligence of Customer or its agents, employees,
+        subcontractors or assigns.
+
+     c. The parties acknowledge and agree that, at all times, Customer is responsible for paying
+        or otherwise satisfying or dealing with its vendors and suppliers as to the agreed price
+        for goods shipped to Customer, on credit or otherwise, under this Agreement. It is
+        agreed that Yusen Logistics is not the guarantor or insurer of Customer’s payment
+Updated as of September 29, 2026                                                                Page | 4
+          obligations and Customer agrees that Yusen Logistics will not be required to pay
+          Customer’s vendors or suppliers on behalf of Customer for the agreed price of goods
+          shipped to Customer. Therefore, Customer shall hold harmless, defend and indemnify
+          Yusen Logistics from and against any and all claims, rights or legal actions which may be
+          asserted against Yusen Logistics by any such vendor or supplier to Customer which
+          claims that it has not been paid by Customer for the agreed value of goods shipped to
+          Customer under this Agreement (a “non-payment claim”). If Yusen Logistics or any
+          affiliate thereof is held liable in any court or proceeding in any country for any non-
+          payment claim or any other claim brought by any vendor or supplier to Customer, Yusen
+          Logistics shall be entitled to invoice Customer for the full amount of such judgment,
+          decree or other ruling and all interest, costs and fees assessed or incurred, including
+          reasonable attorneys’ fees, whether or not Yusen Logistics or Customer received any
+          notice of the claim, action or proceeding. Customer shall pay such invoice in accordance
+          with the terms of Section 4 of this Agreement.
+
+          i.   In order to more fully effectuate the parties’ agreement under Section 6(c),
+               Customer agrees that, in its reasonable discretion, and upon written notice to
+               Customer, Yusen Logistics may delay or withhold discharge, clearance, release, or
+               delivery of Customer’s cargo in transit pending investigation or resolution of any
+               non-payment claim (“detention of goods”).
+
+          ii. In the event that Yusen Logistics invokes the provisions of Section 6(c)(i), Customer
+              agrees that it will pay for any demurrage, detention or storage charges which are
+              incurred in connection the detention of the goods pending investigation or
+              resolution of a non-payment claim and Customer agrees that it will indemnify and
+              hold Yusen Logistics harmless against such charges.
+
+          iii. In the event that Yusen Logistics invokes the provisions of Section 6(c)(i), Customer
+               agrees that Yusen Logistics will not be legally responsible for any loss of profit or
+               indirect or consequential damages it may sustain as a result of the detention of
+               goods and, to the extent the detained goods are in Yusen Logistics’ actual or
+               constructive possession while detained, Yusen Logistics’ duty of care and legal
+               responsibility for loss or damage to the detained goods shall be that of an ordinary
+               warehouseman under the provisions of the Uniform Commercial Code.
+
+     d. If any liabilities, fines, penalties, losses or expenses result from the negligence of both
+        Yusen Logistics and Customer, then Yusen Logistics and Customer shall be responsible
+        for, and shall indemnify the other (in accordance with Sections 6(a) and (b)) in
+        proportion to their respective negligence or fault in causing such injury or damage.
+
+7. Independent Contractor
+
+          Yusen Logistics will perform the Services as an independent contractor. Each party will
+          have exclusive control and direction of its own personnel in the performance of its
+Updated as of September 29, 2026                                                                Page | 5
+          obligations under the Agreement. Customer acknowledges that all carriers and other
+          underlying service providers are independent contractors of Yusen Logistics.
+
+8. Financial Reports
+
+          Customer authorizes Yusen Logistics to contact, at any time, credit-reporting agencies
+          concerning Customer’s credit standing.
+
+9. Customs-Trade Partnership Against Terrorism
+
+          Yusen Logistics and Customer participate in the U.S. Customs-Trade Partnership Against
+          Terrorism (“C-TPAT”) to manage the security of the supply chain. In that regard, with
+          regard to shipments to and from the U.S., Yusen Logistics and Customer agree to comply
+          with the security recommendations of C-TPAT applicable to its industry and to the
+          industry of its subcontractors for this Agreement and to adopt all appropriate and
+          feasible recommendations.
+
+10. Hazardous Materials
+
+          Customer will identify any loads that contain dangerous goods, hazardous or universal
+          waste, or hazardous materials as defined in the Hazardous Materials Transportation Act,
+          49 U.S.C. §5101 et seq., as amended, or any successor statute, and the regulations of
+          the U.S. Department of Transportation made thereunder, at least twenty-four (24)
+          hours in advance of arrival at the port or tender to Yusen Logistics or any underlying
+          service provider. Yusen Logistics will either: (i) decline such load or (ii) accept such load
+          on terms and conditions identified by Yusen Logistics in such acceptance, which terms
+          may include market rates and any associated costs to Customer. Customer will provide
+          a copy of the Material Safety Data Sheet for all goods, including those classified by state
+          or federal authorities as hazardous materials, hazardous or universal waste.
+
+11. Compliance with Laws
+
+          Customer shall be responsible for complying with all international, federal, state, and
+          local laws and regulations including, but not limited to, all U.S. Customs, export controls,
+          and economic sanctions laws and regulations, and those related to the movement of
+          goods. In particular, Customer represents and warrants that it will not use the Services
+          to ship goods: (a) into (or to a national or resident of) any U.S. embargoed country; (b)
+          to anyone on the U.S. Treasury Department’s list of Specially Designated Nationals or
+          the U.S. Department of Commerce’s Table of Denial Orders; or (c) under any
+          circumstance requiring a license or permit which Customer does not hold. Customer is
+          prohibited from entering into this Agreement if it is located in, under control of, or a
+          national or resident of any country to which export is prohibited or on any list
+          maintained by the U.S. government prohibiting Yusen Logistics’ performance of the
+          Services. Customer further warrant that, as applicable, it is registered and in
+Updated as of September 29, 2026                                                                 Page | 6
+          compliance with the security plan and training requirements, and any amendments
+          related thereto, related to the transportation of hazardous materials or dangerous
+          goods. Yusen Logistics shall be responsible for complying with all international, federal,
+          state, and local laws relating to the performance of its obligations hereunder.
+
+12. Code of Ethics
+
+          Customer acknowledges that Yusen Logistics’ Code of Ethics (“Code of Ethics”), available
+          upon request, prohibits the paying of bribes to anyone for any reason, whether in
+          dealings with governments or the private sector. Customer will not violate or knowingly
+          permit anyone to violate the Code of Ethics’ prohibition on bribery or any applicable
+          anti-corruption laws under this Agreement. Yusen Logistics may immediately terminate
+          or suspend performance under this Agreement if Shipper breaches this Section 12.
+
+13. Insurance
+
+          Yusen Logistics’ insurance obligations with respect to the Services are set forth in the
+          respective Service Agreement. Customer acknowledges that it is encouraged to obtain
+          independent insurance coverage in order to protect against the loss, damage, or
+          shortage of its goods, because in most instances shipper’s interest cargo insurance will
+          not be arranged by Yusen Logistics or the underlying service provider. The amount that
+          Customer may recover on a valid claim will be determined by this Agreement, the
+          Services Agreement, any applicable transaction documents, and applicable law, which is
+          typically less than the full actual value of the goods. If Yusen Logistics does assist
+          Customer in sourcing its shipper’s interest insurance then Customer acknowledges and
+          agrees that Yusen Logistics is not an insurance provider and does not solicit, negotiate,
+          or sell insurance policies. Customer is solely responsible for the terms of the policy, the
+          selection of appropriate coverage, and the corresponding premiums and deductibles.
+
+14. Liability for Loss, Damage, Shortage, and Delay
+
+          Customer accepts that the liability of Yusen Logistics and any underlying service
+          provider for loss, damage, or shortage involving Customer’s goods will at all times be
+          subject to the limitations of liability, salvage rights, claims procedures, and notice
+          periods set forth in the applicable Services Agreement or transactional documents as
+          well as under applicable law. CUSTOMER WAIVES ANY CLAIM AGAINST YUSEN
+          LOGISTICS OR ITS SERVICE PROVIDERS FOR DELAY IN PERFORMANCE OF THE SERVICES
+          INCLUDING IN THE RECEIPT, ENTRY, WITHDRAWAL, OR DELIVERY OF CUSTOMER’S
+          GOODS. CUSTOMER ACCEPTS THAT YUSEN LOGISTICS ASSUMES NO LIABILITY FOR
+          VENDOR CHARGEBACKS UNLESS BOTH PARTIES AGREE IN A WRITING, SIGNED BY
+          AUTHORIZED REPRESENTATIVES IDENTIFYING THE NATURE OF THE CHARGES,
+          REQUIREMENTS, AND THE MAXIMUM LIABILITY. YUSEN LOGISTICS WILL ASSIGN A
+          DESIGNATED SENIOR POINT OF CONTACT TO ASSIST CUSTOMER WITH RESEARCH AND
+          DISPUTE SUPPORT IN AN EFFORT TO MITIGATE CUSTOMER EXPOSURE TO RETIAL
+Updated as of September 29, 2026                                                               Page | 7
+          CHARGEBACKS, NUISANCE FEES, AND PENALTIES RELATED TO COUNT DISCREPANCIES
+          AND MISSING OR PROBLEMATIC ASNS.
+
+ 15. Force Majeure
+
+          “Force Majeure Event” shall mean acts of God or the public enemy, embargoes, laws,
+          war, strikes, lockouts, weather events, pandemics, mechanical failure, laws, regulations
+          or acts of governmental authorities, or other causes beyond such party's reasonable
+          control. Neither party shall be responsible to the other party by reason of delay or
+          failure of its performance under this Agreement if such delay or failure is caused by
+          force majeure beyond the reasonable control of such party; provided, however, that in
+          the event such party finds or anticipates any difficulty in performing this Agreement by
+          reason of force majeure, such party shall promptly notify the other party to that effect
+          and use its best efforts to avoid or remove causes of such difficulty.
+
+16. Consequential Damages
+
+          NOTWITHSTANDING ANY PROVISION TO THE CONTRARY, UNDER NO CIRCUMSTANCES
+          WILL EITHER PARTY BE LIABLE TO THE OTHER PARTY OR TO ANYONE ELSE FOR ANY LOSS
+          OF PROFIT, OR INDIRECT, CONSEQUENTIAL, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES,
+          REGARDLESS OF WHETHER YUSEN LOGISTICS HAS NOTICE OF THE POTENTIAL FOR SUCH
+          LOSSES OR DAMAGES, INCLUDING DAMAGES RELATED TO LOSS OF, DAMAGE TO, OR
+          DELAYED SHIPMENT OF CARGO OR THE PERFORMANCE OF SERVICES UNDER THIS
+          AGREEMENT. IT IS EXPRESSLY UNDERSTOOD AND AGREED THAT THIS PROVISION IS A
+          LIMITATION ON WAREHOUSEMAN’S LIABILITY AS PERMITTED BY ARTICLE 7-204 OF THE
+          UNIFORM COMMERCIAL CODE.
+
+17. Confidential Information
+
+          The Parties agree that each may receive information from the other that is identified as
+          proprietary or confidential. Each Party shall hold such information in confidence and
+          without disclosure to third parties except in the performance of this Agreement. Each
+          Party shall have no obligation, however, to preserve the confidentiality of any
+          information to the extent that it: (i) is in the public domain or generally available to the
+          public; (ii) was in the possession of or disclosed to the receiving Party prior to the date
+          hereof by a third party, free of any obligation to keep the same confidential; (iii) is
+          lawfully acquired by the receiving Party from a third party under no obligation of
+          confidentiality to the other Party; or (iv) is required to be disclosed by the receiving
+
+
+
+
+Updated as of September 29, 2026                                                                 Page | 8
+          Party under law or court order; provided, however, that the receiving Party shall give
+          prompt written notice thereof to the other Party.
+
+ 18. Publicity
+
+          Neither party may issue public announcements, marketing materials, or public disclosures
+          regarding the relationship or Agreement terms without the other party’s prior written
+          consent, except as required by law.
+
+ 19. Non-Solicitation
+
+          Each party agrees that it and its affiliates shall not knowingly offer employment to, or
+          solicit the employment of, any employee of the other party or its affiliates without the
+          prior written consent of such party. This restriction shall not apply to general
+          solicitation through the media or by a search firm, in either case, that is not directed
+          specifically to any employees of the other party, unless such solicitation is undertaken as
+          a means to circumvent the restrictions contained in or to conceal a violation of this
+          Section. This Section shall apply for the term of this Agreement and for a period of one
+          (1) year after termination of this Agreement for any reason.
+
+20. Dispute Resolution
+
+          In the event either party commences a court proceeding to enforce its rights under or
+          pursuant to this Agreement or any Service Agreement, the prevailing party in such
+          action or proceeding shall be entitled to recover its costs and expenses, including but
+          not limited to its reasonable attorneys’ fees and experts’ fees, incurred in such action
+          and proceeding and in any appeals therefrom.
+
+21. Governing Law
+
+          If not governed by federal law, the terms of this Agreement and any Services performed
+          by Yusen Logistics will be interpreted and governed by the laws of the state where the
+          warehouse is located, but if located in more than one state, then the State of New York
+          without regard to its conflict of law provisions. Disputes will be brought in the courts
+          located in the state where the warehouse is located, but if more than one state, then
+          the State of New York, County of New York. If the Services do not include warehouse
+          services then the laws of the State of New York shall govern without regard to its
+          conflict of law provisions and the parties consent to the exclusive jurisdiction and venue
+          of the state and federal courts located in the State of New York and County of New York.
+
+22. Miscellaneous.
+
+     A. Each party represents and warrants it has full power and authority to enter into and
+        perform this Agreement.
+Updated as of September 29, 2026                                                               Page | 9
+     B. This Agreement constitutes the entire understanding between the parties hereto with
+        respect to the subject matter contained herein and supersedes any prior understandings
+        and agreements, written or oral, between them respecting such subject matter. The
+        order of priority in the event of conflict shall be: (i) any Service Agreement; and (ii) this
+        Agreement or (iii) the terms of any bill of lading, waybill, tariff, circular, terms or
+        conditions, or power of attorney prepared by Yusen Logistics or its underlying service
+        providers.
+
+     C. If any provision of this Agreement or the application thereof to any persons or
+        circumstances shall to any extent be invalid or unenforceable, the remainder of this
+        Agreement or the application of such provision to persons or circumstances other than
+        those held invalid or unenforceable shall not be affected thereby, and each provision of
+        this Agreement shall be valid and enforceable to the fullest extent permitted by law.
+
+     D. This Agreement may be amended, renewed or extended, and the terms hereof may be
+        waived, only by a written instrument signed by the parties hereto or, in the case of a
+        waiver, by the party waiving compliance. Any delay or failure to enforce any provision
+        shall not preclude a party from enforcing any such provision thereafter.
+
+     E. Either party may assign its rights and obligations under this Agreement in connection
+        with a merger, acquisition, reorganization, financing transaction, corporate
+        restructuring, or sale of substantially all assets upon prior written notice to the other
+        party, provided the assignee assumes the assigning party’s obligations under the
+        Agreement and satisfies the credit requirements of the non-assigning party.
+
+     F. The parties agree that those provisions containing obligations which by their nature are
+        intended to survive the expiration or termination of this Agreement shall so survive.
+
+     G. Any notices by either party to the other shall be made by registered or certified mail or
+        by overnight courier service, with accommodation notices delivered by email, provided
+        that a receipt is required, and mailed to the addresses noted below, which may be
+        changed by either party by written notice to the other party.
+
+                    Each Notice to Customer shall be sent to:
+
+                              Attn: (Giorgio Piccoli)
+                              Americanflat
+                              82 Nassau St #60330, New York, NY 10038
+                              and by accommodation email to:
+                              giorgio@americanflat.com
+
+
+
+
+Updated as of September 29, 2026                                                              Page | 10
+                              with a copy to:
+
+                              Attn: Kent Nunez
+                              Americanflat
+                              82 Nassau St #60330, New York, NY 10038
+                              and by accommodation email to:
+                              (kent@americanflat.com
+
+                              Each Notice to Yusen Logistics shall be sent to:
+
+                              Yusen Logistics (Americas) Inc.
+                              300 Lighting Way, 5th Floor
+                              Secaucus, NJ 07094
+                              ATTN: Chief Executive Officer
+
+                              with a copy to:
+                              Yusen Logistics (Americas) Inc.
+                              300 Lighting Way, 5th Floor
+                              Secaucus, NJ 07094
+                              Attn: Legal Department
+                              and by accommodation email to:
+                              legal-yla@us.yusen-logistics.com
+
+     H. This Agreement may be executed in counterparts each of which shall be deemed to be
+        an original and all of which taken together shall be deemed to constitute the Agreement
+        when a duly authorized representative of each party has signed a counterpart.
+        Facsimile or electronic signatures hereon shall have the same force and effect as an
+        original signature.
+
+
+
+
+Updated as of September 29, 2026                                                         Page | 11
+     I. CUSTOMER ACKNOWLEDGES THAT IT HAS BEEN ADVISED BY YUSEN LOGISTICS AND HAS
+        HAD A REASONABLE OPPORTUNITY TO SEEK THE LEGAL ADVICE OF ITS OWN
+        INDEPENDENT COUNSEL CONCERNING THIS AGREEMENT. CUSTOMER REPRESENTS AND
+        WARRANTS THAT IT HAS EITHER OBTAINED SUCH COUNSEL OR INTENTIONALLY
+        REFRAINED FROM DOING SO AND HAS KNOWINGLY AND VOLUNTARILY WAIVED SUCH
+        RIGHT.
+
+
+IN WITNESS WHEREOF, Yusen Logistics and Customer have caused this Agreement to be
+executed by their duly authorized representatives, effective as of the Effective Date.
+
+          Yusen Logistics (Americas) Inc.         Americanflat
+
+          By:________________________             By:_________________________
+
+          Name:_____________________              Name:______________________
+
+          Title:______________________            Title:________________________
+
+
+
+
+Updated as of September 29, 2026                                                         Page | 12
+                                          SCHEDULE A
+Yusen Logistics shall perform the Services set forth in this Schedule A pursuant to the Agreement
+and any applicable Service Agreement.
+
+-Warehouse and Storage Services
+
+Transportation Brokerage Services
+
+Yusen Logistics may perform Ocean Freight Forwarding Services pursuant to a Negotiated Rate
+Arrangement (“NRA”) agreed to between the parties and which services shall be subject to and
+governed by the terms of such NRA and the applicable Bill of Lading in addition to the terms of
+this Agreement.
+
+Yusen Logistics may perform Air Freight Forwarding Services which services shall be subject to
+the applicable Air Waybill and any rate quotation in addition to the terms of this Agreement.
+
+
+
+
+Updated as of September 29, 2026                                                          Page | 13
+                   PUBLIC / CONTRACT WAREHOUSE STORAGE SERVICE AGREEMENT
+
+This Public / Contract Warehouse Storage Service Agreement (as used herein, the “Service
+Agreement”) is entered into pursuant to that certain Master Logistics Services Agreement
+between Yusen Logistics and Customer. Capitalized terms used in this Service Agreement shall
+have the meanings provided in the Agreement except as otherwise defined herein.
+
+1. Services
+
+          With respect to warehouse storage services, Customer desires that Yusen Logistics
+          provide the Services (“Services”) as set forth in the attached Warehouse Storage Services
+          Rate Schedule and subject to the attached Pricing Assumptions. If the goods tendered to
+          Yusen Logistics do not conform to the description contained in Pricing Assumptions, then
+          Yusen Logistics may refuse to accept such goods. If Yusen Logistics accepts such goods,
+          Customer agrees to the rates and charges in the Warehouse Storage Services Rate
+          Schedule and to all applicable terms and conditions. As set forth in the Warehouse
+          Services Rate Schedule, Customer agrees to allow Yusen Logistics to modify the Rate
+          Schedule if the goods tendered for storage, handling, or accessorial services do not match
+          the assumptions contained in the Pricing Assumptions. Notwithstanding the foregoing,
+          at no time will Yusen Logistics be obligated to perform any services outside the scope of
+          the agreed Services or pricing unless and until the Parties agree in writing on the rates for
+          such services.
+
+2. Customer’s Responsibilities
+
+          a. Right to Store Goods. Customer represents and warrants that Customer is in lawful
+             possession and has the right and authority to store the goods with the warehouse.
+             Customer will indemnify, defend, and hold harmless Yusen Logistics from all loss and
+             expenses (including reasonable attorneys’ fees) which Yusen Logistics pays or incurs
+             due to any dispute or litigation, whether instituted by Yusen Logistics or others, with
+             respect to Customer’s right, title, or interest in the goods. Such amounts will be
+             charges related to the goods and subject to Yusen Logistics’ lien rights.
+
+          b. Shipping. Customer will not ship goods to the warehouse with Yusen Logistics as the
+             named consignee. If so, Customer agrees to immediately notify the carrier, in writing,
+             prior to such shipment, with a copy of the notice to Yusen Logistics, stating that Yusen
+             Logistics is only a service provider and has no beneficial title, ownership interest, or
+             other interest in such goods. If Customer fails to notify the carrier then Yusen Logistics
+             has the right to refuse such goods and will not be liable for any misconsignment, loss,
+             injury, or damage related to such goods. Whether Yusen Logistics accepts or refuses
+             goods shipped in violation of this Section 2, Customer agrees that in all events it will
+             indemnify, defend, and hold harmless Yusen Logistics from all claims for unpaid
+             transportation charges, including undercharges, demurrage, delay, detention,
+
+
+Updated as of September 29, 2026                                                                Page | 14
+               storage, handling, or other charges of any nature whatsoever, related to such
+               shipments.
+
+          c. Delivery Requirements.
+
+               i.   No goods will be delivered or transferred except upon receipt by Yusen Logistics
+                    of complete written instructions, signed by Customer. Customer shall be
+                    responsible for properly identifying the goods, providing any special handling
+                    requirements, and providing the value of the goods. If the total value of the goods
+                    stored changes by more than five (5) percent, Customer shall advise Yusen
+                    Logistics of such value in writing. Yusen Logistics is entitled to rely on the
+                    information provided on Customer’s behalf and shall have no liability when relying
+                    on such information.
+
+               ii. When a negotiable receipt has been issued, no goods covered by that receipt will
+                   be delivered or transferred on the inventory records of Yusen Logistics, unless
+                   such receipt is surrendered for cancellation or for endorsement of partial delivery
+                   thereon. If a negotiable receipt is lost or destroyed, delivery of the goods may be
+                   made only upon the order of a court of competent jurisdiction and upon the
+                   posting of a security, approved by the court, as provided by law.
+
+               iii. When goods are ordered, a reasonable time will be given to Yusen Logistics to
+                    carry out the instructions. If Yusen Logistics is unable to carry out those
+                    instructions because of events of force majeure, or any reason beyond Yusen
+                    Logistics’ control, or because of loss, damage, or destruction of the goods for
+                    which Yusen Logistics is not liable, or because of any other excuse provided by law,
+                    Yusen Logistics will not be liable and any goods remaining in storage will continue
+                    to be subject to storage charges.
+
+          d. Demurrage. Yusen Logistics will not be liable for demurrage, detention, or delays in
+             obtaining and loading cars or vehicles for outbound shipments unless Yusen Logistics
+             has failed to exercise reasonable care. If detention occurs for which Yusen Logistics is
+             liable, payment of such detention will be made by Customer and Yusen Logistics will
+             reimburse Customer.
+
+               e. Handling. The handling charges cover the ordinary labor involved in receiving
+               goods at the warehouse door, placing goods in storage, and returning goods to the
+               warehouse door. The labor required to unload and load the goods are subject to a
+               charge. Additional expenses incurred by Yusen Logistics to receive and handle
+               damaged goods or to unload from or load into vehicles which are not located at the
+               warehouse door are subject to additional charges. When goods are ordered out in
+               quantities less than received, Yusen Logistics may assess additional charges. Yusen
+               Logistics will not be liable for demurrage charges or for delays in obtaining and
+
+Updated as of September 29, 2026                                                                 Page | 15
+               loading vehicles for outbound shipments unless Yusen Logistics failed to exercise
+               reasonable care.
+
+          f. Minimum Charges. No minimum storage, minimum space guarantee, fixed space
+             reservation, or monthly account minimum shall apply unless expressly listed in the
+             final Rate Schedule and mutually agreed in writing. All charges must be facility-
+             specific, rate-card based, and supported by invoice backup.
+
+          g. Extra Service or Special Services. Customer may request the following additional
+             Services which are subject to an additional charge. Additional services are billable only
+             when requested by Customer or expressly required by an agreed SOP/rate schedule.
+             Yusen Logistics may not bill special services, dunnage, packaging materials, supplies,
+             off-site yard storage, shuttle costs, or accessorial labor unless supported by backup
+             and pre-approved where outside normal operating assumptions. Notwithstanding the
+             foregoing, if Yusen Logistics is required to incur any additional costs or perform any
+             additional services on an emergency basis or to preserve the Goods, then Customer
+             shall pay for all such special or additional services.
+
+               i.   Warehouse labor required for services other than ordinary handling and storage.
+
+               ii. Compiling stock statements, reporting marked weights, serial numbers or other
+                   data from packages, physically checking the goods, or handling the transit billing.
+
+               iii. Dunnage, bracing, packing materials, or other special supplies.
+
+               iv. Goods received or delivered outside Yusen Logistics’ regular business hours.
+
+               v. Expenses related to communications such as postage, overnight courier service,
+                  or telephone if such concern more than normal inventory reporting.
+
+               vi. Yusen Logistics may transmit data via Electronic Data Interchange (“EDI”) using
+                   standards ANSI X12, 4010 version. The standard fields available to be mapped are
+                   available from Yusen Logistics upon request. If Customer requires additional
+                   programming to existing software applications, that activity will be subject to
+                   additional charges(s). All telephone and VAN charges associated with EDI
+                   transmissions will be chargeable to Customer, with additional charge(s). The
+                   setup, mapping and testing fee will be in the Warehouse Storage Services Rate
+                   Schedule.
+
+               vii. Due to the inability to verify delivery accuracy, Yusen Logistics will, in general, not
+                    participate in Shipper Load and Count (“SLC”) arrangements. However, Yusen
+                    Logistics will, for an additional fee, agree to ship to Customer’s customers which
+                    require SLC shipments. Claims resulting from SLC shipments will be subject to the
+                    following: Subject to the LIABILITY AND LIMITATION OF DAMAGES in the
+Updated as of September 29, 2026                                                                    Page | 16
+                    Agreement and this Service Agreement, claims for loss or damage ("Claims") by
+                    Customer must be submitted to Yusen Logistics within ninety (90) days of the
+                    applicable invoice date. Claims not submitted within the ninety (90) day period are
+                    waived. Freight claims for Overage, Shortage and Damage must be forwarded to
+                    Yusen Logistics within forty-eight (48) hours of receipt by the consignee.
+
+               viii. Off-site yard storage charges and shuttle costs to and from such sites will be
+                    additional charges to Customer. Customer will be notified within seventy-two (72)
+                    hours if off-site yard storage is required. Off-site yard storage or shuttle charges
+                    require prior notice, explanation of why the charge is necessary, supporting
+                    backup, and Customer approval unless required in an emergency to protect
+                    Customer goods. Such charges must be billed at actual cost unless otherwise
+                    stated in the final Rate Schedule.
+
+               ix. An additional charge will be assessed for merchandise in bond. Where a
+                   warehouse receipt or other documentation covers goods in U.S. Customs bond,
+                   such receipt is void upon the termination of the storage period as fixed by law.
+
+               x. An additional charge will be assessed for goods or merchandise in the Free Trade
+                  Zone of the warehouse. Where a warehouse receipt or other documentation
+                  covers goods in the FTZ, such receipt or documentation is void upon the
+                  termination of the storage period as fixed by law.
+
+          h. Transfer, Termination of Storage, and Removal of Goods.
+
+               i.   Instructions to transfer the goods in Yusen Logistics’ inventory must be in writing
+                    and are not effective until delivered to and accepted by Yusen Logistics. All
+                    charges up until the time the transfer is made will be billed to Customer. If a
+                    transfer requires re-handling the goods then an additional charge will be assessed
+                    for such service. When goods stored are transferred from one party to another
+                    party through the issuance of a new warehouse receipt or similar document, a
+                    new storage date is established on the date of the transfer.
+
+               ii. Yusen Logistics reserves the right to move, at its expense, fourteen (14) days after
+                   notice is sent by prepaid, certified, registered mail, or by a nationally recognized
+                   overnight courier (signature required) to Customer or to the last known holder of
+                   the negotiable warehouse receipt, any goods stored at the facility or warehouse
+                   to any other facility or warehouse owned or operated by Yusen Logistics. If,
+                   however, Customer or the holder of the negotiable warehouse receipt takes
+                   delivery of the goods instead of a transfer then no storage charge will be billed for
+                   the current storage month. Yusen Logistics may, without notice, move goods
+                   within the facility or warehouse where such goods are stored.
+
+
+
+Updated as of September 29, 2026                                                                 Page | 17
+               iii. If Customer ceases operations or Yusen Logistics, in good faith believes that the
+                    goods have been abandoned, Yusen Logistics may, upon written notice to
+                    Customer or any other person known by Yusen Logistics to claim an interest in the
+                    goods, require the removal of any goods by the end of the next succeeding storage
+                    month. Such notice will be given to the last known place of business or abode of
+                    the person to be notified. If goods are not removed before the end of the next
+                    succeeding storage month, Yusen Logistics may sell them in accordance with
+                    applicable law.
+
+               iv. If Yusen Logistics, in good faith, believes that the goods are about to deteriorate
+                   or decline in value to less than the amount of Yusen Logistics’ general lien before
+                   the end of the next succeeding storage month, Yusen Logistics may specify in the
+                   notice any reasonable, shorter time for removal of the goods. If the goods are not
+                   removed then Yusen Logistics may sell them at a public sale held one (1) week
+                   after one (1) advertisement or posting as required by applicable law.
+
+               v. If, as a result of the quality or condition of the goods of which Yusen Logistics had
+                  no notice at the time of deposit, the goods are a hazard to property or persons,
+                  Yusen Logistics may sell the goods at public or private sale without advertisement
+                  upon twenty-four (24) hours’ notice to Customer or to anyone known to claim an
+                  interest in the goods. If the goods cannot be safely held for the notice period,
+                  Yusen Logistics may proceed however it deems appropriate, including but not
+                  limited to the safe disposal of the goods without mitigating any damages. If Yusen
+                  Logistics, after a reasonable effort, is unable to sell the goods, it may dispose of
+                  them in any lawful manner and will not incur any liability by reason of such
+                  disposition. Pending such disposition, sale, or return of the goods, Yusen Logistics
+                  may remove the goods from the facility or warehouse and will not incur any
+                  liability by reason of such removal. Customer shall be liable for and charged for all
+                  disposal costs, whether at auction or otherwise, and shall remain liable for any
+                  deficiency between the costs incurred and any proceeds realized upon the
+                  disposition of the goods.
+
+               vi. If the Agreement is terminated by either party prior to the end of the initial term,
+                   Customer will pay Yusen Logistics the balance of any unamortized costs as agreed
+                   to between the parties, in writing, to start-up Customer’s account and the entire
+                   balance on any equipment lease (such as forklifts or trucks) or real property lease,
+                   if applicable, will become due in full upon the effective date of
+                   termination. Customer agrees that Yusen Logistics may in its sole discretion assign
+                   any lease agreement(s) and all its rights and duties thereunder to Customer in full
+                   or partial satisfaction of the foregoing obligation.
+
+
+
+
+Updated as of September 29, 2026                                                                Page | 18
+          i.   Hazardous Goods.
+
+               i. Goods will be delivered at the warehouse locations identified in Warehouse Storage
+                   Services Rate Schedule and Pricing Assumptions of the Agreement, properly
+                   marked and packaged for handling. Customer will furnish at or prior to delivery a
+                   manifest showing marks, brands, or sizes to be kept and accounted for and the
+                   class of storage and other services desired.
+
+               ii. Customer will notify Yusen Logistics of the characteristics of any of Customer’s
+                   goods that may in any way be likely to cause damage to Yusen Logistics’ premises
+                   or to other products that may be stored by Yusen Logistics.
+
+               iii. Customer, unless hereinafter specified, represents that none of the goods which
+                    it now has in storage or will store in the future with the warehouse are
+                    adulterated, flammable, hazardous materials, hazardous or universal waste,
+                    dangerous goods, explosives, or pesticides (collectively, “Hazardous Goods”) as
+                    defined under the federal laws, state laws, local laws, statutes, ordinances or
+                    regulations (collectively, “Applicable Laws”), and that any goods which require
+                    registration, permits, licenses or similar approvals are guaranteed to have such
+                    approval, at all times, while the goods are in Yusen Logistics’ possession, custody
+                    or control.
+
+               iv. Customer represents that the goods which it now has in storage or will store in
+                   the future with the warehouse which are subject to regulation under the
+                   Applicable Laws concerning Hazardous Goods will be individually listed on the
+                   receiving or shipping document (e.g. bill of lading) identifying the goods and
+                   designating the Applicable Laws which apply to the storage, handling, and
+                   transportation of such goods. Furthermore, if Customer tenders goods to Yusen
+                   Logistics for storage or handling in the future which are subject to regulation
+                   under the Applicable Laws concerning Hazardous Goods, Customer will advise
+                   Yusen Logistics in writing at the time of tender with respect to each such item,
+                   specifying the Applicable Laws which apply to the storage, handling, and
+                   transportation of such goods.
+
+               v. Customer represents that with respect to any goods it now has in storage or will
+                  store in the future which, due to Applicable Laws with respect to such goods,
+                  require special handling, storage, stacking, segregation of commodities,
+                  documentation, records certification, reports or other treatment beyond that
+                  normally afforded by Yusen Logistics to non-hazardous goods, Customer will
+                  provide written notice to Yusen Logistics which will include information and
+                  instructions necessary to comply with Applicable Laws with respect to such goods.
+
+               vi. Customer will indemnify, defend, and hold harmless Yusen Logistics against all
+                   liabilities, damages, costs or expenses (including reasonable attorneys’ fees)
+Updated as of September 29, 2026                                                                Page | 19
+                    which Yusen Logistics may incur due to its failure of the aforementioned
+                    representations and warranties.
+
+3. Insurance
+
+          Yusen Logistics will maintain the following minimum insurance coverages and limits, at its
+          sole expense, throughout the term of this Service Agreement. Upon request, Yusen
+          Logistics will provide Customer with a certificate of insurance evidencing the insurance
+          coverage and will provide Customer with at least thirty (30) days’ notice prior to any policy
+          cancellation, material change or non-renewal:
+
+          a. Commercial General Liability insurance, including broad form coverage of no less than
+             one million dollars ($1,000,000) per occurrence;
+
+          b. Warehouse Legal Liability insuring against liability for loss or damage to Customer’s
+             goods while in Yusen Logistics’ facility with a combined single limit of at least five
+             million dollars ($5,000,000) per occurrence.
+
+          c. Worker's Compensation as required by the applicable statute(s) in all state(s) where
+             Yusen Logistics performs services for Customer and Employer’s liability insurance in
+             an amount no less than one million dollars ($1,000,000) per occurrence and two
+             million dollars ($2,000,000) in the aggregate.
+
+4. Notice of Claim and Filing of Suit
+
+          a. Claims by Customer or others must be presented in writing to Yusen Logistics. Such
+             claim must be made before the earlier of: (i) sixty (60) days after delivery of the goods
+             by Yusen Logistics; or (ii) sixty (60) days after Customer is notified by Yusen Logistics
+             that loss or damage to any portion of the goods occurred.
+
+          b. No lawsuit or action may be commenced by Customer or others against Yusen
+             Logistics for loss or damage to any portion of the goods unless a timely written notice
+             has been given and unless such action is commenced before the earlier of: (i) nine (9)
+             months after the date of delivery by Yusen Logistics; or (ii) nine (9) months after
+             Customer is notified by Yusen Logistics that loss or damage to any portion of the goods
+             occurred. Time limits for presenting a written claim and commencing action after
+             notice will begin on the date of mailing of such notice to Yusen Logistics.
+
+          d. If Customer files a claim, Yusen Logistics has at least forty-five (45) days to investigate
+             the claim which time period begins after Customer has provided all necessary
+             supporting documentation for such claim reasonably requested or required by Yusen
+             Logistics to investigate the cause of the claim and the amount of the claim.
+
+5. STANDARD OF CARE AND LIMITATION OF LIABILITY
+Updated as of September 29, 2026                                                                 Page | 20
+          A. AS PROVIDED IN ARTICLE 7-204 OF THE UNIFORM COMMERCIAL CODE, YUSEN
+             LOGISTICS WILL NOT BE LIABLE FOR ANY LOSS, DAMAGE, OR INJURY TO THE GOODS
+             TENDERED, STORED, HOWEVER CAUSED, UNLESS SUCH LOSS, DAMAGE OR INJURY
+             RESULTED FROM THE FAILURE BY YUSEN LOGISTICS TO EXERCISE SUCH CARE IN
+             REGARD TO THE GOODS AS A REASONABLY CAREFUL WAREHOUSE WOULD
+             EXERCISE UNDER LIKE CIRCUMSTANCES. YUSEN LOGISTICS IS NOT LIABLE FOR
+             DAMAGES WHICH COULD NOT HAVE BEEN AVOIDED BY THE EXERCISE OF
+             REASONABLE CARE.
+
+          B. YUSEN LOGISTICS’ LIABILITY IS LIMITED ONLY TO ITS NEGLIGENT ACTS.
+
+          C. CUSTOMER MAY REQUEST, IN WRITING, A HIGHER LIMITATION OF LIABILITY,
+             WHICH WILL BE SUBJECT TO HIGHER CHARGE(S). SUCH REQUEST IS NOT VALID
+             UNLESS IT IS MADE BEFORE ANY LOSS OR DAMAGE TO ANY PORTION OF THE GOODS
+             HAS OCCURRED.
+
+          D. IF YUSEN LOGISTICS IS LIABLE FOR LOSS OR DAMAGE TO GOODS, YUSEN LOGISTICS’
+             LIABILITY IS LIMITED TO THE ACTUAL LANDED COST FOR THE FIRST $10,000.00 AFTER
+             WHICH LIABILITY WILL BE AT THE RELEASED VALUE RATE OF THE LESSER OF: (1) $0.25
+             CENTS PER POUND OR (2) FIFTY (50) TIMES THE MONTHLY STORAGE CHARGE
+             APPLICABLE TO THE LOST OR DAMAGED GOODS. NOTWITHSTANDING THE
+             FOREGOING, IN NO EVENT WILL YUSEN LOGISTICS’ TOTAL LIABILITY EXCEED THE SUM
+             OF ONE MILLION DOLLARS ($1,000,000) PER OCCURRENCE OR PER ANNUM.
+
+          E. THE PURPOSE OF THIS SERVICE AGREEMENT IS TO LIMIT YUSEN LOGISTICS’ LIABILITY
+             IN CONNECTION WITH LOSS OR DAMAGE TO GOODS RESULTING FROM YUSEN
+             LOGISTICS’ NEGLIGENCE AND COVERED BY ITS WAREHOUSE LEGAL LIABILITY
+             INSURANCE. CUSTOMER AND ITS INSURERS WAIVE THEIR RIGHTS OF RECOVERY
+             AGAINST YUSEN LOGISTICS FOR CLAIMS EXCEEDING THE LIMITATIONS ON LIABILITY
+             SET FORTH IN THIS AGREEMENT.
+
+          F. Notwithstanding any provision to the contrary, Yusen Logistics will not be liable for
+             any loss or damage to the goods attributable to or otherwise caused by any of the
+             following: (i) any defects in the manufacturing or packaging of such goods; (ii) third
+             party transportation providers or carriers failing to deliver the full shipment of
+             expected goods to the applicable facility or otherwise caused by the acts or omissions
+             of such third party transportation providers or carriers; (iii) occurring prior to delivery
+             to the applicable facility in damaged condition and such damage was reported to
+             Yusen Logistics in accordance with the practice between the parties; (iv) concealed
+             damage; (v) a force majeure event; (vi) due to the negligence or intentional
+             misconduct of Customer or its employees, agents, or subcontractors; (vii) occurring
+             subsequent to Yusen Logistics’ care, custody, and control of the goods (which begins
+             when Yusen Logistics accepts receipt of the goods and which terminates when the
+Updated as of September 29, 2026                                                                 Page | 21
+               goods are placed with a third party transportation provider or carrier for shipment);
+               (viii) Yusen Logistics’ performance of its services as instructed by Customer; or (ix) loss
+               or damage which exceeds Yusen Logistics’ insurance limitations.
+
+6. Physical Inventories and Adjustments
+
+          a. If differences are found in inventory records, Yusen Logistics will list gains as receipts
+             and losses as deductions to correct the record and to reconcile the record with the
+             actual inventory. These changes will be based upon counts agreed to and signed by
+             Customer and Yusen Logistics.
+
+          b. For purposes of determining the net balance on the account, all debits and credits for
+             the period will be netted together without regard to commodity group.
+
+          c. If there is a net-money debit balance for the period covered, after netting across
+             commodity lines, that amount will be payable to Customer by Yusen Logistics. If there
+             is a net-money credit on the account, the account will be closed.
+
+          d. Carry-over of net debits or net credits from a settlement period to succeeding periods
+             or carry-back to preceding periods will not be made except under one or more of the
+             following conditions: (i) proven miscount in physical inventory; (ii) proven clerical
+             error by either party; or (iii) located or recovered mis-shipment.
+
+          e. If the net inventory variance calculated during the physical inventory is an overage
+             and Yusen Logistics paid for a shortage due to the preceding physical inventory,
+             Customer will refund to Yusen Logistics the overage to the extent that it does not
+             exceed the shortage for which Yusen Logistics has paid.
+
+          f. The values used to establish the net-money balance will be the lesser of the
+             manufacturer’s cost of goods or any amount stipulated in Section 5(d).
+
+          g.      In all events, Customer acknowledges that some damage or loss to the goods may
+          occur during performance of the services. Any presumption of conversion imposed by
+          law will not apply to such loss and a claim by Customer of conversion must be established
+          by affirmative evidence that Yusen Logistics converted the goods to Yusen Logistics’ own
+          use. The results of a physical inventory or cycle counts may not account for all of the
+          goods which were purportedly received by Yusen Logistics. Shortages or overages may
+          exist due to accounting or other errors or circumstances. Accordingly, Customer agrees
+          that Yusen Logistics shall be entitled to an annual damage and shrinkage allowance of
+          one-half percent (.50%) of the total landed cost of Customer’s goods passing through the
+          warehouse facility on an annualized basis which must be exceeded prior to Yusen Logistics
+          being liable for any damage, loss, or shortage to goods.
+
+
+
+Updated as of September 29, 2026                                                                   Page | 22
+7. Reconcile Inventory Records
+
+          If discrepancies exist between Customer’s records and the physical inventory, the parties
+          will provide to each other their inventory records from the previous reconciliation to the
+          time of the inventory count where the discrepancy was found. Yusen Logistics’ records
+          will be presumed to be correct absent contradictory evidence.
+
+8. Mis-shipment
+
+
+          If Yusen Logistics negligently mis-ships goods, Yusen Logistics will pay the reasonable
+          transportation charges incurred to return the mis-shipped goods to the warehouse. If the
+          consignee fails to return the goods, Yusen Logistics’ maximum liability will be pursuant to
+          Section 5(d) and Yusen Logistics will have no liability for damages due to the consignee’s
+          acceptance or use of the goods whether the goods be those of Customer or another.
+
+9. Pricing and Compensation
+
+          a. The rates for the services are set forth in the Warehouse Storage Services Rate
+             Schedule. Any additional or special services not specified in the Warehouse Stroage
+             Services Rate Schedule will be mutually agreed to by the parties, in writing.
+
+          b. All charges for storage are per pallet or by any other unit of measurement as agreed
+             to by the parties, in writing, and will be billed on a weekly basis.
+
+          c. Storage charges will apply upon the date that Yusen Logistics accepts care, custody
+             and control of the goods, regardless of the unloading date, the date of issue on the
+             warehouse receipt or similar document(s) or the date the required information is
+             entered into the EDI.
+
+
+10. KEY PERFORMANCE INDICATORS
+
+The Parties shall agree in writing on Key Performance Indicators (KPIs) which shall be an exhibit
+to the applicable Service Agreement. The KPIs may be amended in writing by mutual agreement
+of the Parties. There shall be a ramp up and implementation period for any newly enacted KPI of
+six (6) months (the Implementation Period). After the Implementation Period, if Yusen fails to
+meet a KPI, the Parties shall meet and cooperate to determine the root cause of such failure and
+Yusen shall propose a corrective action. Thereafter, if Yusen fails to meet the same KPI in three
+consecutive months, such failure, will be considered a material breach of contract and Customer
+may elect to terminate the Agreement or the applicable Service Agreement at its discretion with
+immediate effect. Notwithstanding the foregoing, in any month in which a material variance from
+the most recent Monthly or Weekly Forecasts occurs, any failure to comply with a KPI in which
+the volume is factor in the KPO, shall not constitute a breach of this Agreement. A material
+
+Updated as of September 29, 2026                                                              Page | 23
+variance from a Monthly or Weekly Forecast shall occur if actual Inbound or Outbound Activity
+or the number of Containers for Transload exceeds the most recent Monthly or Weekly Forecast
+by more than 10% (i.e., 111% or more of the respective Monthly or Weekly Forecast).
+
+11. LIEN
+
+         CUSTOMER ACKNOWLEDGES AND AGREES THAT YUSEN LOGISTICS SHALL HAVE A
+         GENERAL WAREHOUSEMAN’S LIEN AS CODIFIED IN THE UNIFORM COMMERCIAL CODE
+         (“UCC”) ON ALL GOODS WHICH HAVE OR WILL OTHERWISE COME INTO THE
+         POSSESSION OF YUSEN LOGISTICS, REGARDLESS OF WHETHER OR NOT SUCH GOODS
+         REMAIN IN YUSEN LOGISTICS’ POSSESSION, AND ON ALL PROCEEDS THEREOF, FOR
+         CHARGES FOR STORAGE, RECEIVING, TRANSPORTATION (INCLUDING, BUT NOT LIMITED
+         TO, OUTBOUND TRANSPORTATION, INBOUND TRANSPORTATION, DEMURRAGE,
+         DETENTION, AND TERMINAL CHARGES), LABOR, INVENTORY CHARGES, ORDER
+         PROCESSING COSTS (INCLUDING PICK AND PACK, OVERPACKING, AND THE LIKE),
+         TRANS-SHIPMENT EXPENSES, INSURANCE, MONEY ADVANCED, WEIGHING AND
+         COOPERING, AND CHARGES PAST, PRESENT AND FUTURE RELATED TO THE GOODS, AND
+         FOR EXPENSES NECESSARY FOR PRESERVATION OF SUCH GOODS AND REASONABLY
+         INCURRED IN THEIR SALE PURSUANT TO APPLICABLE LAWS, INCLUDING, BUT NOT
+         LIMITED TO THE UCC. YUSEN LOGISTICS WILL HAVE A GENERAL WAREHOUSE LIEN FOR
+         ALL CHARGES AND EXPENSES WITH RESPECT TO ANY OTHER GOODS STORED BY YUSEN
+         LOGISTICS FOR CUSTOMER IN ANY OTHER FACILITY OWNED OR OPERATED BY YUSEN
+         LOGISTICS. TO PROTECT ITS LIEN, YUSEN LOGISTICS RESERVES THE RIGHT TO REQUIRE
+         ADVANCE PAYMENT OF ALL CHARGES PRIOR TO SHIPMENT OF GOODS.
+
+
+APPROVED AND ACCEPTED BY:
+
+          Yusen Logistics (Americas) Inc.         AmericanFlat
+
+          By:________________________             By:_________________________
+
+          Name:_____________________              Name:______________________
+
+          Title:______________________            Title:________________________
+
+
+
+
+Updated as of September 29, 2026                                                      Page | 24
+                            TRANSPORTATION BROKERAGE SERVICE AGREEMENT
+
+This Transportation Brokerage Service Agreement (as used herein, the “Service Agreement”) is
+entered into pursuant to that certain Master Logistics Services Agreement between Yusen
+Logistics and Customer. Capitalized terms used in this Service Agreement shall have the
+meanings provided in the Agreement except as otherwise defined herein.
+
+1. Services
+
+          With respect to transportation brokerage services, Customer desires that Yusen Logistics
+          arrange for the Services (“Services”) as set forth in the Transportation Brokerage Services
+          Rate Schedule and Yusen Logistics agrees to arrange for the transportation brokerage
+          services subject to the Pricing Assumptions of the Agreement and pursuant to this Service
+          Agreement. Yusen Logistics is a property broker licensed by the Federal Motor Carrier
+          Safety Administration (“FMCSA”) in docket number 164520. Customer agrees that in
+          performing transportation brokerage services, Yusen Logistics is acting as a property
+          broker and not as a warehouse, freight forwarder, motor carrier, rail carrier, or an agent
+          of a motor carrier, rail carrier, or a shipper. Motor carriers and rail carriers are collectively
+          referred to as “Carrier”.
+
+2. Customer’s Responsibilities
+
+     a. Inland. Customer will provide or arrange for Yusen Logistics to receive the necessary
+        shipping instructions for all outbound freight. Customer will insure that the consignee
+        signs a delivery receipt showing the type and quantity of goods received. Each signed
+        delivery receipt will be evidence of Carrier’s delivery of goods in good order and condition
+        unless otherwise noted on the front of the delivery receipt. If Customer requests that
+        Yusen Logistics arrange for the trailer or container (collectively, “Equipment”) to be
+        dropped at a location other than the Yusen Logistics-owned or operated facility identified
+        in the Transportation Brokerage Services Rate Schedule, Customer and its consignors or
+        consignees will not lose, damage, or misuse the Equipment and Customer will be liable
+        for loss or damage to the Equipment occurring during or as a result of such possession or
+        use of the Equipment if caused in whole or in part by Customer, its consignees, consignor,
+        or their agents or employees.
+
+     b. Port or Rail Drayage. Customer or its agent will inspect all empty containers at the origin
+        before loading and will reject any Equipment that is not in apparent or visually good
+        operating condition to protect and preserve the cargo during transportation. Customer
+        will properly identify all cargo on the bill of lading or other shipping instructions and will
+        provide or arrange for Yusen Logistics to receive said information prior to pick up at the
+        port. Without properly identifying such shipments and making necessary prior
+        arrangements for transportation thereof, Customer will not tender any commodities
+        restricted or regulated under state or federal law, the steamship line tariffs, or rail
+        circulars. Customer will be liable for expenses arising out of any infestation, odors, or
+Updated as of September 29, 2026                                                                    Page | 25
+          other hazards arising from the container. Customer will be responsible for ensuring that
+          cargo is properly counted and recorded with a protective seal applied to the loaded
+          equipment and safely loaded, supported, blocked, braced, and secured, in accordance
+          with the publications and standards of the steamship line and all applicable international
+          treaties, federal laws, and regulations. Furthermore, Customer will be liable for expenses
+          arising out of any load shift that occurs during transportation due to improper or
+          insufficient loading, blocking, or bracing. Customer will provide Yusen Logistics with
+          necessary instructions and documents for the pickup of the containers from the port.
+
+3. Insurance
+
+          Yusen Logistics will maintain the following minimum insurance coverages and limits, at its
+          sole expense, throughout the term of this Service Agreement. Upon request, Yusen
+          Logistics will provide Customer with a certificate of insurance evidencing the insurance
+          coverage and will provide Customer with at least thirty (30) days’ notice prior to any policy
+          cancellation, material change or non-renewal:
+
+          a. Commercial General Liability insurance, including broad form coverage of no less than
+             one million dollars ($1,000,000) per occurrence;
+
+          b. Auto Liability insuring against liability for bodily injury (including death) and property
+             damage (other than cargo loss or damage) in a combined single limit of at least one
+             million dollars ($1,000,000) per occurrence;
+
+          c. Contingent Motor Cargo legal liability of at least one hundred thousand dollars
+             ($100,000) per full trailer or container; and
+
+          d. Worker's Compensation as required by the applicable statute(s) in all state(s) where
+             Yusen Logistics performs services for Customer and Employer’s liability insurance in
+             an amount no less than one million dollars ($1,000,000) per occurrence and two
+             million dollars ($2,000,000) in the aggregate.
+
+4. Notice of Loss or Damage
+
+          For outbound drayage to a rail carrier, if a shipment arrives at Customer’s destination
+          with visible damage or loss of cargo, Customer will notify Yusen Logistics promptly, no
+          later than twenty-four (24) hours after delivery, advising Yusen Logistics of the nature and
+          extent of the loss or damage, or in the event of non-delivery, within a reasonable time of
+          the anticipated delivery date. The Carrier may consider Customer to have waived and
+          released the claim if there is a failure to provide this prompt notification.
+
+
+
+
+Updated as of September 29, 2026                                                                Page | 26
+5. Time for Filing Loss or Damage Claims
+
+     a. Inland. Unless the applicable rail circular sets forth a shorter time, all loss or damage claims
+        arising during transit will be filed with Yusen Logistics in writing within sixty (60) days after
+        delivery of the goods by the Carrier. Any legal action to recover for loss or damage must be
+        filed within two (2) years from the date when Yusen Logistics declines any portion of the
+        claim. Customer must mitigate any losses. The expiration of the two (2) year period will be
+        an absolute defense to any such action.
+
+     b. Port or Rail Drayage. Notice of loss or damage claims will be filed with Yusen Logistics in
+        writing within thirty (30) days of receipt of an overage, shortage, or damage report from
+        the warehouse. Any legal action to recover for loss or damage must be filed within one (1)
+        year from the date Yusen Logistics declines any portion of the claim. Customer must mitigate
+        any losses. Unless the applicable steamship line tariff sets forth a shorter time, the
+        expiration of the one (1) year period will be an absolute defense to any such action.
+
+     c. All claims filed with Yusen Logistics will be sent to: Yusen Logistics (Americas) Inc., Attn:
+        Legal Department, 300 Lighting Way, 5th Floor, Secaucus, New Jersey 07094. Upon Yusen
+        Logistics’ payment of a claim, Customer will assign its rights in such claim to Yusen
+        Logistics, in writing, in a form reasonably satisfactory to Yusen Logistics to allow Yusen
+        Logistics to subrogate the loss against the Carrier or other party. Customer will assist
+        Yusen Logistics in the handling of claims by providing reasonable notice and all relevant
+        documents to Yusen Logistics in a timely manner to allow Yusen Logistics to present such
+        claims as required by law or contract.
+
+6. Liability of Carrier
+
+          Yusen Logistics will select only motor carriers that agree: (a) to assume the liability of a
+          common carrier for actual loss or injury to the cargo, subject to the provisions of the 49
+          U.S.C. § 14706 (or successor regulation), up to a maximum liability of one hundred
+          thousand dollars ($100,000) per full or less than full container or trailer; and (b) that any
+          exclusions in the motor carrier’s insurance policy will not exonerate the motor carrier
+          from liability for such cargo loss or damage. The liability of rail carriers will be governed
+          by the applicable rail circulars. Both rail and motor carriers will agree to process and pay
+          cargo claims in accordance with and subject to 49 CFR § 1005 and 370, respectively.
+
+7. Liability of Yusen Logistics
+
+          Yusen Logistics assumes contingent cargo liability for cargo loss or damage that occurs
+          during the transportation of Customer’s cargo and which is caused by the negligent acts
+          or omissions of Yusen Logistics in performing the transportation brokerage services up to
+          a maximum of one hundred thousand dollars ($100,000) per full container or trailer
+          subject to 49 U.S.C. § 14706 (or successor regulation). Yusen Logistics does not assume
+          liability for loss or damage that occurs as a result of damage to the container prior to pick
+Updated as of September 29, 2026                                                                  Page | 27
+          up at the port or due to the acts or omissions of the steamship line, terminal, stevedores,
+          or their respective agents or subcontractors. In no event will Yusen Logistics’ total liability
+          to Customer under the Agreement exceed the applicable amounts of its contingent cargo
+          liability insurance coverage.
+
+8. Higher Release Value Shipments
+
+          Neither Yusen Logistics’ nor the motor carrier’s cargo liability for any one shipment will
+          exceed the liability limitations described above, unless Yusen Logistics and Customer
+          agree to change temporarily the release value for a specific shipment. Customer must
+          submit such request for a change in release value in writing to Yusen Logistics prior to
+          tendering the shipment and Yusen Logistics must accept such change in writing. In no
+          event will the higher release value exceed $250,000 per full container or trailer.
+
+9. Less Than Truckload Shipments or Used Goods Shipments
+
+          Carrier’s and Yusen Logistics’ liability for loss or damage to property as set forth above
+          will be limited on less than truckload shipments to the lesser of: (a) $100,000 per
+          shipment; (b) $15.00 per pound per lost or damaged piece per bill of lading; (c) actual
+          replacement value for new goods; or (d) $.50 per pound per used item (including
+          reconditioned, re-manufactured or rebuilt).
+
+10. Cargo Liability for Loss or Damage in Mexico
+
+          Notwithstanding any provision to the contrary, Customer accepts that neither Yusen
+          Logistics nor Carrier will be liable for cargo loss or damage that occurs while the cargo is
+          in Mexico.
+
+11. Settlement of Claims
+
+          In the event Customer settles a claim directly with a carrier, regardless of the adequacy
+          of the settlement, Customer will be considered to have waived any claim rights it may
+          have against Yusen Logistics and said settlement with carrier will be considered a full,
+          final, and complete release of liability, contingent or otherwise, of Yusen Logistics.
+
+12. Exceptions from Liability
+
+          Notwithstanding any provision to the contrary, neither Yusen Logistics nor Carrier will be
+          liable for the following: (a) damage to cargo due to packaging, loading, unloading,
+          blocking, bracing or securing of the cargo unless Yusen Logistics has provided loading or
+          unloading services at Customer’s request; (b) inherent vice or defect in the cargo
+          transported, including, without limitation, rusting of metals, swelling of wood caused by
+          humidity, moisture or condensation, loss due to extremes in temperature or atmospheric
+          changes, or deterioration of perishable goods; (c) Force Majeure events including but not
+Updated as of September 29, 2026                                                                  Page | 28
+          limited to acts of God or the public enemy, war, strikes, lockouts, acts of governmental
+          authority, and similar causes beyond the reasonable control of Yusen Logistics or Carrier;
+          (d) an act or omission of any Customer, consignor, consignee or beneficial owner of the
+          cargo; (e) delay; and (f) Customer’s damages and shortages of containers that arrive at
+          Yusen Logistics’ facility or at Customer’s destination with seal intact. Customer
+          acknowledges and agrees that Customer will not seek reimbursement from Yusen
+          Logistics or Carrier for cargo loss or damage amounting to less than $250.00.
+
+13. Refused Shipment
+
+          If the consignee refuses a shipment or if carrier is unable to deliver the lading because of
+          fault or mistake of Customer or the consignee, or if Customer advises and instructs Carrier
+          to stop movement of the lading and to hold it in transit, Carrier’s or Yusen Logistics’
+          liability for loss or damage to a shipment thereafter immediately will be that of a
+          warehouseman. Yusen Logistics or Carrier will use the ordinary care of a warehouse to
+          keep the lading in a safe or suitable place or to store the lading properly. Notwithstanding
+          any terms to the contrary, Carrier’s or Yusen Logistics’ liability as a warehouseman will be
+          limited to $0.50 per pound for loss or damage arising out of Carrier’s or Yusen Logistics’
+          negligent performance of its duties as the warehouseman described in this paragraph.
+          Customer will be responsible for storage costs and other reasonable costs incurred for
+          the warehouse services. To the extent any sale or disposal revenues exceed the storage
+          costs and the costs carrier or Yusen Logistics incurs as a warehouse, the balance will be
+          remitted to Customer. If Customer gives timely disposition instructions, Yusen Logistics
+          will use commercially reasonable steps to abide with such instructions. Customer will pay
+          Yusen Logistics’ or Carrier’s costs and any additional transportation costs incurred in
+          executing Customer’s instructions.
+
+14. Pricing and Compensation
+
+          Carriers shall be informed to look only Yusen Logistics for payment of rates and charges.
+          If Customer has paid all sums due to Yusen Logistics, Yusen Logistics will defend,
+          indemnify, and hold harmless Customer from any claim of non-payment of freight charges
+          by a Carrier that performed any Services. Notwithstanding the foregoing Customer is
+          solely responsible for demurrage or chassis charges that are subject to an agreement
+          between Customer and the steamship line or chassis pool. Customer agrees to defend,
+          indemnify, and hold harmless Yusen Logistics and the dray carrier from any claims of non-
+          payment by steamship lines or chassis pool operators. If Customer does not have an
+          agreement with the steamship line or chassis pool operator, the Carrier will procure the
+          chassis and bill Yusen Logistics for its use. Yusen Logistics will in turn bill Customer for
+          these charges at cost plus an administration fee as stated in the Transportation Brokerage
+          Services Rate Schedule. Yusen Logistics is under no obligation to pay for and is not
+          ultimately responsible for said chassis charges.
+
+
+
+Updated as of September 29, 2026                                                               Page | 29
+15. Freight Overcharges/Undercharges
+
+          Claims for overcharges and undercharges will be filed within one hundred eighty (180)
+          days from the date of invoice or the date of delivery, whichever comes first. Claims for
+          overcharges or undercharges not filed within such period will be waived. Lawsuits for
+          overcharges or undercharges must be filed within eighteen (18) months from the date of
+          shipment. The expiration of the eighteen (18) month period will be an absolute defense
+          to any such action or proceeding, without regard to any mitigating or extenuating
+          circumstance or excuse whatsoever.
+
+APPROVED AND ACCEPTED BY:
+
+          Yusen Logistics (Americas) Inc.             AmericanFlat
+
+          By:________________________                 By:_________________________
+
+          Name:_____________________                  Name:______________________
+
+          Title:______________________                Title:________________________
+
+
+
+
+Updated as of September 29, 2026                                                           Page | 30
+                               WAREHOUSE STORAGE SERVICES RATE SCHEDULE
+
+
+Customer shall compensate Yusen Logistics for performance of the Services as provided in
+Section 1 of the Public / Contract Warehouse Storage Service Agreement according to this
+schedule of rates and charges.
+
+RATE VALIDITY: The rates set forth in this Rate Schedule shall be valid from _April , 2026
+through _March 31, 2027
+
+STORAGE:
+Invoices to be sent weekly with supporting documentation. Storage charges shall apply only to
+Americanflat sellable inventory or inventory specifically held for Americanflat’s account. No storage
+charges shall apply to non-inventory items, including pallets, corrugate, packaging materials, labels,
+supplies, dunnage, or other warehouse materials, unless separately requested by Americanflat and
+expressly approved in writing in advance.
+
+Details        UOM                                                    Edison 1, NJ    Fontana, CA Savannah, GA
+Storage        Per Pallet Per Week                                $             4.34 $       4.47 $       3.35
+
+REGULAR HANDLING: Handling rates cover unloading, put away, stock location, receiving in the
+warehouse management system, picking, staging, and loading. Handling rates will also apply to
+the handling of non-inventory items (e.g. pallets, packaging materials, etc.) and require approval
+from Americanflat.
+
+     a) Inbound build standard. Yusen Logistics will build all inbound pallets to 36–38 cubic feet
+        as part of standard receiving and handling, at no additional charge. The only exception is
+        where a SKU's dimensions prevent meeting the target and insufficient quantity exists to
+        consolidate it with other SKUs.
+
+          (b) Ongoing consolidation. Yusen Logistics will consolidate 3–4 SKUs per pallet position
+          after pick and pack orders drop, as needed to maintain the utilization standard in (d).
+
+          (c) Measurement and reporting. Yusen Logistics will report each facility's weighted-
+          average utilization across its total stored inventory, in cubic feet and CBM, calculated
+          from Americanflat's master carton dimensions, weekly with each storage invoice.
+          Inventory qualifying for the exception in (a) will be identified and excluded from the
+          average. This Americanflat provided CBM per carton report is the measurement of
+          record for the standard.
+
+          (d) Consolidation trigger. If a single facility's weighted-average utilization across its total
+          stored inventory falls below 0.87 CBM (approximately 30.7 cubic feet) for two (2)
+          consecutive weeks, Yusen Logistics will consolidate that facility's inventory at no
+          additional charge, completing the consolidation such that the facility's weighted-
+
+
+Updated as of September 29, 2026                                                                       Page | 31
+           average utilization is restored to 0.87 CBM or above within ten (10) business days of the
+           second weekly report.
+
+           (e) Storage relief. If the facility's weighted-average utilization is not restored to 0.87 CBM
+           or above within ten (10) business days, weekly storage invoices for the facility will be
+           capped at the number of pallet positions the inventory would occupy at 0.87 CBM per
+           position, until the facility's weighted-average utilization is restored to 0.87 CBM or above.
+
+           (f) Billability. Consolidation performed under (b) or (d) is not billable. Only consolidation
+           requested by Customer outside these obligations is billable as a VAS project at accessorial
+           hourly rates.
+
+Americanflat will pay for hours used to consolidate inventory only upon written request, as a VAS
+job and approval from Americanflat for this action to be taken. There will be no consolidation
+fee on inbound process. Please refer to accessorial hourly rates.
+
+
+Details                            UOM                                             Edison 1, NJ   Fontana, CA Savannah, GA
+                                   Per Carton                                  $          0.9467 $     0.9173 $     0.7728
+                                   Per Container Admin                         $        47.3340 $     52.8831 $    47.2880
+                                   Per LTL/Air Freight Carton                  $          0.9467 $     0.9173 $     0.7728
+          Handling In
+                                   Container / Trailer Storage (After day of
+                                   arrival) per spot per day                   $        43.4700 $     43.4700 $    43.4700
+                                   LTL/Air Freight Delivery Minimum            $        72.4500 $     72.4500 $    72.4500
+                                   LTL/Air Freight Delivery Per Carton         $         0.7728 $      0.7728 $     0.7728
+
+          Handling Out             Per Carton                                  $         1.7871 $     1.8887 $      1.6422
+                                   Per Order                                   $         2.1735 $     2.1585 $         -
+
+                                   Per Additional Ecom Pick                    $         0.5060   $   0.5060   $    0.5796
+                                   Per Ecom Order                              $         2.2264   $   2.2264   $       -
+          Pick / Pack
+                                   Per Packing Slip                            $         0.9177   $   1.3491   $       -
+                                   Per Pick Units                              $         0.7728   $   0.9660   $       -
+                                   Per Carton                                  $            -     $      -     $    2.7531
+           Sortation
+                                   Per SKU                                     $        29.9460 $     31.2981 $    24.1500
+           Palletizing
+                                   Per Pallet (Grade B) and Stretch Wrap       $        10.0000 $     10.0000 $    10.0000
+
+Palletizing – National Pallet Rate: The Palletizing rate of $10.00 per pallet applies at all
+warehouses and is inclusive of the pallet (Grade B) and stretch wrap, as shown in the table above.
+No separate or additional charge shall apply for stretch wrap, pallet materials, or standard pallet
+preparation, notwithstanding the Warehouse Supplies charge below or the handling of non-
+inventory items under Regular Handling.
+
+
+
+
+Updated as of September 29, 2026                                                                                    Page | 32
+INVENTORY / CYCLE COUNTS:
+Yusen Logistics shall perform cycle counts covering 100% of Americanflat inventory at each
+facility at least three (3) times per calendar year, at no additional charge, supported by a
+dedicated inventory-control resource per facility. Americanflat shall select the count dates and
+provide no less than thirty (30) days' advance notice of each scheduled count, except as the
+parties may otherwise agree. Results, including variance detail by SKU, shall be provided within
+ten (10) business days of each count and shall serve as the measurement basis for the Inventory
+Accuracy KPI and the annual shrinkage allowance. Yusen will cooperate with Customer's auditors
+to satisfy audit requirements in lieu of an annual physical inventory. Additional Customer-
+requested counts are billed at accessorial hourly rates.
+
+
+SMALL PARCEL HANDLING - UPS/FEDEX
+
+Edison, NJ: $0.6532 per carton
+Fontana, CA: $0.6879 per carton
+Savannah, GA: $0.8400 per carton
+
+
+ADDITIONAL SERVICES & CHARGES UPON CUSTOMER REQUEST
+If Customer requests additional services or there is a change in the scope of the services agreed
+to then additional charges may apply as set forth below.
+WAREHOUSE SUPPLIES:                                                              Cost + 12% margin
+
+Sample calculation: If cost, including tax and shipping, is $100, 12% margin is calculated as
+follows: $100 / (1 – 0.12) = $113.64.
+
+
+SPECIAL PROJECTS/HOURLY LABOR:
+
+
+
+
+Updated as of September 29, 2026                                                            Page | 33
+Details                            UOM                  Edison 1, NJ      Fontana, CA     Savannah, GA
+Equipment Operator                 Per Hour           $      53.5500     $    59.8278     $    53.5500
+Material Handler                   Per Hour           $      35.0000     $    35.0000     $    32.0000
+Clerical                           Per Hour           $      42.0000     $    42.0000     $    40.0000
+Office Associate                   Per Hour           $      53.5500     $    59.8278     $    53.5500
+Administrative                     Per Hour           $      53.5500     $    59.8278     $    53.5500
+Cancel Return Stock                Per Hour           $      53.5500     $    59.8278     $    53.5500
+Outbound Floor Loading             Per Hour           $      53.5500     $    59.8278     $    53.5500
+Over size/weight                   Per Hour           $      53.5500     $    59.8278     $    53.5500
+Photography                        Per Hour           $      53.5500     $    59.8278     $    53.5500
+Physical Inventory                 Per Hour           $      53.5500     $    59.8278     $    63.0000
+Quality Assurance                  Per Hour           $      53.5500     $    47.1232     $    53.5500
+Returns Processing                 Per Hour           $      53.5500     $    59.8278     $    53.5500
+Salaried Supervisor                Per Hour           $      77.7000     $    82.1166     $    77.7000
+Stock Consolidation                Per Hour           $      53.5500     $    59.8278     $    63.0000
+Routing Support                    Per Hour           $      53.5500     $    59.8278     $    53.5500
+Dray Admin Fee                     Per Hour           $      47.3340     $    52.8831     $    51.4500
+
+The hourly labor rates will be applied for any services performed in addition to that which has been
+specified in this rate schedule or where the scope of handling deviates from that included in the original
+SOP, SOW or quotation. The parties shall agree in advance to the application of these charges. Work
+requested on weekends and holidays requires a four-hour minimum.
+
+
+
+OVERTIME:
+Invoiced based on applicable state law which defines what is considered overtime and double
+time.
+Overtime on weekends and holidays require a 4-hour minimum.
+PHYSICAL INVENTORY:
+Refer to Special Project Rates and Warehouse Supplies billed at Cost + 12% margin. Additional
+equipment rental at Cost + 12% margin. The cycle counts provided at no additional charge
+under INVENTORY / CYCLE COUNTS above are not billable under this section; only additional
+Customer-requested counts are billed at the applicable hourly rate.
+IT SETUP:
+
+IT hourly rate                                           $185 per hour
+
+LABELING:
+
+Create, print and apply label                            $0.30 per label
+Additional label                                         $0.42 per label
+Updated as of September 29, 2026                                                                   Page | 34
+DOCUMENTS: This rate includes creating and printing shipping documents (e.g. bill of lading)
+
+$6.50 per document
+
+SAME DAY RUSH ORDER: The same day rush order rate only applies to orders received after 12
+P.M. in the applicable time zone which must be shipped in the same day.
+
+$50.00 per order
+
+
+CPI: Initial rate review shall not occur until at least one hundred twenty (120) days after
+commencement of services or execution of the revised rate schedule. Any proposed rate
+change must be supported by actual operating data and mutually agreed in writing. No
+unilateral rate change, new line item, surcharge, or methodology change shall apply. No
+escalation in Year 1. After Year 1, any adjustment must be mutually agreed in writing, and no
+adjustment shall exceed the lesser of the applicable PPI change or maximum of 3.5% per
+annum, supported by the BLS Producer Price Index for Warehousing and Storage
+
+
+
+
+Updated as of September 29, 2026                                                         Page | 35
+Updated as of September 29, 2026   Page | 36
+KPIs Notes:
+DTC/Marketplace: Any orders received before 12 Noon must be shipped same day.
+Wholesale: Orders must be routed within 24 hours of receipt.
+
+
+
+
+Updated as of September 29, 2026                                                Page | 37
+
