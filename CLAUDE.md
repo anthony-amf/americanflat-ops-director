@@ -29,7 +29,7 @@ The **canonical skill source is NOT in this repo**. It lives at
 `~/.claude/skills/yusen-invoice-validator/` (SKILL.md, scripts/, references/).
 This repo carries:
 
-- `yusen-invoice-validator.skill` — the packaged zip, **now v1.8.0** and NOT a dead
+- `yusen-invoice-validator.skill` — the packaged zip, **now v1.8.1** and NOT a dead
   artifact: the nightly cloud validator unzips this very file and imports it (see
   Who actually validates, below). Changing validator behaviour in the cloud means
   repackaging and committing this. Superseded zips are kept under
