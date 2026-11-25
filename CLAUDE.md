@@ -29,11 +29,14 @@ The **canonical skill source is NOT in this repo**. It lives at
 `~/.claude/skills/yusen-invoice-validator/` (SKILL.md, scripts/, references/).
 This repo carries:
 
-- `yusen-invoice-validator.skill` — the packaged zip, **now v1.6.0** and NOT a dead
+- `yusen-invoice-validator.skill` — the packaged zip, **now v1.7.0** and NOT a dead
   artifact: the nightly cloud validator unzips this very file and imports it (see
   Who actually validates, below). Changing validator behaviour in the cloud means
-  repackaging and committing this. The superseded 1.5.0 zip is kept beside the
-  release scripts in `skill-updates/v1.6.0/superseded/`.
+  repackaging and committing this. Superseded zips are kept under
+  `skill-updates/<version>/superseded/` (1.5.0 in v1.6.0/, 1.6.2 in v1.7.0/).
+  v1.7.0 adds `scripts/storage_cbm_check.py` — the storage CBM check, flag only,
+  reading the "Warehouse CBM normalized" sheet; not yet wired into a runbook
+  (waiting on the sheet link from Anthony, 2026-11-25).
 - Root-level `*.py` validators (`rate-card-validator.py`, `invoice-stedi-validator.py`,
   `invoice-validator-demo.py`, `scripts/parse_invoice_excel.py`) — **stale dev
   predecessors** of the skill scripts. Do not edit these expecting behavior to
