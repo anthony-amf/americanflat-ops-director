@@ -3,7 +3,21 @@
 *Mirror of the local memory note so cloud sessions see it. BigQuery
 (`finance.yusen_invoices`, `paid_at IS NULL`) is the authoritative ledger;
 this file is the human decision queue. Update or prune as decisions land.*
-*Last updated: 2026-08-06.*
+*Last updated: 2026-11-25.*
+
+## Storage CBM check — waiting on John Nunez (2026-11-25)
+
+`scripts/storage_cbm_check.py` (validator v1.7.0+) and the final-MSA storage cap
+(v1.8.0, cap counted from 2026-10-16) are built but **not yet written to the
+ledger**. They need the "Warehouse CBM normalized" sheet (tab "Normalized Data").
+That sheet is bound to the WarehouseCBMTracker Apps Script, so it isn't in any repo.
+John Nunez now owns it and will share the link or the weekly CSV in Slack (expected
+Thu 11/26 or Fri 11/27). When it arrives:
+1. Run `storage_cbm_check.py --cbm-file <export> --cap-from 2026-10-16` as a dry run.
+   On the old snapshot, SC triggered 11/16 (fix deadline 11/30) and NJ triggered
+   11/23 (fix deadline 12/07), and nothing was capped yet.
+2. Re-run with `--write`. This writes `[STORAGE CBM]` blocks to unpaid rows only.
+3. Wire the check into `docs/CLOUD-SWEEP-RUNBOOK.md`, using a Drive copy of the CSV.
 
 ## MSA billing dispute — consolidated (2026-08-05, updated 8/6)
 
